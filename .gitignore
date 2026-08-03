@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+
+# Project output
+output/
+!output/.gitkeep
+
+# Audio (keep the repo clean of source material)
+*.wav
+*.mp3
+*.aiff
+*.aif
+*.m4a
+*.flac
+!tests/fixtures/*.wav
+
+# macOS
+.DS_Store
