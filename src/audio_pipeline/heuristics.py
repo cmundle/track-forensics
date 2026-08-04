@@ -373,6 +373,20 @@ def _ramp(value: float | None, threshold: float, saturation: float) -> float | N
     return min(1.0, progress)
 
 
+#: Public alias for `_ramp`, the project's single calibration primitive.
+#:
+#: `drum_elements.py` and `note_track.py` import this rather than copying the
+#: ramp, so a hit or a note sitting exactly on a threshold scores 0.0 and climbs
+#: from there, exactly like every label in this module. One convention, one
+#: implementation, one footgun to remember (see `_ramp`).
+#:
+#: **The dependency runs one way only.** Audio modules import from `heuristics`;
+#: `heuristics` imports nothing from them. That is what keeps this module
+#: audio-free, backend-agnostic and cheap to test, and it is worth more than any
+#: convenience a reverse import would buy.
+ramp = _ramp
+
+
 def _all(*confidences: float | None) -> float | None:
     """Combine ramps that must *all* hold, weakest-link style.
 
