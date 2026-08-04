@@ -25,7 +25,8 @@ dependencies = [
 # Essentia is the preferred analyzer but is the hardest install on macOS.
 # Install this extra first; if it fails, use the `librosa` extra as fallback.
 essentia = ["essentia>=2.1b6.dev1110"]
-librosa = ["librosa>=0.10", "scipy>=1.11"]
+# pyloudnorm supplies the ITU-R BS.1770 meter librosa does not have.
+librosa = ["librosa>=0.10", "scipy>=1.11", "pyloudnorm>=0.1.1"]
 dev = ["pytest>=8.0", "ruff>=0.5", "mypy>=1.10"]
 
 [project.scripts]
@@ -41,6 +42,11 @@ target-version = "py311"
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
 
+[tool.ruff.lint.per-file-ignores]
+# Typer declares CLI arguments as function calls in parameter defaults. That is
+# the whole API, so B008 is a false positive for this file only.
+"src/audio_pipeline/cli.py" = ["B008"]
+
 [tool.mypy]
 python_version = "3.11"
 strict = true
@@ -49,3 +55,8 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+# Slow tests are deselected by default; run them with `pytest -m slow`.
+addopts = "-m 'not slow'"
+markers = [
+    "slow: loads a real model or processes real audio (Demucs end-to-end runs)",
+]

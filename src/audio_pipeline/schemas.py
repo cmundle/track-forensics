@@ -112,8 +112,22 @@ class TrackSummary(BaseModel):
 
         Each source keeps a `beat_count` so the information is not lost, and the
         full list stays available in that source's own analysis file.
+
+        `beat_count` takes the slot `beat_times` occupied, so key order across
+        the rest of the payload is unchanged and run-to-run diffs stay readable.
         """
-        raise NotImplementedError
+        payload = self.model_dump(mode="json")
+        for source in payload.get("sources", {}).values():
+            rhythm = source.get("rhythm")
+            if not isinstance(rhythm, dict) or "beat_times" not in rhythm:
+                continue
+            source["rhythm"] = {
+                ("beat_count" if key == "beat_times" else key): (
+                    len(value) if key == "beat_times" else value
+                )
+                for key, value in rhythm.items()
+            }
+        return payload
 
 
 class StrudelHints(BaseModel):

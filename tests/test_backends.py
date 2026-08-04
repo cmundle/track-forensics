@@ -1,0 +1,141 @@
+"""Tests for backend discovery and resolution.
+
+These cover the seam only — the backends themselves are stubs owned by other
+packages. What matters here is that resolution never crashes the CLI and that
+failure messages tell the user what to install.
+"""
+
+from __future__ import annotations
+
+import os
+import subprocess
+import sys
+from pathlib import Path
+
+import numpy as np
+import pytest
+
+from audio_pipeline import analyze
+from audio_pipeline.backends import (
+    BACKEND_PREFERENCE,
+    AnalysisBackend,
+    BackendUnavailableError,
+    available_backends,
+    get_backend,
+)
+from audio_pipeline.backends.essentia_backend import EssentiaBackend
+from audio_pipeline.backends.librosa_backend import LibrosaBackend
+from audio_pipeline.schemas import RhythmFeatures
+
+
+def test_preference_puts_essentia_first() -> None:
+    assert BACKEND_PREFERENCE == ("essentia", "librosa")
+
+
+def test_available_backends_never_raises() -> None:
+    """`doctor` calls this on machines where neither library installed."""
+    found = available_backends()
+    assert set(found) <= set(BACKEND_PREFERENCE)
+    assert found == [name for name in BACKEND_PREFERENCE if name in found]
+
+
+def test_backend_names_are_set() -> None:
+    assert EssentiaBackend().name == "essentia"
+    assert LibrosaBackend().name == "librosa"
+
+
+@pytest.mark.parametrize("backend_class", [EssentiaBackend, LibrosaBackend])
+def test_stubs_satisfy_the_protocol(backend_class: type) -> None:
+    backend = backend_class()
+    assert isinstance(backend, AnalysisBackend)
+
+    audio = np.zeros(1024, dtype=np.float32)
+    for method in ("rhythm", "tonal", "spectral", "dynamics"):
+        with pytest.raises(NotImplementedError):
+            getattr(backend, method)(audio, 44100)
+
+
+def test_importing_the_package_does_not_pull_in_the_analysis_libraries() -> None:
+    """The CLI must load with neither library installed, so nothing may import
+    them eagerly. Run in a subprocess so an earlier test's import cannot mask it.
+    """
+    program = (
+        "import sys; import audio_pipeline.cli, audio_pipeline.analyze, "
+        "audio_pipeline.audio_io, audio_pipeline.backends; "
+        "print(sorted(m for m in sys.modules if m.split('.')[0] "
+        "in {'essentia', 'librosa'}))"
+    )
+    src = Path(__file__).resolve().parent.parent / "src"
+    env = {**os.environ, "PYTHONPATH": str(src)}
+    result = subprocess.run(
+        [sys.executable, "-c", program],
+        capture_output=True,
+        text=True,
+        check=True,
+        env=env,
+    )
+    assert result.stdout.strip() == "[]", result.stdout
+
+
+def test_get_backend_raises_actionable_error_when_nothing_installed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("audio_pipeline.backends._is_importable", lambda _name: False)
+
+    assert available_backends() == []
+    with pytest.raises(BackendUnavailableError) as excinfo:
+        get_backend()
+
+    message = str(excinfo.value)
+    assert "essentia" in message
+    assert "librosa" in message
+    assert "pip install" in message
+
+
+def test_get_backend_does_not_silently_swap_a_requested_backend(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Asking for essentia and getting librosa would make runs incomparable."""
+    monkeypatch.setattr(
+        "audio_pipeline.backends._is_importable", lambda name: name == "librosa"
+    )
+
+    assert available_backends() == ["librosa"]
+    assert get_backend().name == "librosa"
+    with pytest.raises(BackendUnavailableError):
+        get_backend("essentia")
+
+
+def test_get_backend_prefers_essentia_when_both_import(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr("audio_pipeline.backends._is_importable", lambda _name: True)
+    assert get_backend().name == "essentia"
+
+
+def test_analyze_reexports_backend_api() -> None:
+    """Kept so callers predating the backends package split still work."""
+    assert analyze.get_backend is get_backend
+    assert analyze.available_backends is available_backends
+    assert analyze.AnalysisBackend is AnalysisBackend
+
+
+def test_a_hand_written_fake_backend_satisfies_the_protocol() -> None:
+    """The pattern W1F's orchestration tests use: canned values, no audio."""
+
+    class FakeBackend:
+        name = "librosa"
+
+        def rhythm(self, audio: np.ndarray, sample_rate: int) -> RhythmFeatures:
+            return RhythmFeatures(bpm=120.0)
+
+        def tonal(self, audio: np.ndarray, sample_rate: int) -> object:
+            raise NotImplementedError
+
+        def spectral(self, audio: np.ndarray, sample_rate: int) -> object:
+            raise NotImplementedError
+
+        def dynamics(self, audio: np.ndarray, sample_rate: int) -> object:
+            raise NotImplementedError
+
+    assert isinstance(FakeBackend(), AnalysisBackend)

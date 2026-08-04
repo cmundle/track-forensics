@@ -7,7 +7,13 @@ from __future__ import annotations
 
 import numpy as np
 
-from audio_pipeline import ANALYSIS_SAMPLE_RATE, BAND_EDGES_HZ, SCHEMA_VERSION, SOURCE_NAMES, STEM_NAMES
+from audio_pipeline import (
+    ANALYSIS_SAMPLE_RATE,
+    BAND_EDGES_HZ,
+    SCHEMA_VERSION,
+    SOURCE_NAMES,
+    STEM_NAMES,
+)
 from audio_pipeline.schemas import SourceAnalysis, StrudelHints, TrackSummary
 
 
