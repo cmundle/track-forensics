@@ -53,11 +53,12 @@ from ..audio_io import ensure_stereo, to_mono
 from ..schemas import (
     BandEnergyRatios,
     DynamicsFeatures,
+    PitchTrack,
     RhythmFeatures,
     SpectralFeatures,
     TonalFeatures,
 )
-from . import BackendName
+from . import BASS_F0_MAX_HZ, BASS_F0_MIN_HZ, BackendName
 
 __all__ = [
     "BRIGHTNESS_CUTOFF_HZ",
@@ -67,6 +68,8 @@ __all__ = [
     "MAX_TRANSIENT_SHARPNESS",
     "MIN_ONSET_RATE_FOR_RHYTHM_HZ",
     "PITCH_CLASSES",
+    "PITCH_FRAME_SIZE",
+    "PITCH_MIN_CONFIDENCE",
     "ROLLOFF_PERCENT",
     "STFT_HOP_LENGTH",
     "STFT_N_FFT",
@@ -176,6 +179,44 @@ CHROMA_HOP_SIZE = 2048
 #: same signal - documented as a structural divergence in `tonal()`, not
 #: papered over.
 CHROMA_SPECTRAL_PEAKS_MAX = 5
+
+#: Window length, in samples, for `pitch()`. Matches
+#: `librosa_backend.PYIN_FRAME_LENGTH` (4096) so the two backends' F0 tracks are
+#: measured over the same amount of signal, and departs from the
+#: `STFT_N_FFT` (2048) grid for the same numerical reason: YIN needs ~2 periods
+#: of the lowest target frequency in one window, 2 / `BASS_F0_MIN_HZ` = 66.7 ms,
+#: and 2048 samples is only 46.4 ms. See that constant for the full account.
+#: The hop stays `STFT_HOP_LENGTH` (512), so the F0 track shares the project's
+#: time grid.
+PITCH_FRAME_SIZE = 4096
+
+#: `PitchYinFFT` confidence at or above which `pitch()` calls a frame voiced.
+#:
+#: Measured confidence distributions at `PITCH_FRAME_SIZE` on the project
+#: fixtures — percentiles [25, 50, 75]:
+#:
+#:   * `bass_line_a_minor`   0.748  0.774  0.836
+#:   * `bass_line_octave_trap` 0.757  0.777  0.838
+#:   * `bass_unvoiced`       0.411  0.497  0.590   (90th percentile 0.679)
+#:   * `white_noise`         0.087  0.095  0.104
+#:   * `silence`             0.0    0.0    0.0
+#:
+#: 0.7 sits above the unvoiced fixture's 90th percentile and below the bass
+#: fixtures' 25th, which is the widest separation available. It passes 77% of
+#: frames on real bass and 9% on band-limited noise, and — the property that
+#: actually matters — it yields exactly **16 voiced runs of 34-38 frames** on
+#: `bass_line_a_minor`, one per note, so the 40 ms silences between notes
+#: survive as voicing gaps. Without them the segmenter cannot separate the
+#: fixture's two consecutive `a1` notes, which have nothing else to tell them
+#: apart. 0.8 would be cleaner still on noise but drops the voiced fraction to
+#: 0.38 and starts eating whole notes.
+#:
+#: This threshold is deliberately **not** shared with
+#: `librosa_backend.PYIN_MIN_VOICED_PROBABILITY` (0.2): YinFFT confidence and
+#: pYIN voiced-probability are different statistics on different scales, exactly
+#: as `bpm_confidence` already is across these two backends. Each backend owns
+#: its own gate; `note_track` trusts the resulting boolean and nothing else.
+PITCH_MIN_CONFIDENCE = 0.7
 
 #: Chroma bin order: bin 0 is C, bin 9 is A. Must match
 #: `librosa_backend.PITCH_CLASSES` exactly - see `_rotate_hpcp_to_c_root` for
@@ -763,6 +804,111 @@ class EssentiaBackend:
             rms_mean=rms_mean,
             rms_std=rms_std,
             crest_factor=crest,
+        )
+
+    def pitch(self, audio: npt.NDArray[np.float32], sample_rate: int) -> PitchTrack:
+        """Framewise F0 over `BASS_F0_MIN_HZ`-`BASS_F0_MAX_HZ`, via `PitchYinFFT`.
+
+        Raw physics only — one F0 estimate and one voicing decision per frame.
+        `note_track.segment_notes()` turns this into notes, shared with the
+        librosa backend, so nothing musical is decided here.
+
+        **Which algorithm, and why it is neither of the two obvious ones.** The
+        brief nominated `PitchYinProbabilistic` (Essentia's direct pYIN
+        analogue) with `PredominantPitchMelodia` as fallback, to be chosen by
+        measured octave-error rate on `bass_line_octave_trap`. Both were
+        measured against the installed build (essentia 2.1-beta6-dev, arm64,
+        Python 3.11) and **both fail**, so a third was measured and chosen. All
+        figures below are the share of voiced frames landing exactly 12 or 24
+        semitones from the fixture's known ground truth, at 44.1 kHz:
+
+        ============================  ==============  ==================
+        algorithm                     `a_minor`       `octave_trap`
+        ============================  ==============  ==================
+        `PitchYinProbabilistic`       7.9% octave     **44.7% octave**
+        `PredominantPitchMelodia`     0.0% octave     **63.3% octave**
+        `PitchYinFFT`  (chosen)       **0.0%**        **0.0%**
+        ============================  ==============  ==================
+
+        `PitchYinProbabilistic` is worse than its octave-error rate suggests: it
+        is *structurally incapable* of reporting this material. Its parameter
+        list (verified with `help`, not from memory) has **no** `minFrequency`
+        or `maxFrequency` at all, and the pYIN chain it wraps inherits the
+        reference implementation's hard-coded 61.735 Hz floor —
+        `PitchYinProbabilitiesHMM`'s own `minFrequency` default is exactly that
+        number. A1 = 55 Hz is below the floor, so on `bass_line_a_minor` it
+        reports **103.83 Hz** for every A1: the octave above, landed on the
+        wrong HMM bin. Only 32.8% of its frames were correct on the *clean*
+        fixture. Driving the chain by hand with
+        `PitchYinProbabilities` -> `PitchYinProbabilitiesHMM(minFrequency=30)`
+        does not rescue it either — the candidates come back a semitone flat
+        (51.91 Hz for 55 Hz), because the HMM's bin grid is only meaningful at
+        the reference frequency the candidate producer assumes.
+
+        `PredominantPitchMelodia` *does* take `minFrequency`/`maxFrequency` and
+        is exact on the clean fixture, but it is a melody extractor built on a
+        harmonic salience function, and a salience function is precisely what
+        `bass_line_octave_trap` is designed to fool: with the fundamental at
+        0.15 and the 2nd harmonic at 1.0 it follows the harmonic, 63.3% of the
+        time. `harmonicWeight=0.99` happens to fix that one fixture, which is
+        fitting a constant to a synthetic signal rather than measuring
+        something, so it was not taken. It is also badly behaved on
+        `bass_unvoiced`, calling 85% of band-limited noise voiced.
+
+        `PitchYinFFT` is the frequency-domain YIN of Brossier 2006 — the same
+        family, the same period-search logic, just computed through the
+        spectrum. It takes the range as `minFrequency`/`maxFrequency`, it is
+        exact on both fixtures, and it is ~25x faster than `librosa.pyin`
+        (0.08 s against 2.1 s for 8.5 s of audio). It is not the probabilistic
+        variant, and this backend does not pretend otherwise: `method` reports
+        `"yinfft"` while librosa reports `"pyin"`, so a `PitchTrack` always
+        names what produced it.
+
+        Confidence gating is `PITCH_MIN_CONFIDENCE`; see that constant for the
+        measured distributions behind it. Digital silence, a non-positive
+        sample rate and any internal failure all return an empty `PitchTrack()`.
+        """
+        mono = to_mono(np.asarray(audio, dtype=np.float32))
+        if sample_rate <= 0 or _is_silent(mono):
+            return PitchTrack()
+
+        import essentia.standard as es
+
+        try:
+            windowing = es.Windowing(type="hann")
+            spectrum_algo = es.Spectrum(size=PITCH_FRAME_SIZE)
+            yin = es.PitchYinFFT(
+                frameSize=PITCH_FRAME_SIZE,
+                sampleRate=sample_rate,
+                minFrequency=BASS_F0_MIN_HZ,
+                maxFrequency=BASS_F0_MAX_HZ,
+            )
+            frequencies: list[float] = []
+            confidences: list[float] = []
+            for frame in es.FrameGenerator(
+                mono, frameSize=PITCH_FRAME_SIZE, hopSize=STFT_HOP_LENGTH, startFromZero=False
+            ):
+                estimate, confidence = yin(spectrum_algo(windowing(frame)))
+                frequencies.append(float(estimate))
+                confidences.append(float(confidence))
+        except Exception:
+            return PitchTrack()
+
+        f0 = np.nan_to_num(np.asarray(frequencies, dtype=np.float64), nan=0.0)
+        probability = np.nan_to_num(np.asarray(confidences, dtype=np.float64), nan=0.0)
+        if f0.size == 0:
+            return PitchTrack()
+
+        voiced = (
+            (probability >= PITCH_MIN_CONFIDENCE) & (f0 >= BASS_F0_MIN_HZ) & (f0 <= BASS_F0_MAX_HZ)
+        )
+
+        return PitchTrack(
+            f0_hz=[float(value) for value in f0],
+            voiced=[bool(value) for value in voiced],
+            voiced_probability=[float(value) for value in probability],
+            frame_hop_seconds=STFT_HOP_LENGTH / float(sample_rate),
+            method="yinfft",
         )
 
     def _integrated_loudness(

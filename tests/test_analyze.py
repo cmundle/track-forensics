@@ -49,6 +49,7 @@ from audio_pipeline.schemas import (
     BandEnergyRatios,
     DynamicsFeatures,
     HeuristicLabel,
+    PitchTrack,
     RhythmFeatures,
     SourceAnalysis,
     SpectralFeatures,
@@ -177,6 +178,11 @@ class FakeBackend:
     tonal_result: TonalFeatures | Exception = field(default_factory=TonalFeatures)
     spectral_result: SpectralFeatures | Exception = field(default_factory=SpectralFeatures)
     dynamics_result: DynamicsFeatures | Exception = field(default_factory=DynamicsFeatures)
+    # `pitch()` joined the Protocol in Wave 4. Unlike the other four it is not
+    # called for every source -- only the bass stem gets a note track -- so its
+    # default is an empty `PitchTrack`, which is exactly what a backend returns
+    # for silence and what `note_track.segment_notes()` reports as `unvoiced`.
+    pitch_result: PitchTrack | Exception = field(default_factory=PitchTrack)
 
     def rhythm(self, audio: np.ndarray, sample_rate: int) -> RhythmFeatures:
         if isinstance(self.rhythm_result, Exception):
@@ -197,6 +203,11 @@ class FakeBackend:
         if isinstance(self.dynamics_result, Exception):
             raise self.dynamics_result
         return self.dynamics_result
+
+    def pitch(self, audio: np.ndarray, sample_rate: int) -> PitchTrack:
+        if isinstance(self.pitch_result, Exception):
+            raise self.pitch_result
+        return self.pitch_result
 
 
 def _full_backend() -> FakeBackend:

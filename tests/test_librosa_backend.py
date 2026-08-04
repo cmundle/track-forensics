@@ -19,6 +19,11 @@ from pathlib import Path
 import numpy as np
 import pytest
 from conftest import (
+    BASS_GLIDE_NOTE_NAMES,
+    BASS_GLIDE_PAIRS,
+    BASS_LINE_FREQS_HZ,
+    BASS_LINE_MIDI,
+    BASS_LINE_NOTE_NAMES,
     CLICK_TRACK_BPM,
     CLICK_TRACK_ONSET_COUNT,
     CLICK_TRACK_ONSET_DENSITY,
@@ -28,16 +33,22 @@ from conftest import (
 )
 
 from audio_pipeline import ANALYSIS_SAMPLE_RATE, BAND_EDGES_HZ
+from audio_pipeline.backends import BASS_F0_MIN_HZ
 from audio_pipeline.backends.librosa_backend import (
     BRIGHTNESS_CUTOFF_HZ,
     MAX_TRANSIENT_SHARPNESS,
+    PYIN_FRAME_LENGTH,
+    STFT_HOP_LENGTH,
+    STFT_N_FFT,
     LibrosaBackend,
     band_energy_ratios,
     brightness,
     transient_sharpness,
 )
+from audio_pipeline.note_track import segment_notes
 from audio_pipeline.schemas import (
     DynamicsFeatures,
+    PitchTrack,
     RhythmFeatures,
     SpectralFeatures,
     TonalFeatures,
@@ -669,3 +680,127 @@ def test_transient_sharpness_is_none_without_peaks() -> None:
 def test_transient_sharpness_ignores_out_of_range_peaks() -> None:
     envelope = np.ones(10)
     assert transient_sharpness(envelope, np.array([99]), 3) is None
+
+
+# --------------------------------------------------------------------------- #
+# pitch() — raw F0, the Wave 4 Protocol method
+# --------------------------------------------------------------------------- #
+
+
+def test_pitch_recovers_the_exact_synthesis_frequencies(
+    backend: LibrosaBackend, bass_line_a_minor: np.ndarray
+) -> None:
+    """`bass_line_a_minor` is built from literal 55.0/65.40639/82.40689 Hz.
+
+    Ground truth here is exact by construction rather than measured, so this is
+    a real accuracy assertion and not a regression pin. Every voiced frame must
+    land within a quarter-tone (3%) of one of the three fixture frequencies.
+    """
+    track = backend.pitch(bass_line_a_minor, ANALYSIS_SAMPLE_RATE)
+
+    voiced = np.asarray(track.f0_hz)[np.asarray(track.voiced, dtype=bool)]
+    assert voiced.size > 100
+
+    for frequency in voiced:
+        closest = min(BASS_LINE_FREQS_HZ, key=lambda target: abs(target - frequency))
+        assert frequency == pytest.approx(closest, rel=0.03)
+
+
+def test_pitch_survives_the_octave_trap(
+    backend: LibrosaBackend, bass_line_octave_trap: np.ndarray
+) -> None:
+    """Fundamental at 0.15 under a 2nd harmonic at 1.0 — still MIDI 33/36/40.
+
+    A tracker reporting 45/48/52 has made an octave error, not a
+    different-but-defensible reading. Measured octave-error rate for
+    `librosa.pyin` on this fixture: **0.0% of voiced frames**.
+    """
+    track = backend.pitch(bass_line_octave_trap, ANALYSIS_SAMPLE_RATE)
+    line = segment_notes(track)
+
+    assert [note.midi_note for note in line.notes] == list(BASS_LINE_MIDI)
+    assert line.octave_corrections == 0, "the range constraint alone should defeat the trap"
+
+
+def test_pitch_and_note_track_reproduce_the_documented_note_names(
+    backend: LibrosaBackend, bass_line_a_minor: np.ndarray
+) -> None:
+    track = backend.pitch(bass_line_a_minor, ANALYSIS_SAMPLE_RATE)
+    line = segment_notes(track)
+
+    assert line.status == "ok"
+    assert [note.note_name for note in line.notes] == list(BASS_LINE_NOTE_NAMES)
+
+
+def test_pitch_absorbs_a_glide_into_the_notes_either_side(
+    backend: LibrosaBackend, bass_line_with_glide: np.ndarray
+) -> None:
+    """Exactly two notes per pair — the ramp is not eight chromatic notes."""
+    line = segment_notes(backend.pitch(bass_line_with_glide, ANALYSIS_SAMPLE_RATE))
+
+    assert [note.note_name for note in line.notes] == list(BASS_GLIDE_NOTE_NAMES) * BASS_GLIDE_PAIRS
+
+
+def test_pitch_invents_nothing_on_unpitched_low_material(
+    backend: LibrosaBackend, bass_unvoiced: np.ndarray
+) -> None:
+    """20-200 Hz noise: loud, low, and completely unpitched."""
+    line = segment_notes(backend.pitch(bass_unvoiced, ANALYSIS_SAMPLE_RATE))
+
+    assert line.status == "unvoiced"
+    assert line.notes == []
+    assert line.caveats
+
+
+def test_pitch_returns_an_empty_track_on_silence(
+    backend: LibrosaBackend, silence: np.ndarray
+) -> None:
+    track = backend.pitch(silence, ANALYSIS_SAMPLE_RATE)
+
+    assert track.f0_hz == []
+    assert track.voiced == []
+    assert track.frame_hop_seconds is None
+    assert segment_notes(track).status == "unvoiced"
+
+
+@pytest.mark.parametrize("sample_rate", [0, -1])
+def test_pitch_never_raises_on_a_nonsense_sample_rate(
+    backend: LibrosaBackend, sine_a440: np.ndarray, sample_rate: int
+) -> None:
+    assert backend.pitch(sine_a440, sample_rate) == PitchTrack()
+
+
+def test_pitch_uses_a_4096_window_on_the_512_hop_grid(
+    backend: LibrosaBackend, bass_line_a_minor: np.ndarray
+) -> None:
+    """The documented departure from the pinned 2048 grid.
+
+    2 / `BASS_F0_MIN_HZ` = 66.7 ms exceeds 2048 samples (46.4 ms), so a 2048
+    window cannot resolve a low B and would silently report the octave above.
+    The *hop* stays 512 so the F0 track shares the project's time grid — if
+    either half of that drifts, the note timings stop lining up with the drum
+    grid they are quantised against.
+    """
+    assert PYIN_FRAME_LENGTH == 4096
+    assert 2.0 / BASS_F0_MIN_HZ > STFT_N_FFT / ANALYSIS_SAMPLE_RATE
+    assert 2.0 / BASS_F0_MIN_HZ < PYIN_FRAME_LENGTH / ANALYSIS_SAMPLE_RATE
+
+    track = backend.pitch(bass_line_a_minor, ANALYSIS_SAMPLE_RATE)
+    assert track.frame_hop_seconds == pytest.approx(STFT_HOP_LENGTH / ANALYSIS_SAMPLE_RATE)
+    assert track.method == "pyin"
+
+
+def test_pitch_reports_voicing_that_separates_repeated_notes(
+    backend: LibrosaBackend, bass_line_a_minor: np.ndarray
+) -> None:
+    """16 voiced runs, one per note — the gate `PYIN_MIN_VOICED_PROBABILITY` buys.
+
+    pYIN's own `voiced_flag` alone gives 11 runs on this fixture: its HMM smooths
+    through the 40 ms gaps and welds each pair of consecutive `a1` notes into
+    one. Two notes of the same pitch have nothing but that gap to separate them,
+    so the extra probability gate is what makes 16 notes reachable at all.
+    """
+    voiced = np.asarray(backend.pitch(bass_line_a_minor, ANALYSIS_SAMPLE_RATE).voiced, dtype=bool)
+
+    boundaries = np.diff(voiced.astype(int))
+    assert int(np.count_nonzero(boundaries == 1)) == len(BASS_LINE_MIDI)

@@ -9,6 +9,7 @@ eagerly.
 
 from __future__ import annotations
 
+import inspect
 import os
 import subprocess
 import sys
@@ -20,6 +21,8 @@ import pytest
 from audio_pipeline import analyze
 from audio_pipeline.backends import (
     BACKEND_PREFERENCE,
+    BASS_F0_MAX_HZ,
+    BASS_F0_MIN_HZ,
     AnalysisBackend,
     BackendUnavailableError,
     available_backends,
@@ -58,7 +61,7 @@ def test_backend_classes_satisfy_the_protocol(backend_class: type, expected_name
 
     assert isinstance(backend, AnalysisBackend)
     assert backend.name == expected_name
-    for method in ("rhythm", "tonal", "spectral", "dynamics"):
+    for method in ("rhythm", "tonal", "spectral", "dynamics", "pitch"):
         assert callable(getattr(backend, method))
 
 
@@ -145,4 +148,40 @@ def test_a_hand_written_fake_backend_satisfies_the_protocol() -> None:
         def dynamics(self, audio: np.ndarray, sample_rate: int) -> object:
             raise NotImplementedError
 
+        def pitch(self, audio: np.ndarray, sample_rate: int) -> object:
+            raise NotImplementedError
+
     assert isinstance(FakeBackend(), AnalysisBackend)
+
+
+def test_the_pitch_range_is_a_module_constant_not_a_parameter() -> None:
+    """Both backends must analyse the same register, so the range cannot be
+    per-call. Narrowing it per backend would reintroduce exactly the divergence
+    the shared `note_track` seam exists to remove.
+    """
+    assert (BASS_F0_MIN_HZ, BASS_F0_MAX_HZ) == (30.0, 400.0)
+
+    signature = inspect.signature(AnalysisBackend.pitch)
+    assert list(signature.parameters) == ["self", "audio", "sample_rate"]
+
+
+def test_both_backends_read_the_pitch_range_from_the_one_constant() -> None:
+    """Imported, not re-declared: mirrored numbers are how two backends drift."""
+    from audio_pipeline.backends import essentia_backend, librosa_backend
+
+    for module in (essentia_backend, librosa_backend):
+        assert module.BASS_F0_MIN_HZ is BASS_F0_MIN_HZ
+        assert module.BASS_F0_MAX_HZ is BASS_F0_MAX_HZ
+
+
+def test_the_protocol_documents_why_drums_are_not_a_protocol_method() -> None:
+    """The pitch/drums asymmetry is deliberate and easy to "fix" by mistake.
+
+    Pitch is behind the Protocol because YIN is an algorithm this project should
+    not own; drum decomposition is not, because it is arithmetic numpy does
+    exactly. If that reasoning ever leaves the docstring, the next reader has
+    every reason to make the two symmetrical.
+    """
+    documentation = AnalysisBackend.__doc__ or ""
+    assert "drum" in documentation.lower()
+    assert "note_track" in documentation

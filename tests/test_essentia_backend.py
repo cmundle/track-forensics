@@ -26,6 +26,11 @@ import pytest
 essentia = pytest.importorskip("essentia")
 
 from conftest import (  # noqa: E402
+    BASS_GLIDE_NOTE_NAMES,
+    BASS_GLIDE_PAIRS,
+    BASS_LINE_FREQS_HZ,
+    BASS_LINE_MIDI,
+    BASS_LINE_NOTE_NAMES,
     CLICK_TRACK_BPM,
     CLICK_TRACK_ONSET_COUNT,
     CLICK_TRACK_ONSET_DENSITY,
@@ -41,12 +46,16 @@ from audio_pipeline import ANALYSIS_SAMPLE_RATE, BAND_EDGES_HZ  # noqa: E402
 from audio_pipeline.backends import librosa_backend  # noqa: E402
 from audio_pipeline.backends.essentia_backend import (  # noqa: E402
     MIN_ONSET_RATE_FOR_RHYTHM_HZ,
+    PITCH_FRAME_SIZE,
+    STFT_HOP_LENGTH,
     EssentiaBackend,
     band_energy_ratios,
     brightness,
 )
+from audio_pipeline.note_track import segment_notes  # noqa: E402
 from audio_pipeline.schemas import (  # noqa: E402
     DynamicsFeatures,
+    PitchTrack,
     RhythmFeatures,
     SpectralFeatures,
     TonalFeatures,
@@ -595,3 +604,201 @@ def test_hpcp_mean_bin_zero_is_c_matching_librosas_convention(
     """
     assert int(np.argmax(sine_tonal.hpcp_mean)) == 9
     assert list(librosa_backend.PITCH_CLASSES)[9] == "A"
+
+
+# --------------------------------------------------------------------------- #
+# pitch() — raw F0, the Wave 4 Protocol method
+# --------------------------------------------------------------------------- #
+
+
+def test_pitch_recovers_the_exact_synthesis_frequencies(
+    backend: EssentiaBackend, bass_line_a_minor: np.ndarray
+) -> None:
+    """`bass_line_a_minor` is built from literal 55.0/65.40639/82.40689 Hz.
+
+    Exact by construction, so this is a real accuracy assertion. Every voiced
+    frame must land within a quarter-tone (3%) of one of the three frequencies.
+    """
+    track = backend.pitch(bass_line_a_minor, ANALYSIS_SAMPLE_RATE)
+
+    voiced = np.asarray(track.f0_hz)[np.asarray(track.voiced, dtype=bool)]
+    assert voiced.size > 100
+
+    for frequency in voiced:
+        closest = min(BASS_LINE_FREQS_HZ, key=lambda target: abs(target - frequency))
+        assert frequency == pytest.approx(closest, rel=0.03)
+
+
+def test_pitch_survives_the_octave_trap(
+    backend: EssentiaBackend, bass_line_octave_trap: np.ndarray
+) -> None:
+    """The fixture that decided which Essentia algorithm this backend uses.
+
+    Measured octave-error rates on this fixture, as a share of voiced frames:
+    `PitchYinProbabilistic` 44.7%, `PredominantPitchMelodia` 63.3%,
+    `PitchYinFFT` **0.0%**. See `EssentiaBackend.pitch` for the full account,
+    including why `PitchYinProbabilistic` cannot represent 55 Hz at all.
+    """
+    track = backend.pitch(bass_line_octave_trap, ANALYSIS_SAMPLE_RATE)
+    line = segment_notes(track)
+
+    assert [note.midi_note for note in line.notes] == list(BASS_LINE_MIDI)
+    assert line.octave_corrections == 0, "the range constraint alone should defeat the trap"
+
+
+def test_pitch_and_note_track_reproduce_the_documented_note_names(
+    backend: EssentiaBackend, bass_line_a_minor: np.ndarray
+) -> None:
+    line = segment_notes(backend.pitch(bass_line_a_minor, ANALYSIS_SAMPLE_RATE))
+
+    assert line.status == "ok"
+    assert [note.note_name for note in line.notes] == list(BASS_LINE_NOTE_NAMES)
+
+
+def test_pitch_absorbs_a_glide_into_the_notes_either_side(
+    backend: EssentiaBackend, bass_line_with_glide: np.ndarray
+) -> None:
+    line = segment_notes(backend.pitch(bass_line_with_glide, ANALYSIS_SAMPLE_RATE))
+
+    assert [note.note_name for note in line.notes] == list(BASS_GLIDE_NOTE_NAMES) * BASS_GLIDE_PAIRS
+
+
+def test_pitch_invents_nothing_on_unpitched_low_material(
+    backend: EssentiaBackend, bass_unvoiced: np.ndarray
+) -> None:
+    """20-200 Hz noise. `PITCH_MIN_CONFIDENCE` passes ~7% of frames here, and
+    none of them survive `note_track.MIN_NOTE_SECONDS`.
+    """
+    track = backend.pitch(bass_unvoiced, ANALYSIS_SAMPLE_RATE)
+    line = segment_notes(track)
+
+    assert np.mean(np.asarray(track.voiced, dtype=bool)) < 0.2
+    assert line.status == "unvoiced"
+    assert line.notes == []
+    assert line.caveats
+
+
+def test_pitch_returns_an_empty_track_on_silence(
+    backend: EssentiaBackend, silence: np.ndarray
+) -> None:
+    track = backend.pitch(silence, ANALYSIS_SAMPLE_RATE)
+
+    assert track.f0_hz == []
+    assert track.voiced == []
+    assert segment_notes(track).status == "unvoiced"
+
+
+@pytest.mark.parametrize("sample_rate", [0, -1])
+def test_pitch_never_raises_on_a_nonsense_sample_rate(
+    backend: EssentiaBackend, sine_a440: np.ndarray, sample_rate: int
+) -> None:
+    assert backend.pitch(sine_a440, sample_rate) == PitchTrack()
+
+
+def test_pitch_names_the_algorithm_that_produced_it(
+    backend: EssentiaBackend, bass_line_a_minor: np.ndarray
+) -> None:
+    """`yinfft`, not `pyin`: this backend does not use the probabilistic variant.
+
+    `PitchTrack.method` is the only place a reader can tell which estimator ran,
+    and the two backends genuinely run different algorithms from the same
+    family. Claiming `pyin` here would be the kind of invented equivalence this
+    project keeps out of its output.
+    """
+    track = backend.pitch(bass_line_a_minor, ANALYSIS_SAMPLE_RATE)
+
+    assert track.method == "yinfft"
+    assert track.frame_hop_seconds == pytest.approx(STFT_HOP_LENGTH / ANALYSIS_SAMPLE_RATE)
+    assert PITCH_FRAME_SIZE == librosa_backend.PYIN_FRAME_LENGTH
+
+
+def test_pitch_reports_voicing_that_separates_repeated_notes(
+    backend: EssentiaBackend, bass_line_a_minor: np.ndarray
+) -> None:
+    """16 voiced runs, one per note, including the two consecutive `a1`s.
+
+    Two notes of the same pitch have nothing but the 40 ms silence between them
+    to tell them apart, which is what `PITCH_MIN_CONFIDENCE` was calibrated
+    against.
+    """
+    voiced = np.asarray(backend.pitch(bass_line_a_minor, ANALYSIS_SAMPLE_RATE).voiced, dtype=bool)
+
+    boundaries = np.diff(voiced.astype(int))
+    assert int(np.count_nonzero(boundaries == 1)) == len(BASS_LINE_MIDI)
+
+
+# --------------------------------------------------------------------------- #
+# Cross-backend agreement on pitch — the whole point of the seam
+# --------------------------------------------------------------------------- #
+
+
+@pytest.mark.parametrize("fixture_name", ["bass_line_a_minor", "bass_line_octave_trap"])
+def test_both_backends_produce_the_same_note_sequence(
+    backend: EssentiaBackend,
+    librosa: librosa_backend.LibrosaBackend,
+    fixture_name: str,
+    request: pytest.FixtureRequest,
+) -> None:
+    """Identical `note_name` sequences on both bass fixtures.
+
+    This is what the seam is for. `segment_notes` is shared numpy, so anything
+    that could differ here has to differ in the F0 estimate itself — and F0,
+    unlike `tonal_stability`, has a right answer. Both backends hit it.
+    """
+    audio = request.getfixturevalue(fixture_name)
+
+    essentia_line = segment_notes(backend.pitch(audio, ANALYSIS_SAMPLE_RATE))
+    librosa_line = segment_notes(librosa.pitch(audio, ANALYSIS_SAMPLE_RATE))
+
+    assert [note.note_name for note in essentia_line.notes] == list(BASS_LINE_NOTE_NAMES)
+    assert [note.note_name for note in librosa_line.notes] == list(BASS_LINE_NOTE_NAMES)
+
+
+@pytest.mark.parametrize("fixture_name", ["bass_line_a_minor", "bass_line_octave_trap"])
+def test_per_note_median_f0_agrees_across_backends_within_one_percent(
+    backend: EssentiaBackend,
+    librosa: librosa_backend.LibrosaBackend,
+    fixture_name: str,
+    request: pytest.FixtureRequest,
+) -> None:
+    """1% is well inside a semitone (5.95%), so this is a real accuracy claim.
+
+    Measured worst case across both fixtures: 0.42% (55.02 Hz from librosa
+    against 55.25 Hz from Essentia on `bass_line_octave_trap`). Do not loosen
+    this tolerance to accommodate a backend change — the tolerance is the point.
+    A backend that cannot meet it should carry a `BassLine.caveats` entry
+    instead.
+    """
+    audio = request.getfixturevalue(fixture_name)
+
+    essentia_notes = segment_notes(backend.pitch(audio, ANALYSIS_SAMPLE_RATE)).notes
+    librosa_notes = segment_notes(librosa.pitch(audio, ANALYSIS_SAMPLE_RATE)).notes
+    assert len(essentia_notes) == len(librosa_notes) == len(BASS_LINE_MIDI)
+
+    for left, right in zip(essentia_notes, librosa_notes, strict=True):
+        assert left.median_f0_hz is not None and right.median_f0_hz is not None
+        assert left.median_f0_hz == pytest.approx(right.median_f0_hz, rel=0.01)
+
+
+def test_both_backends_land_within_a_quarter_tone_of_the_synthesis_frequencies(
+    backend: EssentiaBackend,
+    librosa: librosa_backend.LibrosaBackend,
+    bass_line_a_minor: np.ndarray,
+) -> None:
+    """Agreeing with each other is not enough; both must agree with the truth.
+
+    Two backends could agree perfectly and both be wrong. `bass_line_a_minor`
+    is synthesised from literal frequencies, so this closes that gap: every
+    note's measured median F0 sits within 25 cents of the frequency the fixture
+    was built from.
+    """
+    expected = [BASS_LINE_FREQS_HZ[index % 4] for index in range(len(BASS_LINE_MIDI))]
+
+    for reference in (backend, librosa):
+        notes = segment_notes(reference.pitch(bass_line_a_minor, ANALYSIS_SAMPLE_RATE)).notes
+        measured = [note.median_f0_hz for note in notes]
+        assert len(measured) == len(expected)
+        for value, target in zip(measured, expected, strict=True):
+            assert value is not None
+            cents = 1200.0 * np.log2(value / target)
+            assert abs(cents) < 25.0, f"{value} Hz is {cents:.1f} cents from {target} Hz"

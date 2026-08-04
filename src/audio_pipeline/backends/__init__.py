@@ -19,6 +19,7 @@ import numpy.typing as npt
 
 from ..schemas import (
     DynamicsFeatures,
+    PitchTrack,
     RhythmFeatures,
     SpectralFeatures,
     TonalFeatures,
@@ -26,6 +27,8 @@ from ..schemas import (
 
 __all__ = [
     "BACKEND_PREFERENCE",
+    "BASS_F0_MAX_HZ",
+    "BASS_F0_MIN_HZ",
     "AnalysisBackend",
     "BackendName",
     "BackendUnavailableError",
@@ -52,6 +55,23 @@ _INSTALL_HINT = (
     'or pip install -e ".[essentia]".'
 )
 
+#: Frequency range every backend's `pitch()` searches, in Hz. **A module
+#: constant, deliberately not a parameter of `pitch()`**, so both backends
+#: analyse exactly the same register and their F0 tracks stay comparable — a
+#: caller that could narrow the range per backend would reintroduce the very
+#: divergence this seam exists to remove.
+#:
+#: The bounds are a bass guard as much as a search window. 30 Hz sits just below
+#: B0 (30.87 Hz), the lowest note on a 5-string bass, and 400 Hz is roughly g4 —
+#: above anything a bass line plays and below most of what bleeds into a bass
+#: stem. **Constraining the range is itself the single most effective octave
+#: guard available**: an estimator that cannot represent 110 Hz's neighbours
+#: above 400 Hz cannot report them, and one that cannot look below 30 Hz cannot
+#: halve a 55 Hz fundamental into subsonic nonsense. `note_track`'s octave snap
+#: cleans up what is left inside the window.
+BASS_F0_MIN_HZ = 30.0
+BASS_F0_MAX_HZ = 400.0
+
 
 class BackendUnavailableError(RuntimeError):
     """Raised when no analysis backend can be imported."""
@@ -64,10 +84,37 @@ class AnalysisBackend(Protocol):
     A backend returns `None` for any descriptor it cannot compute; the caller
     records those in `SourceAnalysis.unavailable_features` rather than crashing.
 
-    All four methods take mono audio as a 1-D float32 array at the file's own
+    All five methods take mono audio as a 1-D float32 array at the file's own
     sample rate (44.1 kHz or higher — see `audio_io.load_audio`). `dynamics()`
     additionally accepts stereo audio shaped `(n_samples, n_channels)`, which
     integrated-loudness measurement needs.
+
+    **Why pitch is a Protocol method and drum decomposition is not.** The two
+    Wave 4 features look symmetrical and are deliberately not implemented
+    symmetrically. The rule is:
+
+        Put it behind this Protocol only when the computation is an algorithm
+        this project should not own. Put it in a shared numpy module when it is
+        a measurement numpy can make exactly.
+
+    Drum decomposition is band energy, decay ratios and spectral flatness —
+    exact arithmetic with one right answer, which `band_energy_ratios` already
+    proves (both backends agree on it to 0.0001 precisely because it is
+    library-free). So it lives in `drum_elements.py`, is computed once, and is
+    identical whichever backend ran. Adding it here would buy nothing and create
+    two implementations that could drift.
+
+    F0 estimation is the opposite: YIN and pYIN are real algorithms with
+    published papers, and reimplementing one would be strictly worse than
+    depending on `librosa.pyin` or Essentia's YIN family. So `pitch()` is here —
+    but it returns a **raw framewise `PitchTrack`, not notes**. Turning F0 into
+    notes is musical interpretation, so it lives in `note_track.segment_notes()`
+    and is shared: given identical F0, both backends produce byte-identical
+    `BassLine`s, and the only thing that can differ across backends is the F0
+    estimate itself, which has a right answer and is tested against a fixture
+    synthesised at exactly 55.000 Hz.
+
+    Do not "fix" the asymmetry in either direction.
     """
 
     name: BackendName
@@ -76,6 +123,7 @@ class AnalysisBackend(Protocol):
     def tonal(self, audio: npt.NDArray[np.float32], sample_rate: int) -> TonalFeatures: ...
     def spectral(self, audio: npt.NDArray[np.float32], sample_rate: int) -> SpectralFeatures: ...
     def dynamics(self, audio: npt.NDArray[np.float32], sample_rate: int) -> DynamicsFeatures: ...
+    def pitch(self, audio: npt.NDArray[np.float32], sample_rate: int) -> PitchTrack: ...
 
 
 def _is_importable(backend: BackendName) -> bool:
