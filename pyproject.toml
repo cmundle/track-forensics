@@ -48,10 +48,6 @@ target-version = "py311"
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
 
-[tool.ruff.lint.per-file-ignores]
-# Typer declares CLI arguments as function calls in parameter defaults. That is
-# the whole API, so B008 is a false positive for this file only.
-"src/audio_pipeline/cli.py" = ["B008"]
 
 [tool.mypy]
 python_version = "3.11"
