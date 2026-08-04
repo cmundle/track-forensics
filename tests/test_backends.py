@@ -1,8 +1,10 @@
 """Tests for backend discovery and resolution.
 
-These cover the seam only — the backends themselves are stubs owned by other
-packages. What matters here is that resolution never crashes the CLI and that
-failure messages tell the user what to install.
+These cover the seam only. The backends themselves are owned by other agents,
+so nothing here asserts anything about their numbers or their implementation
+state — only that resolution never crashes the CLI, that failure messages tell
+the user what to install, and that neither analysis library gets imported
+eagerly.
 """
 
 from __future__ import annotations
@@ -39,20 +41,25 @@ def test_available_backends_never_raises() -> None:
     assert found == [name for name in BACKEND_PREFERENCE if name in found]
 
 
-def test_backend_names_are_set() -> None:
-    assert EssentiaBackend().name == "essentia"
-    assert LibrosaBackend().name == "librosa"
+@pytest.mark.parametrize(
+    ("backend_class", "expected_name"),
+    [(EssentiaBackend, "essentia"), (LibrosaBackend, "librosa")],
+)
+def test_backend_classes_satisfy_the_protocol(backend_class: type, expected_name: str) -> None:
+    """Structure only — deliberately says nothing about implementation state.
 
-
-@pytest.mark.parametrize("backend_class", [EssentiaBackend, LibrosaBackend])
-def test_stubs_satisfy_the_protocol(backend_class: type) -> None:
+    This asserted `NotImplementedError` while both backends were stubs, which
+    made it fail the moment W1A implemented `LibrosaBackend`. Whether a method
+    is filled in yet is that agent's business; what this file guards is that the
+    seam holds: the class is constructible, names itself correctly, and exposes
+    every Protocol method.
+    """
     backend = backend_class()
-    assert isinstance(backend, AnalysisBackend)
 
-    audio = np.zeros(1024, dtype=np.float32)
+    assert isinstance(backend, AnalysisBackend)
+    assert backend.name == expected_name
     for method in ("rhythm", "tonal", "spectral", "dynamics"):
-        with pytest.raises(NotImplementedError):
-            getattr(backend, method)(audio, 44100)
+        assert callable(getattr(backend, method))
 
 
 def test_importing_the_package_does_not_pull_in_the_analysis_libraries() -> None:

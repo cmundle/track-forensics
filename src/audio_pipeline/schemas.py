@@ -16,7 +16,22 @@ class RhythmFeatures(BaseModel):
 
     bpm: float | None = None
     bpm_confidence: float | None = None
-    beat_times: list[float] = Field(default_factory=list, description="Beat positions in seconds")
+    beat_times: list[float] = Field(
+        default_factory=list,
+        description=(
+            "The pulse you would tap along to, in seconds. Inferred and evenly "
+            "spaced by construction, so it says nothing about what was actually "
+            "played between beats. Not the same as onset_times."
+        ),
+    )
+    onset_times: list[float] = Field(
+        default_factory=list,
+        description=(
+            "When notes and hits actually start, in seconds. Observed, not "
+            "inferred, and unevenly spaced: this is where swing lives, so it is "
+            "what subdivision-feel detection reads. Not the same as beat_times."
+        ),
+    )
     onset_density: float | None = Field(default=None, description="Onsets per second")
     transient_sharpness: float | None = None
 
@@ -88,13 +103,24 @@ class SourceAnalysis(BaseModel):
     unavailable_features: list[str] = Field(default_factory=list)
 
 
+#: Per-source event lists dropped from `track_summary.json`, mapped to the count
+#: field that takes their place. They stay complete in `analysis/<source>.json`,
+#: so nothing is lost — the summary just stops being thousands of floats of
+#: duplicated data across five sources.
+_SUMMARY_LIST_FIELDS: dict[str, str] = {
+    "beat_times": "beat_count",
+    "onset_times": "onset_count",
+}
+
+
 class TrackSummary(BaseModel):
     """Combined view across the mix and all stems.
 
-    Beat times live in the per-source `analysis/*.json` files only. They are
-    omitted from the written summary — a six-minute track produces roughly 720
-    floats per source, which is pure duplication and makes the one file you
-    actually read by hand unreadable. Use `summary_payload()` to serialise.
+    Beat and onset times live in the per-source `analysis/*.json` files only.
+    They are omitted from the written summary — a six-minute track produces
+    roughly 720 beat floats per source, and a busy drum stem several times that
+    in onsets, which is pure duplication and makes the one file you actually
+    read by hand unreadable. Use `summary_payload()` to serialise.
     """
 
     schema_version: int = SCHEMA_VERSION
@@ -108,22 +134,23 @@ class TrackSummary(BaseModel):
     sources: dict[str, SourceAnalysis] = Field(default_factory=dict)
 
     def summary_payload(self) -> dict[str, object]:
-        """Dict for writing `track_summary.json`, with beat_times stripped.
+        """Dict for writing `track_summary.json`, with event lists stripped.
 
-        Each source keeps a `beat_count` so the information is not lost, and the
-        full list stays available in that source's own analysis file.
+        Every list named in `_SUMMARY_LIST_FIELDS` — `beat_times`, `onset_times`
+        — is replaced by its length under the paired count name, so nothing is
+        silently lost and the full lists stay in each source's own analysis file.
 
-        `beat_count` takes the slot `beat_times` occupied, so key order across
-        the rest of the payload is unchanged and run-to-run diffs stay readable.
+        Each count takes the slot its list occupied, so key order across the rest
+        of the payload is unchanged and run-to-run diffs stay readable.
         """
         payload = self.model_dump(mode="json")
         for source in payload.get("sources", {}).values():
             rhythm = source.get("rhythm")
-            if not isinstance(rhythm, dict) or "beat_times" not in rhythm:
+            if not isinstance(rhythm, dict):
                 continue
             source["rhythm"] = {
-                ("beat_count" if key == "beat_times" else key): (
-                    len(value) if key == "beat_times" else value
+                _SUMMARY_LIST_FIELDS.get(key, key): (
+                    len(value) if key in _SUMMARY_LIST_FIELDS else value
                 )
                 for key, value in rhythm.items()
             }

@@ -2,7 +2,10 @@
 
 __version__ = "0.1.0"
 
-SCHEMA_VERSION = 2
+# 3: RhythmFeatures gained onset_times — the observed hit positions subdivision
+#    detection needs, distinct from the inferred, evenly spaced beat_times.
+# 2: SpectralFeatures gained band_energy_ratios over BAND_EDGES_HZ.
+SCHEMA_VERSION = 3
 
 STEM_NAMES: tuple[str, ...] = ("drums", "bass", "vocals", "other")
 SOURCE_NAMES: tuple[str, ...] = ("mix", *STEM_NAMES)
