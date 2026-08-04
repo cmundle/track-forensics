@@ -99,6 +99,7 @@ def make_analysis(
     band_high: float | None = None,
     crest_factor: float | None = None,
     rms_mean: float | None = None,
+    loudness_lufs: float | None = None,
 ) -> SourceAnalysis:
     """Build a `SourceAnalysis` with only the descriptors a test cares about.
 
@@ -132,7 +133,9 @@ def make_analysis(
             centroid_std=centroid_std,
             band_energy_ratios=BandEnergyRatios(low=band_low, high=band_high),
         ),
-        dynamics=DynamicsFeatures(crest_factor=crest_factor, rms_mean=rms_mean),
+        dynamics=DynamicsFeatures(
+            crest_factor=crest_factor, rms_mean=rms_mean, loudness_lufs=loudness_lufs
+        ),
     )
 
 
@@ -168,6 +171,8 @@ def test_thresholds_are_all_floats() -> None:
 # saturation silently inverts the label rather than failing. This table pins the
 # intent so that mistake fails loudly instead.
 RAMP_DIRECTIONS: list[tuple[str, str, str]] = [
+    ("silence_floor_lufs", "silence_floor_lufs_saturation", "down"),
+    ("silence_floor_rms", "silence_floor_rms_saturation", "down"),
     ("sparse_onsets_per_sec", "sparse_onsets_saturation", "down"),
     ("moderate_onsets_per_sec", "percussive_onsets_saturation", "up"),
     ("moderate_onsets_per_sec", "sustained_onsets_saturation", "down"),
@@ -1012,6 +1017,15 @@ MEASURED_LIBROSA: dict[str, dict[str, float | None]] = {
         "onset_density": 2.5, "transient_sharpness": 68.7411, "band_low": 0.24,
         "band_high": 0.0415, "rms_mean": 0.1356,
     },
+    # An absent stem: what Demucs returns when the source is not in the mix.
+    # Every descriptor here is separation residue. Without the silence gate this
+    # row alone fires noisy, busy drums and bright hats on pure numerical noise.
+    "separation_residue": {
+        "key_confidence": 0.1748, "tonal_stability": 0.99632, "chroma_entropy_value": 0.9761,
+        "centroid_mean": 10861.67, "centroid_std": 138.63, "crest_factor": 4.5354,
+        "onset_density": 7.375, "transient_sharpness": 1.3934, "band_low": 0.0202,
+        "band_high": 0.6323, "rms_mean": 0.000941, "loudness_lufs": -54.67,
+    },
 }
 
 # Same signals, same run, essentia. Note how far the descriptors diverge:
@@ -1073,6 +1087,15 @@ MEASURED_ESSENTIA: dict[str, dict[str, float | None]] = {
         "onset_density": 2.5, "transient_sharpness": 7.878, "band_low": 0.24,
         "band_high": 0.0415, "rms_mean": 0.1354,
     },
+    # Same residue signal as the librosa table. The two backends agree on LUFS
+    # to 0.05 dB, which is why the gate reads LUFS and not a backend-specific
+    # descriptor — note how far apart their tonal readings of it are.
+    "separation_residue": {
+        "key_confidence": 0.688, "tonal_stability": 0.57664, "chroma_entropy_value": 0.8558,
+        "centroid_mean": 9471.58, "centroid_std": 121.79, "crest_factor": 4.5354,
+        "onset_density": 0.125, "transient_sharpness": 0.9822, "band_low": 0.0202,
+        "band_high": 0.6323, "rms_mean": 0.000941, "loudness_lufs": -54.62,
+    },
 }
 
 MEASURED: dict[str, dict[str, dict[str, float | None]]] = {
@@ -1085,6 +1108,7 @@ SOURCES = ("mix", "drums", "bass", "vocals", "other")
 # Every label this module can emit. Each must be reachable on BOTH backends.
 EXPECTED_LABELS = frozenset(
     {
+        "silent/absent stem",
         "tonally stable",
         "noisy",
         "sustained",
@@ -1221,6 +1245,160 @@ def test_retired_descriptors_never_change_a_label(descriptor: str) -> None:
         baselines.append([(item.label, item.confidence) for item in labels])
     assert all(entry == baselines[0] for entry in baselines)
     assert baselines[0], "expected at least one label, otherwise this proves nothing"
+
+
+# ---------------------------------------------------------------------------
+# The near-silence gate
+# ---------------------------------------------------------------------------
+# Measured on a real 12 s instrumental mix (kick, snare, hats, bass, pad, and
+# deliberately no vocals). Demucs correctly returned an empty vocals stem; the
+# labeller then described the residue as tonally stable percussive material
+# with a key of C minor and 53 onsets. No synthetic-descriptor test could catch
+# that, because each descriptor was individually plausible.
+EMPTY_VOCALS_STEM: dict[str, float | None] = {
+    "loudness_lufs": -68.23,
+    "rms_mean": 0.0013,
+    "crest_factor": 10.115,
+    "onset_density": 4.4167,
+    "chroma_entropy_value": 0.6238,
+    "key_confidence": 0.6880,
+    "tonal_stability": 0.8066,
+}
+
+# The same run's real sources, none of which may be gated.
+REAL_SOURCE_LUFS = {
+    "mix": -17.38,
+    "drums": -24.58,
+    "bass": -18.93,
+    "other": -27.11,
+}
+
+
+def test_empty_stem_produces_only_the_silence_label() -> None:
+    """The regression. Before the gate this returned ['tonally stable',
+    'percussive'] — a confident description of inaudible separation residue."""
+    labels = apply(make_analysis("vocals", **EMPTY_VOCALS_STEM))  # type: ignore[arg-type]
+    assert [label.label for label in labels] == ["silent/absent stem"]
+    assert "tonally stable" not in names(labels)
+    assert "percussive" not in names(labels)
+
+
+def test_empty_stem_label_carries_its_loudness_as_evidence() -> None:
+    labels = apply(make_analysis("vocals", **EMPTY_VOCALS_STEM))  # type: ignore[arg-type]
+    silence = by_name(labels, "silent/absent stem")
+    assert silence.evidence["loudness_lufs"] == -68.23
+    assert silence.evidence["max_loudness_lufs"] == THRESHOLDS["silence_floor_lufs"]
+    assert silence.confidence > 0.5
+
+
+@pytest.mark.parametrize("source", sorted(REAL_SOURCE_LUFS))
+def test_real_sources_from_the_same_run_are_not_gated(source: str) -> None:
+    """The other side of the regression: the gate must not silence real stems.
+    The quietest was -27.11 LUFS, over 20 dB above the floor."""
+    labels = apply(
+        make_analysis(
+            source,
+            loudness_lufs=REAL_SOURCE_LUFS[source],
+            rms_mean=0.0216,
+            crest_factor=10.67,
+            onset_density=4.0,
+            chroma_entropy_value=0.5,
+        )
+    )
+    assert "silent/absent stem" not in names(labels)
+    assert labels, "a real source should still be described"
+
+
+def test_the_gate_applies_uniformly_to_every_source_including_mix() -> None:
+    for source in ("mix", "drums", "bass", "vocals", "other", "unknown-source"):
+        labels = apply(make_analysis(source, **EMPTY_VOCALS_STEM))  # type: ignore[arg-type]
+        assert [label.label for label in labels] == ["silent/absent stem"], source
+
+
+def test_silence_floor_boundary_either_side_and_exactly_on_the_line() -> None:
+    floor = THRESHOLDS["silence_floor_lufs"]
+
+    on_line = apply(make_analysis("vocals", loudness_lufs=floor, crest_factor=10.0))
+    assert by_name(on_line, "silent/absent stem").confidence == 0.0
+
+    just_above = apply(
+        make_analysis("vocals", loudness_lufs=floor + 0.01, crest_factor=10.0, onset_density=4.0)
+    )
+    assert "silent/absent stem" not in names(just_above)
+
+
+def test_silence_confidence_rises_the_quieter_the_stem_gets() -> None:
+    def confidence_at(lufs: float) -> float:
+        labels = apply(make_analysis("vocals", loudness_lufs=lufs))
+        return by_name(labels, "silent/absent stem").confidence
+
+    assert confidence_at(-50.0) == 0.0
+    assert confidence_at(-55.0) == pytest.approx(0.25)
+    assert confidence_at(-60.0) == pytest.approx(0.5)
+    assert confidence_at(-68.23) == pytest.approx(0.9115, abs=1e-4)
+    # Essentia clamps at -70.0 for digital silence.
+    assert confidence_at(-70.0) == 1.0
+    assert confidence_at(-120.0) == 1.0
+
+
+def test_lufs_is_authoritative_and_is_not_second_guessed_by_rms() -> None:
+    """An audible LUFS reading must win even when rms_mean looks tiny — the
+    fallback exists to cover missing LUFS, not to override a present one."""
+    labels = apply(
+        make_analysis("bass", loudness_lufs=-18.93, rms_mean=0.0001, chroma_entropy_value=0.5)
+    )
+    assert "silent/absent stem" not in names(labels)
+
+
+def test_rms_fallback_catches_digital_silence_when_lufs_is_none() -> None:
+    """The case that makes the fallback necessary rather than optional: on
+    digital silence pyloudnorm returns non-finite and W1A maps it to None, so
+    on librosa the most pathological input has no LUFS at all. Both backends
+    report rms_mean 0.0 for it."""
+    labels = apply(make_analysis("vocals", loudness_lufs=None, rms_mean=0.0))
+    assert [label.label for label in labels] == ["silent/absent stem"]
+    silence = labels[0]
+    assert silence.confidence == 1.0
+    assert silence.evidence["rms_mean"] == 0.0
+    assert silence.evidence["max_rms_mean"] == THRESHOLDS["silence_floor_rms"]
+    assert "loudness_lufs" not in silence.evidence
+
+
+def test_rms_fallback_boundary_either_side_and_exactly_on_the_line() -> None:
+    floor = THRESHOLDS["silence_floor_rms"]
+
+    on_line = apply(make_analysis("vocals", rms_mean=floor))
+    assert by_name(on_line, "silent/absent stem").confidence == 0.0
+
+    just_above = apply(
+        make_analysis("vocals", rms_mean=floor + 0.0001, crest_factor=10.0, onset_density=4.0)
+    )
+    assert "silent/absent stem" not in names(just_above)
+
+
+def test_rms_fallback_does_not_gate_a_quiet_but_real_stem() -> None:
+    """The quietest real stem measured was rms 0.0216, ~7x above the floor."""
+    labels = apply(
+        make_analysis("drums", rms_mean=0.0216, crest_factor=10.67, onset_density=4.0)
+    )
+    assert "silent/absent stem" not in names(labels)
+
+
+def test_a_source_with_neither_loudness_nor_rms_is_not_gated() -> None:
+    """No level information is not evidence of silence — it degrades to the
+    ordinary all-None behaviour of producing nothing, not to a false claim."""
+    assert apply(make_analysis("vocals")) == []
+    labels = apply(make_analysis("drums", onset_density=8.5))
+    assert names(labels) == {"busy drums"}
+
+
+@pytest.mark.parametrize("backend", sorted(MEASURED))
+def test_measured_separation_residue_is_gated_on_both_backends(backend: str) -> None:
+    """Without the gate this row fires noisy, busy drums and bright hats on
+    librosa — all computed on inaudible residue."""
+    for source in SOURCES:
+        labels = apply(measured(backend, "separation_residue", source))
+        assert [label.label for label in labels] == ["silent/absent stem"], f"{backend}/{source}"
 
 
 def test_labels_are_serialisable_with_their_evidence() -> None:

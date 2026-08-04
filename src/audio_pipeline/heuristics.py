@@ -40,6 +40,44 @@ from .schemas import HeuristicLabel, SourceAnalysis
 # `sparse_onsets_per_sec` are a cross-agent contract: retune the values, never
 # rename or remove the keys.
 THRESHOLDS: dict[str, float] = {
+    # -- Near-silence gate -------------------------------------------------
+    # Demucs returns an essentially empty stem whenever the source is not
+    # present — every instrumental track yields an empty `vocals`, and plenty
+    # yield a near-empty `other`. Every descriptor is then computed on
+    # separation residue, and the labeller confidently describes numerical
+    # noise. Measured on a real 12 s instrumental mix, the empty vocals stem
+    # came back "tonally stable, percussive" with a key of C minor and 53
+    # onsets. That is worse than silence, because it does not look wrong.
+    #
+    # Observed LUFS on that run:
+    #     mix     -17.38     drums   -24.58     bass    -18.93
+    #     other   -27.11     vocals  -68.23  <- empty stem
+    # and on synthetic separation residue, -54.67 (librosa) / -54.62
+    # (essentia) — the two backends agree on LUFS to within 0.05 dB, which is
+    # why this gate reads LUFS rather than anything backend-specific.
+    #
+    # [grounded] -50 LUFS sits in the very wide gap between the quietest real
+    # source (-27.11) and the residue (-54.6 and below). For scale, mastered
+    # music runs -14 to -9 LUFS, so this is ~36 dB below a finished master:
+    # inaudible under any playback condition. There is over 20 dB of headroom
+    # on both sides, so the exact value is not delicate.
+    "silence_floor_lufs": -50.0,
+    # [grounded] Essentia's LoudnessEBUR128 clamps at -70.0 for digital
+    # silence, so that is the floor of the scale and full confidence.
+    "silence_floor_lufs_saturation": -70.0,
+    # [grounded] Fallback for when LUFS is unavailable. This is NOT a second
+    # calibrated scale — it is a backstop for one specific measured case: on
+    # digital silence pyloudnorm returns non-finite and W1A maps that to None,
+    # so on librosa the *most* pathological input produces no LUFS at all.
+    # Essentia returns -70.0 for the same input. Both report rms_mean 0.0.
+    # 0.003 linear RMS is about -50 dBFS, mirroring the LUFS floor. RMS-dBFS
+    # and LUFS differ by a few dB on broadband material (the residue above is
+    # -60.5 dBFS against -54.6 LUFS), so treat this as coarse. It only decides
+    # cases LUFS cannot, and it sits ~7x below the quietest real stem measured
+    # (rms 0.0216), so it will not fire on quiet-but-present material.
+    "silence_floor_rms": 0.003,
+    # [grounded] Digital silence.
+    "silence_floor_rms_saturation": 0.0,
     # -- Onset density, onsets/sec -----------------------------------------
     # Reference points are note values at a typical 120 BPM: quarter notes =
     # 2.0/s, 8ths = 4.0/s, 16ths = 8.0/s.
@@ -403,6 +441,51 @@ def _dedupe(labels: Iterable[HeuristicLabel]) -> list[HeuristicLabel]:
 # ---------------------------------------------------------------------------
 # Shared label builders
 # ---------------------------------------------------------------------------
+
+
+def _silent_stem(analysis: SourceAnalysis) -> HeuristicLabel | None:
+    """Detect a source too quiet to carry any meaning: an absent stem.
+
+    This is a *gate*, not an ordinary label. When it fires, `apply()` returns it
+    alone and suppresses everything else, because every other descriptor on a
+    near-empty stem is computed on separation residue and is meaningless. See
+    the `silence_floor_lufs` comment for the measurements.
+
+    Emitting a label rather than an empty list is deliberate: "this stem is
+    empty" is useful to someone rebuilding a track, whereas no labels at all
+    reads as the analysis having failed.
+
+    `loudness_lufs` is the authority whenever it is present — it is perceptual
+    and the two backends agree on it closely. It is only absent in one measured
+    case, and it is the worst one: on digital silence pyloudnorm returns
+    non-finite and W1A maps that to `None`. `rms_mean` covers exactly that gap.
+    Note the fallback is only consulted when LUFS is missing, never to
+    second-guess a LUFS reading that says the stem is audible.
+    """
+    loudness = analysis.dynamics.loudness_lufs
+    if loudness is not None:
+        return _emit(
+            "silent/absent stem",
+            _ramp(
+                loudness,
+                THRESHOLDS["silence_floor_lufs"],
+                THRESHOLDS["silence_floor_lufs_saturation"],
+            ),
+            _evidence(
+                loudness_lufs=loudness,
+                max_loudness_lufs=THRESHOLDS["silence_floor_lufs"],
+            ),
+        )
+
+    rms = analysis.dynamics.rms_mean
+    return _emit(
+        "silent/absent stem",
+        _ramp(rms, THRESHOLDS["silence_floor_rms"], THRESHOLDS["silence_floor_rms_saturation"]),
+        _evidence(
+            rms_mean=rms,
+            max_rms_mean=THRESHOLDS["silence_floor_rms"],
+        ),
+    )
 
 
 def _noisy(analysis: SourceAnalysis) -> HeuristicLabel | None:
@@ -778,11 +861,26 @@ _SOURCE_LABELLERS: dict[str, Callable[[SourceAnalysis], list[HeuristicLabel]]] =
 def apply(analysis: SourceAnalysis) -> list[HeuristicLabel]:
     """Dispatch to the right labeller(s) for `analysis.source` and merge results.
 
-    Generic labels always apply. An unknown source name is not an error — it
-    falls back to the generic labels alone. Duplicates collapse to the most
-    confident reading, and the result is sorted by confidence descending, ties
-    broken alphabetically so output is stable run to run.
+    The single supported entry point to this module. The near-silence gate
+    lives here rather than in the individual labellers, which stay pure "what do
+    these descriptors say" functions — so call `apply()`, not `label_drums()`
+    and friends, unless you specifically want the ungated reading.
+
+    A source below the silence floor returns `silent/absent stem` alone. Every
+    other descriptor on an empty stem is separation residue, so reporting any of
+    them would be worse than reporting nothing. The rule is uniform across
+    sources: `mix` is never empty in practice, but it is not special-cased.
+
+    Otherwise generic labels always apply, plus the source-specific ones. An
+    unknown source name is not an error — it falls back to the generic labels
+    alone. Duplicates collapse to the most confident reading, and the result is
+    sorted by confidence descending, ties broken alphabetically so output is
+    stable run to run.
     """
+    silent = _silent_stem(analysis)
+    if silent is not None:
+        return [silent]
+
     labels = label_generic(analysis)
     source_labeller = _SOURCE_LABELLERS.get(analysis.source)
     if source_labeller is not None:
