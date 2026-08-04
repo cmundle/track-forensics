@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel, Field
 
-from . import SCHEMA_VERSION
+from . import ANALYSIS_SAMPLE_RATE, SCHEMA_VERSION
 
 
 class RhythmFeatures(BaseModel):
@@ -31,6 +31,19 @@ class TonalFeatures(BaseModel):
     tonal_stability: float | None = None
 
 
+class BandEnergyRatios(BaseModel):
+    """Share of total spectral energy per band. Present fields sum to ~1.0.
+
+    Band edges are fixed in `BAND_EDGES_HZ` and shared by both backends so the
+    heuristic thresholds tuned on one backend remain meaningful on the other.
+    """
+
+    low: float | None = Field(default=None, description="20-250 Hz")
+    low_mid: float | None = Field(default=None, description="250-2000 Hz")
+    high_mid: float | None = Field(default=None, description="2000-6000 Hz")
+    high: float | None = Field(default=None, description="6000-20000 Hz")
+
+
 class SpectralFeatures(BaseModel):
     """Timbre-related descriptors."""
 
@@ -38,6 +51,7 @@ class SpectralFeatures(BaseModel):
     centroid_std: float | None = None
     rolloff_mean: float | None = None
     brightness: float | None = None
+    band_energy_ratios: BandEnergyRatios = Field(default_factory=BandEnergyRatios)
 
 
 class DynamicsFeatures(BaseModel):
@@ -75,7 +89,13 @@ class SourceAnalysis(BaseModel):
 
 
 class TrackSummary(BaseModel):
-    """Combined view across the mix and all stems."""
+    """Combined view across the mix and all stems.
+
+    Beat times live in the per-source `analysis/*.json` files only. They are
+    omitted from the written summary — a six-minute track produces roughly 720
+    floats per source, which is pure duplication and makes the one file you
+    actually read by hand unreadable. Use `summary_payload()` to serialise.
+    """
 
     schema_version: int = SCHEMA_VERSION
     track_name: str
@@ -84,7 +104,16 @@ class TrackSummary(BaseModel):
     backend: str
     separation_model: str | None = None
     separation_device: str | None = None
+    analysis_sample_rate: int = ANALYSIS_SAMPLE_RATE
     sources: dict[str, SourceAnalysis] = Field(default_factory=dict)
+
+    def summary_payload(self) -> dict[str, object]:
+        """Dict for writing `track_summary.json`, with beat_times stripped.
+
+        Each source keeps a `beat_count` so the information is not lost, and the
+        full list stays available in that source's own analysis file.
+        """
+        raise NotImplementedError
 
 
 class StrudelHints(BaseModel):

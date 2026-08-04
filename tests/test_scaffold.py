@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import numpy as np
 
-from audio_pipeline import SOURCE_NAMES, STEM_NAMES
+from audio_pipeline import ANALYSIS_SAMPLE_RATE, BAND_EDGES_HZ, SCHEMA_VERSION, SOURCE_NAMES, STEM_NAMES
 from audio_pipeline.schemas import SourceAnalysis, StrudelHints, TrackSummary
 
 
@@ -25,9 +25,28 @@ def test_source_analysis_defaults_are_serialisable() -> None:
         backend="librosa",
     )
     payload = analysis.model_dump()
-    assert payload["schema_version"] == 1
+    assert payload["schema_version"] == SCHEMA_VERSION
     assert payload["rhythm"]["bpm"] is None
     assert payload["unavailable_features"] == []
+    assert payload["spectral"]["band_energy_ratios"] == {
+        "low": None,
+        "low_mid": None,
+        "high_mid": None,
+        "high": None,
+    }
+
+
+def test_analysis_runs_at_full_rate() -> None:
+    """Guard the accuracy-over-speed decision: nothing may downsample."""
+    assert ANALYSIS_SAMPLE_RATE == 44100
+
+
+def test_band_edges_are_contiguous_and_shared() -> None:
+    """Both backends key off these bounds, so they must not drift or overlap."""
+    edges = list(BAND_EDGES_HZ.values())
+    assert list(BAND_EDGES_HZ) == ["low", "low_mid", "high_mid", "high"]
+    for (_, upper), (lower, _) in zip(edges, edges[1:], strict=False):
+        assert upper == lower
 
 
 def test_track_summary_and_hints_roundtrip() -> None:

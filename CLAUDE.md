@@ -11,7 +11,8 @@ Must run fully offline. No network calls at runtime, no cloud services, no web a
 ## Constraints
 
 - Python 3.11, type hints everywhere, pydantic v2 models for all JSON output.
-- Demucs for separation, prefer `mps` device on Apple silicon with CPU fallback.
+- Demucs for separation, prefer `mps` device on Apple silicon with CPU fallback. Default model is `htdemucs_ft` (quality over speed), overridable via `--model`, `--fast`, or `TRACK_FORENSICS_MODEL`.
+- **44.1 kHz everywhere. Never downsample.** Accuracy on hats and cymbals is the whole point; use `ANALYSIS_SAMPLE_RATE`.
 - Essentia is the preferred analysis backend, **but** its macOS install is fragile. Keep the analyzer modular behind a backend interface so librosa can substitute for most features. Never hard-import Essentia at module top level in a way that breaks the CLI.
 - FFmpeg handles decoding of non-wav input.
 - pytest for tests. Tests must not require a real audio file to run — generate synthetic signals with numpy.
@@ -31,8 +32,10 @@ Must run fully offline. No network calls at runtime, no cloud services, no web a
 
 - Rhythm: BPM estimate, beat positions (seconds), onset density (onsets/sec), transient sharpness
 - Tonal: key, scale, key confidence, chroma/HPCP 12-bin summary, tonal stability
-- Spectral: spectral centroid (mean/std), spectral rolloff, brightness
+- Spectral: spectral centroid (mean/std), spectral rolloff, brightness, band energy ratios over `BAND_EDGES_HZ`
 - Dynamics: integrated loudness, RMS, crest factor
+
+Beat times are written to `analysis/*.json` only; `track_summary.json` carries a `beat_count` instead. See `TrackSummary.summary_payload()`.
 
 If a feature is unavailable on the active backend, emit `null` and record it in a `unavailable_features` list rather than crashing.
 

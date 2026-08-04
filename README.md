@@ -48,6 +48,7 @@ track-forensics doctor
 
 ```bash
 track-forensics all input.wav              # default: separate + analyze + hints
+track-forensics all input.wav --fast       # quicker separation, rougher stems
 track-forensics separate input.wav
 track-forensics analyze input.wav
 track-forensics export-strudel-hints input.wav
@@ -55,6 +56,19 @@ track-forensics doctor                     # report backend/device availability
 ```
 
 Accepted input: `.wav`, `.mp3`, `.aiff`, `.m4a` (anything FFmpeg can decode).
+
+### Separation model
+
+Defaults to `htdemucs_ft` — the fine-tuned Demucs model. Cleaner stems, roughly four times slower than plain `htdemucs`. Expect minutes, not seconds, on a full track.
+
+```bash
+track-forensics all input.wav --model htdemucs   # or just --fast
+export TRACK_FORENSICS_MODEL=htdemucs            # standing preference
+```
+
+### Sample rate
+
+The whole pipeline runs at 44.1 kHz and never downsamples. Analysis accuracy on hi-hats and cymbals is the point of this tool, and a 22.05 kHz shortcut would cap the usable spectrum at 11 kHz.
 
 ## Output layout
 
