@@ -27,6 +27,7 @@ import json
 import os
 import shutil
 import sys
+import time
 from pathlib import Path
 from typing import Annotated, NoReturn
 
@@ -37,7 +38,7 @@ from . import analyze as analyze_module
 from . import separate as separate_module
 from . import strudel_hints as strudel_hints_module
 from .backends import BackendName, BackendUnavailableError
-from .schemas import SourceAnalysis, TrackSummary
+from .schemas import SourceAnalysis, TrackSummary, rehydrate_stripped_lists
 
 app = typer.Typer(
     name="track-forensics",
@@ -160,28 +161,35 @@ def _build_summary(
 
 
 def _load_track_summary_with_timing(output_root: Path, track_name: str) -> TrackSummary:
-    """Load `track_summary.json`, rehydrating `beat_times`/`onset_times`.
+    """Load `track_summary.json`, rehydrating every list `summary_payload()` strips.
 
-    `TrackSummary.summary_payload()` strips both event-time lists to
-    `beat_count`/`onset_count` before writing, since they are thousands of
-    duplicated floats across five sources -- see `schemas.py`. That is the
-    right call for the file meant to be read by hand, but
+    `TrackSummary.summary_payload()` strips `rhythm.beat_times`/`onset_times`,
+    `drum_decomposition.hits` and `bass_line.notes` down to their counts
+    before writing -- see `schemas._SUMMARY_LIST_FIELDS`. That is the right
+    call for the file meant to be read by hand, but several downstream
+    functions need the full lists:
     `strudel_hints.infer_subdivision_feel()` needs the drums stem's actual
-    `rhythm.onset_times` to measure the grid against, and a `TrackSummary`
-    loaded straight from the stripped file has neither list: pydantic quietly
-    defaults each to `[]` (extra keys like `beat_count` are ignored, missing
-    `beat_times` falls back to its `default_factory=list`), so
-    `export-strudel-hints` run standalone would otherwise silently produce a
-    weaker result than `all` does, which holds the summary in memory with the
-    lists still intact.
+    `rhythm.onset_times`, and `strudel_vocab.suggest_drum_sounds()` needs
+    `drum_decomposition.hits` (per-hit `decay_ratio` is what decides `hh`
+    versus `oh`; the folded `patterns` list does not carry it). A
+    `TrackSummary` loaded straight from the stripped file has none of these:
+    pydantic quietly defaults each to `[]` (extra keys like `beat_count` are
+    ignored, the missing list falls back to its `default_factory=list`), so
+    `suggest_drum_sounds()` would not raise -- it would just silently return
+    `[]`, indistinguishable from "no kick/snare/hat hits were ever found."
+    `export-strudel-hints` run standalone would then quietly produce a
+    weaker result than `all` does, which holds the summary in memory with
+    every list still intact.
 
-    The full lists are not lost, though -- they stay complete in each
-    source's own `analysis/<source>.json`. So this rehydrates them from
-    there before handing the summary to `strudel_hints.build()`, rather than
-    leaving the caller to notice the gap. A source whose analysis file is
-    missing (partial run, manually deleted) is left with empty lists and
-    reported via `missing_analysis_sources`, rather than raising -- hints
-    should still degrade gracefully.
+    None of these lists are actually lost, though -- they stay complete in
+    each source's own `analysis/<source>.json`. So this rehydrates all of
+    them via `schemas.rehydrate_stripped_lists()`, the one table-driven
+    helper that strips and rehydrate both read, before handing the summary
+    to `strudel_hints.build()` -- rather than leaving each caller to
+    separately notice which lists it needs back. A source whose analysis
+    file is missing (partial run, manually deleted) is left with every list
+    empty and reported via `missing_analysis_sources`, rather than raising --
+    hints should still degrade gracefully.
     """
     summary_path = analyze_module.track_summary_path(output_root, track_name)
     summary = TrackSummary.model_validate_json(summary_path.read_text())
@@ -193,16 +201,16 @@ def _load_track_summary_with_timing(output_root: Path, track_name: str) -> Track
             missing_analysis_sources.append(source_name)
             continue
         full = SourceAnalysis.model_validate_json(source_path.read_text())
-        analysis.rhythm.beat_times = full.rhythm.beat_times
-        analysis.rhythm.onset_times = full.rhythm.onset_times
+        rehydrate_stripped_lists(analysis, full)
 
     if missing_analysis_sources:
         _warn(
             "Per-source analysis files missing for: "
-            f"{', '.join(sorted(missing_analysis_sources))}. Beat/onset times "
-            "for these sources could not be rehydrated, so hints derived from "
-            "them (e.g. subdivision feel from a missing drums.json) may come "
-            "back as None."
+            f"{', '.join(sorted(missing_analysis_sources))}. Beat/onset times, "
+            "drum hits and bass notes for these sources could not be "
+            "rehydrated, so hints derived from them (e.g. subdivision feel "
+            "from a missing drums.json, or sound suggestions from a missing "
+            "drums.json/bass.json) may come back None or empty."
         )
     return summary
 
@@ -292,7 +300,9 @@ def analyze(
 
     track_name = separate_module.slugify(input_file.stem)
     stems = separate_module.stem_paths(output_root, track_name)
+    started = time.perf_counter()
     sources = analyze_module.analyze_track(input_file, stems, backend=resolved_backend)
+    elapsed = time.perf_counter() - started
     summary = _build_summary(
         input_file,
         track_name,
@@ -302,6 +312,9 @@ def analyze(
         separation_device=None,
     )
     written = analyze_module.write_analysis_outputs(summary, output_root)
+    typer.echo(
+        f"Analysis took {elapsed:.1f}s (includes drum decomposition and bass pitch tracking)."
+    )
     for name, path in written.items():
         typer.echo(f"Wrote {name}: {path}")
 
@@ -412,9 +425,14 @@ def run_all(
     else:
         typer.echo(f"  Done: model={separation.model!r} device={separation.device!r}")
 
-    typer.echo("\n[2/3] Analyzing mix and stems...")
+    typer.echo(
+        "\n[2/3] Analyzing mix and stems "
+        "(includes drum decomposition and bass pitch tracking)..."
+    )
     track_name = separate_module.slugify(input_file.stem)
+    analyze_started = time.perf_counter()
     sources = analyze_module.analyze_track(input_file, separation.stems, backend=resolved_backend)
+    analyze_elapsed = time.perf_counter() - analyze_started
     summary = _build_summary(
         input_file,
         track_name,
@@ -424,7 +442,7 @@ def run_all(
         separation_device=separation.device,
     )
     written = analyze_module.write_analysis_outputs(summary, output_root)
-    typer.echo(f"  Wrote {len(written)} analysis file(s).")
+    typer.echo(f"  Wrote {len(written)} analysis file(s) in {analyze_elapsed:.1f}s.")
 
     typer.echo("\n[3/3] Building Strudel hints...")
     hints = strudel_hints_module.build(summary)

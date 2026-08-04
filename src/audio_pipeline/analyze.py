@@ -9,7 +9,10 @@ Failure isolation is the load-bearing behaviour here, at two levels:
 * Within one source, each of the four backend feature methods
   (`rhythm`/`tonal`/`spectral`/`dynamics`) is called independently. One
   raising does not take the other three down with it -- see
-  `_call_backend_method`. Heuristic labelling is isolated the same way.
+  `_call_backend_method`. Heuristic labelling is isolated the same way, and
+  so are the Wave 4 blocks: `drum_elements.decompose()` (drums only) and
+  `backend.pitch()` + `note_track.segment_notes()` (bass only) -- see
+  `_drum_decomposition_for_source` and `_bass_line_for_source`.
 * Across sources, `analyze_track` catches anything `analyze_source` did not
   itself absorb (e.g. a corrupt stem file that fails to decode at all) and
   records a fully-`None` placeholder for that source rather than losing the
@@ -32,7 +35,7 @@ from typing import TypeVar
 
 from pydantic import BaseModel
 
-from . import ANALYSIS_SAMPLE_RATE, STEM_NAMES
+from . import ANALYSIS_SAMPLE_RATE, STEM_NAMES, drum_elements, note_track
 from . import heuristics as heuristics_module
 from .audio_io import AudioArray, load_audio, to_mono
 from .backends import (
@@ -43,6 +46,8 @@ from .backends import (
     get_backend,
 )
 from .schemas import (
+    BassLine,
+    DrumDecomposition,
     DynamicsFeatures,
     RhythmFeatures,
     SourceAnalysis,
@@ -138,20 +143,167 @@ def _unavailable_features(
     tonal: TonalFeatures,
     spectral: SpectralFeatures,
     dynamics: DynamicsFeatures,
+    drum_decomposition: DrumDecomposition,
+    bass_line: BassLine,
 ) -> list[str]:
+    """Dotted paths for every missing descriptor, plus the two Wave 4 blocks.
+
+    `drum_decomposition` and `bass_line` are deliberately **not** routed
+    through `_collect_unavailable`: that helper treats an empty list as
+    unavailable and does not recurse into a populated one, which is backwards
+    for these two. A `DrumDecomposition` with ten real hits and one caveat
+    would be read as fully present by field-emptiness alone (its `hits` list
+    is non-empty, nothing else about it is inspected), and a `BassLine` on
+    every source that is not `bass` -- the overwhelming common case, since it
+    is `not_attempted` there by policy -- would be read as fully *missing*,
+    flooding every mix/drums/vocals/other analysis with a spurious
+    `bass_line.notes` entry.
+
+    `status` already says everything worth saying here: `ok` and
+    `not_attempted` are the two states with nothing to report; `no_grid`,
+    `too_few_hits`, `unvoiced` and `failed` are exactly what this list exists
+    to surface. This keeps every pre-Wave-4 `unavailable_features == []`
+    assertion passing untouched, since a source where neither block was
+    attempted contributes nothing.
+    """
     combined = {
         *_collect_unavailable("rhythm", rhythm.model_dump()),
         *_collect_unavailable("tonal", tonal.model_dump()),
         *_collect_unavailable("spectral", spectral.model_dump()),
         *_collect_unavailable("dynamics", dynamics.model_dump()),
     }
+    if drum_decomposition.status not in ("ok", "not_attempted"):
+        combined.add(f"drum_decomposition (status={drum_decomposition.status})")
+    if bass_line.status not in ("ok", "not_attempted"):
+        combined.add(f"bass_line (status={bass_line.status})")
     return sorted(combined)
+
+
+def _bass_grid(
+    decomposition: DrumDecomposition | None,
+) -> tuple[float | None, float | None, int | None]:
+    """`(grid_anchor_seconds, step_seconds, steps_per_cycle)` for `segment_notes()`.
+
+    Reads the drums stem's own `DrumDecomposition` so bass notes land on the
+    exact grid the drums define -- `note_track.segment_notes()`'s
+    `step_seconds` is the drums grid's `cycle_seconds / steps_per_cycle`.
+    `None` in every field -- no drums stem was analysed (or was never even
+    reached yet), or its decomposition never settled on a usable grid
+    (`no_grid`/`too_few_hits`/`failed`, any of which leave `steps_per_cycle`
+    or `cycle_seconds` unset) -- degrades to "no grid", which
+    `segment_notes()` already treats as "report `step=None` on every note"
+    rather than raising. A wrong grid is worse than none, the same bias
+    `drum_elements` and `strudel_hints` already take.
+    """
+    if decomposition is None:
+        return None, None, None
+    if decomposition.steps_per_cycle is None or not decomposition.cycle_seconds:
+        return None, None, None
+    return (
+        decomposition.grid_anchor_seconds,
+        decomposition.cycle_seconds / decomposition.steps_per_cycle,
+        decomposition.steps_per_cycle,
+    )
+
+
+def _drum_decomposition_for_source(
+    source: str,
+    mono: AudioArray,
+    sample_rate: int,
+    rhythm: RhythmFeatures,
+) -> DrumDecomposition:
+    """`drum_elements.decompose()`, called only for the `drums` source.
+
+    A policy of `analyze.py`, not of `drum_elements`: every other source
+    keeps the default `status="not_attempted"`. Uses the drums source's own
+    already-computed `rhythm.bpm` / `rhythm.beat_times` -- not the mix's --
+    so the grid is anchored on what was actually measured for this stem.
+
+    `decompose()` already never raises (it wraps its own body and returns
+    `status="failed"` on any internal error -- see its docstring). This is
+    defence in depth in the same spirit as `_call_backend_method`: a future
+    change to that guarantee must not be able to take the rest of this
+    source's analysis down with it.
+    """
+    if source != "drums":
+        return DrumDecomposition()
+    try:
+        return drum_elements.decompose(
+            mono, sample_rate, bpm=rhythm.bpm, beat_times=rhythm.beat_times
+        )
+    except Exception as exc:  # noqa: BLE001 - a drum-decomposition bug must not lose the analysis
+        logger.warning(
+            "Drum decomposition failed for source %r (%s: %s); recording as failed.",
+            source,
+            type(exc).__name__,
+            exc,
+        )
+        return DrumDecomposition(
+            status="failed",
+            caveats=[f"drum decomposition raised {type(exc).__name__}: {exc}"],
+        )
+
+
+def _bass_line_for_source(
+    source: str,
+    backend: AnalysisBackend,
+    mono: AudioArray,
+    sample_rate: int,
+    drum_decomposition: DrumDecomposition | None,
+) -> BassLine:
+    """`backend.pitch()` then `note_track.segment_notes()`, only for `bass`.
+
+    A policy of `analyze.py`, not of the `AnalysisBackend` Protocol -- see
+    that Protocol's own docstring for the full reasoning. It matters for
+    performance, not just symmetry: `librosa.pyin` runs at roughly 0.12x real
+    time (~35 s on a five-minute track), by far the most expensive single
+    call this module makes, so calling it for all five sources would roughly
+    quintuple that cost for four sources that gain nothing from it.
+
+    `backend.pitch()` can raise (a real backend calling into `librosa.pyin`
+    or Essentia's YIN family); `note_track.segment_notes()` cannot -- it
+    wraps its own body and returns `status="failed"` on any internal error.
+    Both are covered here so a break in either guarantee cannot take the rest
+    of the source's analysis down with it.
+
+    `drum_decomposition` is the drums stem's own block (or `None`), threaded
+    through by `analyze_track` so notes land on the same grid the drums
+    define -- see `_bass_grid`.
+    """
+    if source != "bass":
+        return BassLine()
+
+    try:
+        pitch_track = backend.pitch(mono, sample_rate)
+    except Exception as exc:  # noqa: BLE001 - a bad pitch tracker must not lose the analysis
+        logger.warning(
+            "%s backend failed to compute pitch for source %r (%s: %s); "
+            "recording bass_line as failed.",
+            backend.name,
+            source,
+            type(exc).__name__,
+            exc,
+        )
+        return BassLine(
+            status="failed",
+            caveats=[f"pitch() raised {type(exc).__name__}: {exc}"],
+        )
+
+    grid_anchor_seconds, step_seconds, steps_per_cycle = _bass_grid(drum_decomposition)
+    return note_track.segment_notes(
+        pitch_track,
+        grid_anchor_seconds=grid_anchor_seconds,
+        step_seconds=step_seconds,
+        steps_per_cycle=steps_per_cycle,
+    )
 
 
 def analyze_source(
     path: Path,
     source: str,
     backend: AnalysisBackend | None = None,
+    *,
+    drum_decomposition: DrumDecomposition | None = None,
 ) -> SourceAnalysis:
     """Analyze one audio file and attach heuristic labels.
 
@@ -170,6 +322,16 @@ def analyze_source(
     rest of the analysis. `heuristics_module.apply` is called through the
     module object (not imported by name) specifically so tests can
     monkeypatch `audio_pipeline.heuristics.apply` without needing W1D done.
+
+    `drum_decomposition` and `bass_line` (Wave 4) follow the same one-source,
+    one-computation, isolated-failure shape, but are gated on `source`
+    rather than called for everyone -- see `_drum_decomposition_for_source`
+    and `_bass_line_for_source` for the policy and the reasoning.
+    `drum_decomposition` here is an *input*: the drums stem's own already-
+    computed block, threaded through by `analyze_track` so a bass note's
+    `step` lands on the same grid as a drum hit's. It has nothing to do with
+    the `drum_decomposition` this function *returns* on `SourceAnalysis`
+    except when `source == "drums"`, where they are the same object.
 
     Backend resolution defaults to `get_backend()`'s normal preference order
     when `backend` is not given, which is convenient for one-off calls; when
@@ -218,6 +380,10 @@ def analyze_source(
         backend_name=resolved_backend.name,
         default=DynamicsFeatures(),
     )
+    drums_block = _drum_decomposition_for_source(source, mono, sample_rate, rhythm)
+    bass_block = _bass_line_for_source(
+        source, resolved_backend, mono, sample_rate, drum_decomposition
+    )
 
     analysis = SourceAnalysis(
         source=source,
@@ -229,7 +395,11 @@ def analyze_source(
         tonal=tonal,
         spectral=spectral,
         dynamics=dynamics,
-        unavailable_features=_unavailable_features(rhythm, tonal, spectral, dynamics),
+        drum_decomposition=drums_block,
+        bass_line=bass_block,
+        unavailable_features=_unavailable_features(
+            rhythm, tonal, spectral, dynamics, drums_block, bass_block
+        ),
     )
 
     try:
@@ -263,7 +433,10 @@ def _placeholder_analysis(
         SpectralFeatures(),
         DynamicsFeatures(),
     )
-    unavailable = _unavailable_features(rhythm, tonal, spectral, dynamics)
+    drums_block, bass_block = DrumDecomposition(), BassLine()
+    unavailable = _unavailable_features(
+        rhythm, tonal, spectral, dynamics, drums_block, bass_block
+    )
     unavailable.append(f"source (analysis failed: {type(error).__name__}: {error})")
     return SourceAnalysis(
         source=source,
@@ -275,14 +448,22 @@ def _placeholder_analysis(
         tonal=tonal,
         spectral=spectral,
         dynamics=dynamics,
+        drum_decomposition=drums_block,
+        bass_line=bass_block,
         labels=[],
         unavailable_features=unavailable,
     )
 
 
-def _analyze_or_placeholder(path: Path, source: str, backend: AnalysisBackend) -> SourceAnalysis:
+def _analyze_or_placeholder(
+    path: Path,
+    source: str,
+    backend: AnalysisBackend,
+    *,
+    drum_decomposition: DrumDecomposition | None = None,
+) -> SourceAnalysis:
     try:
-        return analyze_source(path, source, backend)
+        return analyze_source(path, source, backend, drum_decomposition=drum_decomposition)
     except Exception as exc:  # noqa: BLE001 - one source's failure must not lose the others
         logger.error(
             "Analysis failed entirely for source %r (%s: %s); continuing with the "
@@ -318,6 +499,19 @@ def analyze_track(
     Any other per-source failure is caught in `_analyze_or_placeholder` and
     recorded as a fully-unavailable placeholder for that source, so one bad
     stem never costs the mix or the other stems their results.
+
+    **How the drums grid reaches the bass source.** `STEM_NAMES` is
+    `("drums", "bass", "vocals", "other")`, so this loop always analyzes
+    drums before bass. The drums stem's own `DrumDecomposition` -- whatever
+    its `status` -- is kept in `drums_decomposition` and handed to
+    `analyze_source` when `stem_name == "bass"`, so `note_track.segment_notes`
+    can quantise bass notes onto the same grid `DrumPattern.steps` uses (see
+    `_bass_grid`). When there is no drums stem at all (skipped above, or
+    absent from `stems` entirely), `drums_decomposition` stays `None` and
+    every bass note's `step` comes back `None` -- no grid, not a guessed one.
+    The same is true when the drums stem was analyzed but never reached
+    `status="ok"` (`no_grid`/`too_few_hits`/`failed`): its `steps_per_cycle`
+    is unset, so `_bass_grid` reads that the same way as "no drums stem".
     """
     resolved_backend = backend if backend is not None else get_backend()
 
@@ -325,6 +519,7 @@ def analyze_track(
         "mix": _analyze_or_placeholder(input_path, "mix", resolved_backend)
     }
 
+    drums_decomposition: DrumDecomposition | None = None
     for stem_name in STEM_NAMES:
         stem_path = stems.get(stem_name)
         if stem_path is None or not Path(stem_path).is_file():
@@ -334,7 +529,15 @@ def analyze_track(
                 stem_path,
             )
             continue
-        results[stem_name] = _analyze_or_placeholder(stem_path, stem_name, resolved_backend)
+        analysis = _analyze_or_placeholder(
+            stem_path,
+            stem_name,
+            resolved_backend,
+            drum_decomposition=drums_decomposition if stem_name == "bass" else None,
+        )
+        results[stem_name] = analysis
+        if stem_name == "drums":
+            drums_decomposition = analysis.drum_decomposition
 
     return results
 

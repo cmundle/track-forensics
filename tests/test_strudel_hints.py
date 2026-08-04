@@ -17,9 +17,14 @@ from collections.abc import Iterable, Sequence
 
 import pytest
 
-from audio_pipeline import SCHEMA_VERSION
+from audio_pipeline import SCHEMA_VERSION, strudel_vocab
 from audio_pipeline.heuristics import THRESHOLDS
 from audio_pipeline.schemas import (
+    BassLine,
+    BassNote,
+    DrumDecomposition,
+    DrumHit,
+    DrumPattern,
     RhythmFeatures,
     SourceAnalysis,
     StrudelHints,
@@ -27,6 +32,7 @@ from audio_pipeline.schemas import (
     TrackSummary,
 )
 from audio_pipeline.strudel_hints import (
+    BASS_LINE_NOTE_SEQUENCE_CAP,
     BEATS_PER_CYCLE,
     DENSITY_TERMS,
     SUBDIVISION_TERMS,
@@ -61,6 +67,8 @@ def make_source(
     key: str | None = None,
     scale: str | None = None,
     key_confidence: float | None = None,
+    drum_decomposition: DrumDecomposition | None = None,
+    bass_line: BassLine | None = None,
 ) -> SourceAnalysis:
     """A SourceAnalysis with only the descriptors a given test cares about."""
     return SourceAnalysis(
@@ -76,6 +84,83 @@ def make_source(
             onset_density=onset_density,
         ),
         tonal=TonalFeatures(key=key, scale=scale, key_confidence=key_confidence),
+        drum_decomposition=drum_decomposition or DrumDecomposition(),
+        bass_line=bass_line or BassLine(),
+    )
+
+
+def make_drum_decomposition(*, unclassified_count: int = 0) -> DrumDecomposition:
+    """A small, self-consistent `status="ok"` `DrumDecomposition`.
+
+    One kick on step 0, one hat on step 2, one cycle of a 16-step grid --
+    enough for both `_drum_grid_hint` (which reads `patterns`) and
+    `strudel_vocab.suggest_drum_sounds` (which reads `hits`) to have real
+    material to work from.
+    """
+    hits = [
+        DrumHit(
+            time_seconds=0.0,
+            drum="kick",
+            confidence=0.9,
+            step=0,
+            kick_ratio=0.95,
+            body_ratio=0.02,
+            noise_ratio=0.02,
+            air_ratio=0.01,
+            decay_ratio=2.0,
+            flatness=1e-5,
+        ),
+        DrumHit(
+            time_seconds=0.25,
+            drum="hat",
+            confidence=0.8,
+            step=2,
+            kick_ratio=0.0,
+            body_ratio=0.0,
+            noise_ratio=0.01,
+            air_ratio=0.99,
+            decay_ratio=10.0,
+            flatness=0.04,
+        ),
+    ]
+    return DrumDecomposition(
+        status="ok",
+        steps_per_cycle=16,
+        cycle_seconds=2.0,
+        grid_anchor_seconds=0.0,
+        grid_anchor_source="beats",
+        quantisation_error_steps=0.02,
+        patterns=[
+            DrumPattern(drum="kick", steps=[0], step_occupancy=[1.0], hit_count=1),
+            DrumPattern(drum="hat", steps=[2], step_occupancy=[1.0], hit_count=1),
+        ],
+        hits=hits,
+        unclassified_count=unclassified_count,
+    )
+
+
+def make_bass_line(note_count: int = 1) -> BassLine:
+    """A small, self-consistent `status="ok"` `BassLine` of held A1s."""
+    notes = [
+        BassNote(
+            start_seconds=index * 0.5,
+            duration_seconds=0.46,
+            midi_note=33,
+            note_name="a1",
+            median_f0_hz=55.0,
+            cents_offset=0.0,
+            confidence=0.9,
+            step=(4 * index) % 16,
+        )
+        for index in range(note_count)
+    ]
+    return BassLine(
+        status="ok",
+        notes=notes,
+        median_midi_note=33,
+        median_cents_offset=0.0,
+        voiced_fraction=0.9,
+        octave_corrections=0,
     )
 
 
@@ -400,9 +485,16 @@ def full_summary() -> TrackSummary:
             bpm=120.0,
             onset_times=times_from_iois([0.125] * 32),
             onset_density=BUSY + 1.0,
+            drum_decomposition=make_drum_decomposition(),
         ),
-        make_source("bass", onset_density=SPARSE / 2.0, key="A", scale="minor",
-                    key_confidence=0.9),
+        make_source(
+            "bass",
+            onset_density=SPARSE / 2.0,
+            key="A",
+            scale="minor",
+            key_confidence=0.9,
+            bass_line=make_bass_line(),
+        ),
         make_source("vocals", onset_density=(SPARSE + BUSY) / 2.0),
     )
 
@@ -418,6 +510,23 @@ def test_build_populates_every_field_when_the_data_is_there() -> None:
     assert hints.tonal_centre == "A minor"
     assert hints.notes == []
     assert hints.schema_version == SCHEMA_VERSION
+
+    # Wave 4 fields.
+    assert hints.drum_grid.status == "ok"
+    assert hints.drum_grid.steps_per_cycle == 16
+    assert hints.drum_grid.kick_steps == [0]
+    assert hints.drum_grid.hat_steps == [2]
+    assert hints.drum_grid.snare_steps == []
+
+    assert hints.bass_line.status == "ok"
+    assert hints.bass_line.note_sequence == ["a1"]
+    assert hints.bass_line.truncated_from is None
+    assert hints.bass_line.median_midi_note == 33
+
+    roles = {suggestion.role for suggestion in hints.sound_suggestions}
+    assert roles == {"kick", "hat", "bass"}
+
+    assert hints.strudel_vocabulary_read == strudel_vocab.STRUDEL_DOCS_READ
 
 
 def test_build_returns_a_strudel_hints_model() -> None:
@@ -515,6 +624,142 @@ def test_notes_are_deduplicated_and_non_empty_strings() -> None:
     hints = build(make_summary(make_source("mix")))
     assert len(hints.notes) == len(set(hints.notes))
     assert all(note.strip() for note in hints.notes)
+
+
+# --- drum_grid / bass_line / sound_suggestions (Wave 4) ---------------------
+
+
+def test_drum_grid_absent_when_no_drums_stem() -> None:
+    summary = make_summary(make_source("mix", bpm=120.0))
+    hints = build(summary)
+    assert hints.drum_grid.status == "not_attempted"
+    assert hints.drum_grid.kick_steps == []
+    assert any("no drums stem" in note for note in hints.notes)
+
+
+def test_drum_grid_notes_when_decomposition_not_attempted() -> None:
+    summary = make_summary(make_source("mix", bpm=120.0), make_source("drums", bpm=120.0))
+    hints = build(summary)
+    assert hints.drum_grid.status == "not_attempted"
+    assert any("drum decomposition was not attempted" in note for note in hints.notes)
+
+
+def test_drum_grid_surfaces_a_non_ok_status_with_a_note() -> None:
+    decomposition = DrumDecomposition(status="no_grid", caveats=["no usable tempo estimate"])
+    summary = make_summary(make_source("drums", bpm=None, drum_decomposition=decomposition))
+    hints = build(summary)
+    assert hints.drum_grid.status == "no_grid"
+    assert hints.drum_grid.caveats == ["no usable tempo estimate"]
+    assert any("drum grid status is 'no_grid'" in note for note in hints.notes)
+
+
+def test_drum_grid_reads_patterns_not_hits() -> None:
+    """Steps come from `DrumPattern.steps`, the field the plan requires --
+    not from folding `hits` again here, which would duplicate `drum_elements`'
+    own cycle-fitting logic.
+    """
+    decomposition = make_drum_decomposition()
+    summary = make_summary(make_source("drums", bpm=120.0, drum_decomposition=decomposition))
+    hints = build(summary)
+    assert hints.drum_grid.kick_steps == [pattern.steps for pattern in decomposition.patterns
+                                           if pattern.drum == "kick"][0]
+
+
+def test_bass_line_absent_when_no_bass_stem() -> None:
+    summary = make_summary(make_source("mix", bpm=120.0))
+    hints = build(summary)
+    assert hints.bass_line.status == "not_attempted"
+    assert hints.bass_line.note_sequence == []
+    assert any("no bass stem" in note for note in hints.notes)
+
+
+def test_bass_line_notes_when_not_attempted() -> None:
+    summary = make_summary(make_source("mix", bpm=120.0), make_source("bass"))
+    hints = build(summary)
+    assert hints.bass_line.status == "not_attempted"
+    assert any("bass pitch tracking was not attempted" in note for note in hints.notes)
+
+
+def test_bass_line_surfaces_a_non_ok_status_with_a_note() -> None:
+    unvoiced = BassLine(status="unvoiced", voiced_fraction=0.0, caveats=["no pitch to track"])
+    summary = make_summary(make_source("bass", bass_line=unvoiced))
+    hints = build(summary)
+    assert hints.bass_line.status == "unvoiced"
+    assert hints.bass_line.note_sequence == []
+    assert hints.bass_line.caveats == ["no pitch to track"]
+    assert any("bass line status is 'unvoiced'" in note for note in hints.notes)
+
+
+def test_bass_line_note_sequence_is_capped_with_truncated_from() -> None:
+    """`strudel_hints.json` is documented as small and hand-readable -- a
+    several-hundred-note line must not blow that up.
+    """
+    long_line = make_bass_line(note_count=BASS_LINE_NOTE_SEQUENCE_CAP + 10)
+    summary = make_summary(make_source("bass", bass_line=long_line))
+    hints = build(summary)
+    assert len(hints.bass_line.note_sequence) == BASS_LINE_NOTE_SEQUENCE_CAP
+    assert hints.bass_line.truncated_from == BASS_LINE_NOTE_SEQUENCE_CAP + 10
+    assert hints.bass_line.note_sequence == ["a1"] * BASS_LINE_NOTE_SEQUENCE_CAP
+
+
+def test_bass_line_not_truncated_when_under_the_cap() -> None:
+    short_line = make_bass_line(note_count=3)
+    summary = make_summary(make_source("bass", bass_line=short_line))
+    hints = build(summary)
+    assert hints.bass_line.truncated_from is None
+    assert len(hints.bass_line.note_sequence) == 3
+
+
+def test_sound_suggestions_empty_when_neither_drums_nor_bass_present() -> None:
+    summary = make_summary(make_source("mix", bpm=120.0))
+    assert build(summary).sound_suggestions == []
+
+
+def test_sound_suggestions_from_drums_only() -> None:
+    decomposition = make_drum_decomposition()
+    summary = make_summary(make_source("drums", bpm=120.0, drum_decomposition=decomposition))
+    hints = build(summary)
+    roles = {s.role for s in hints.sound_suggestions}
+    assert roles == {"kick", "hat"}
+    assert "bass" not in roles
+
+
+def test_sound_suggestions_from_bass_only_is_always_exactly_one() -> None:
+    """`suggest_bass_sound` always returns one suggestion for a present bass
+    stem, per its own contract -- even with no spectral evidence at all.
+    """
+    summary = make_summary(make_source("bass", bass_line=make_bass_line()))
+    hints = build(summary)
+    assert len(hints.sound_suggestions) == 1
+    assert hints.sound_suggestions[0].role == "bass"
+
+
+def test_strudel_vocabulary_read_is_always_populated() -> None:
+    assert build(make_summary()).strudel_vocabulary_read == strudel_vocab.STRUDEL_DOCS_READ
+
+
+def test_drum_grid_and_sound_suggestions_use_hits_not_the_stripped_summary_shape() -> None:
+    """The Task 3 trap: `summary_payload()` strips `drum_decomposition.hits`
+    to `total_hit_count`, and `suggest_drum_sounds()` reads `hits`. Calling
+    `build()` on the stripped, un-rehydrated shape must not silently produce
+    fewer suggestions than the same decomposition would with `hits` intact --
+    this pins that `build()` itself does the right thing when handed a
+    populated summary; `test_cli.py` pins that `export-strudel-hints`
+    actually rehydrates before calling `build()`.
+    """
+    decomposition = make_drum_decomposition()
+    full_hints = build(
+        make_summary(make_source("drums", bpm=120.0, drum_decomposition=decomposition))
+    )
+    stripped = decomposition.model_copy(update={"hits": []})
+    stripped_hints = build(
+        make_summary(make_source("drums", bpm=120.0, drum_decomposition=stripped))
+    )
+    assert full_hints.sound_suggestions != []
+    assert stripped_hints.sound_suggestions == []
+    # ...but the folded pattern survives regardless, since `patterns` is never
+    # stripped from `track_summary.json`.
+    assert full_hints.drum_grid.kick_steps == stripped_hints.drum_grid.kick_steps == [0]
 
 
 # --- v1 scope guard ---------------------------------------------------------

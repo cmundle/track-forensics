@@ -47,6 +47,7 @@ from audio_pipeline import analyze
 from audio_pipeline.backends import AnalysisBackend
 from audio_pipeline.schemas import (
     BandEnergyRatios,
+    DrumDecomposition,
     DynamicsFeatures,
     HeuristicLabel,
     PitchTrack,
@@ -210,12 +211,33 @@ class FakeBackend:
         return self.pitch_result
 
 
+def _full_pitch_track() -> PitchTrack:
+    """A `PitchTrack` that yields a genuinely `status="ok"` `BassLine`.
+
+    Constant 55 Hz (A1), fully voiced, no gaps -- `note_track.segment_notes`
+    settles this into one held note rather than `unvoiced`. Used by
+    `_full_backend()` so a source analyzed with it has nothing in
+    `unavailable_features`, matching what "full" already means for the other
+    four descriptor categories. The actual note content is not the point of
+    these tests; only that `bass_line.status == "ok"` is.
+    """
+    n = 40
+    return PitchTrack(
+        f0_hz=[55.0] * n,
+        voiced=[True] * n,
+        voiced_probability=[0.9] * n,
+        frame_hop_seconds=512 / 44100,
+        method="fake",
+    )
+
+
 def _full_backend() -> FakeBackend:
     return FakeBackend(
         rhythm_result=_full_rhythm(),
         tonal_result=_full_tonal(),
         spectral_result=_full_spectral(),
         dynamics_result=_full_dynamics(),
+        pitch_result=_full_pitch_track(),
     )
 
 
@@ -416,11 +438,15 @@ def test_one_source_raising_does_not_prevent_the_others_from_being_analyzed(
     real_analyze_source = analyze.analyze_source
 
     def flaky(
-        path: Path, source: str, backend: AnalysisBackend | None = None
+        path: Path,
+        source: str,
+        backend: AnalysisBackend | None = None,
+        *,
+        drum_decomposition: DrumDecomposition | None = None,
     ) -> SourceAnalysis:
         if source == "bass":
             raise RuntimeError("simulated corrupt stem")
-        return real_analyze_source(path, source, backend)
+        return real_analyze_source(path, source, backend, drum_decomposition=drum_decomposition)
 
     monkeypatch.setattr(analyze, "analyze_source", flaky)
 

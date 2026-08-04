@@ -18,6 +18,20 @@ The bias throughout is towards silence over a guess. A wrong grid is worse than
 no grid: it sends you down the wrong path rebuilding the track by hand, and by
 the time you notice, you have written a bar of patterns against the wrong feel.
 Whenever a field comes back `None`, `StrudelHints.notes` says why.
+
+Wave 4 added `drum_grid`, `bass_line` and `sound_suggestions`, condensed from
+the drums/bass sources' `DrumDecomposition`/`BassLine` blocks and mapped to
+Strudel sound names by `strudel_vocab`. `strudel_vocab.suggest_drum_sounds()`
+and the drum-grid reporting both read `DrumDecomposition.hits`/`.patterns` --
+complete only in `analysis/<source>.json`, since `track_summary.json` strips
+`hits` (though not `patterns`) to a count. **Call `build()` on a summary where
+those lists survive**: the in-memory one `analyze_track` produces, or one
+rehydrated with `schemas.rehydrate_stripped_lists()`
+(`cli._load_track_summary_with_timing` does this for `export-strudel-hints`
+run standalone). A summary reloaded from disk without rehydration still
+produces a valid `StrudelHints` -- it is simply a weaker one, with an empty
+`bass_line.note_sequence` and no drum-class steps, exactly the failure mode
+rehydration exists to avoid.
 """
 
 from __future__ import annotations
@@ -25,9 +39,19 @@ from __future__ import annotations
 import math
 from collections.abc import Sequence
 from statistics import fmean, median
+from typing import Final
 
+from . import strudel_vocab
 from .heuristics import THRESHOLDS
-from .schemas import SourceAnalysis, StrudelHints, TrackSummary
+from .schemas import (
+    BassLineHint,
+    DrumDecomposition,
+    DrumGridHint,
+    SourceAnalysis,
+    StrudelHints,
+    StrudelSoundSuggestion,
+    TrackSummary,
+)
 
 # One cycle = one bar of 4/4. Strudel's cycle is the unit you write patterns
 # against, and near enough all the material this tool is pointed at is in 4/4,
@@ -155,6 +179,13 @@ DENSITY_TERMS: frozenset[str] = frozenset({"sparse", "moderate", "busy"})
 SUBDIVISION_TERMS: frozenset[str] = frozenset(
     label for _, label in (*STRAIGHT_UNITS_IN_BEATS, *SWUNG_PAIRS_IN_BEATS)
 )
+
+#: `BassLineHint.note_sequence` is capped here, with `truncated_from` recording
+#: the true length. `strudel_hints.json` is documented as small and
+#: hand-readable, and a six-minute bass line can carry several hundred notes --
+#: writing all of them would break that promise. 32 is two bars of steady
+#: eighth notes at 4/4, generous for "enough to see the shape of the line".
+BASS_LINE_NOTE_SEQUENCE_CAP: Final[int] = 32
 
 
 # --- small helpers ----------------------------------------------------------
@@ -473,6 +504,118 @@ def _density_with_note(
     return density, None
 
 
+def _drum_grid_hint(summary: TrackSummary) -> tuple[DrumGridHint, str | None]:
+    """`DrumGridHint` from the drums source's `DrumDecomposition`.
+
+    Reads `decomposition.patterns` -- the cycle-folded, at-most-`steps_per_
+    cycle`-ints-per-class view -- never `decomposition.hits`. That is the
+    field this whole hint exists to condense, and unlike `hits` it is *not*
+    stripped from `track_summary.json` (`schemas._SUMMARY_LIST_FIELDS` omits
+    `drum_decomposition.patterns` on purpose), so this function reads
+    identically whether `summary` came straight out of `analyze_track` or was
+    reloaded from disk.
+
+    Returns `(hint, note)`. `note` is set whenever there is something to
+    explain: no drums stem at all, decomposition never attempted, or a
+    status other than `"ok"` (hits were found but there is no cycle grid, too
+    few hits to say anything, or the decomposition itself failed) -- in every
+    one of those cases the hint is still returned, populated with whatever
+    survived, per the "never lose the caveats" convention `DrumDecomposition`
+    itself already uses.
+    """
+    drums = _source(summary, "drums")
+    if drums is None:
+        return DrumGridHint(), "no drums stem, drum grid not reported"
+
+    decomposition = drums.drum_decomposition
+    if decomposition.status == "not_attempted":
+        return DrumGridHint(), "drum decomposition was not attempted, drum grid not reported"
+
+    steps_by_class = {pattern.drum: pattern.steps for pattern in decomposition.patterns}
+    hint = DrumGridHint(
+        status=decomposition.status,
+        steps_per_cycle=decomposition.steps_per_cycle,
+        kick_steps=steps_by_class.get("kick", []),
+        snare_steps=steps_by_class.get("snare", []),
+        hat_steps=steps_by_class.get("hat", []),
+        unclassified_count=decomposition.unclassified_count,
+        caveats=list(decomposition.caveats),
+    )
+    note = None
+    if decomposition.status != "ok":
+        note = (
+            f"drum grid status is '{decomposition.status}', see analysis/drums.json for detail"
+        )
+    return hint, note
+
+
+def _bass_line_hint(summary: TrackSummary) -> tuple[BassLineHint, str | None]:
+    """`BassLineHint` from the bass source's `BassLine`, capped and named.
+
+    Reads `bass_line.notes` -- the full, time-ordered list, complete only in
+    `analysis/bass.json` (`track_summary.json` strips it to `note_count`, see
+    `schemas._SUMMARY_LIST_FIELDS`) -- so this must be called on a summary
+    where that list survives: the in-memory summary `analyze_track` produces,
+    or one rehydrated via `schemas.rehydrate_stripped_lists`. A summary
+    reloaded from disk without rehydration has an empty `notes` list here,
+    which reads as (and is reported as) a genuinely empty bass line rather
+    than raising -- the caller is responsible for rehydrating first if that
+    distinction matters (see `cli._load_track_summary_with_timing`).
+
+    Capped at `BASS_LINE_NOTE_SEQUENCE_CAP` entries with `truncated_from`
+    recording the real count when the cap bites, since `strudel_hints.json`
+    is documented as small and hand-readable and a several-hundred-note bass
+    line would break that promise. The full sequence always stays available
+    in `analysis/bass.json`.
+    """
+    bass = _source(summary, "bass")
+    if bass is None:
+        return BassLineHint(), "no bass stem, bass line not reported"
+
+    line = bass.bass_line
+    if line.status == "not_attempted":
+        return BassLineHint(), "bass pitch tracking was not attempted, bass line not reported"
+
+    sequence = [note.note_name for note in line.notes]
+    truncated_from = len(sequence) if len(sequence) > BASS_LINE_NOTE_SEQUENCE_CAP else None
+    hint = BassLineHint(
+        status=line.status,
+        note_sequence=sequence[:BASS_LINE_NOTE_SEQUENCE_CAP],
+        truncated_from=truncated_from,
+        median_midi_note=line.median_midi_note,
+        caveats=list(line.caveats),
+    )
+    note = None
+    if line.status != "ok":
+        note = f"bass line status is '{line.status}', see analysis/bass.json for detail"
+    return hint, note
+
+
+def _sound_suggestions(summary: TrackSummary) -> list[StrudelSoundSuggestion]:
+    """Strudel sound suggestions for whichever of drums/bass are present.
+
+    `strudel_vocab.suggest_drum_sounds` degrades gracefully on an all-default
+    `DrumDecomposition` (returns `[]`), so it is always safe to call. Bass is
+    different -- `suggest_bass_sound` always returns exactly one suggestion,
+    by its own design, so *whether there was a bass stem at all* is this
+    function's call to make, not that one's: no bass source means no bass
+    suggestion, rather than one built from an all-`None` `SpectralFeatures`
+    that would otherwise read as a real (if unconfident) verdict.
+
+    Reads `drums.drum_decomposition.hits`, not the stripped `track_summary.
+    json` shape -- see `_drum_grid_hint` and `_bass_line_hint` for the same
+    rehydration requirement.
+    """
+    drums = _source(summary, "drums")
+    decomposition = drums.drum_decomposition if drums is not None else DrumDecomposition()
+    suggestions = strudel_vocab.suggest_drum_sounds(decomposition)
+
+    bass = _source(summary, "bass")
+    if bass is not None:
+        suggestions.extend(strudel_vocab.suggest_bass_sound(bass.bass_line, bass.spectral))
+    return suggestions
+
+
 # --- public API -------------------------------------------------------------
 
 
@@ -564,6 +707,12 @@ def build(summary: TrackSummary, beats_per_cycle: int = BEATS_PER_CYCLE) -> Stru
     tonal_centre, tonal_note = _tonal_centre(summary)
     note(tonal_note)
 
+    drum_grid, drum_grid_note = _drum_grid_hint(summary)
+    note(drum_grid_note)
+
+    bass_line_hint, bass_line_note = _bass_line_hint(summary)
+    note(bass_line_note)
+
     return StrudelHints(
         track_name=summary.track_name,
         bpm=bpm,
@@ -572,5 +721,9 @@ def build(summary: TrackSummary, beats_per_cycle: int = BEATS_PER_CYCLE) -> Stru
         drum_density=drum_density,
         bass_activity=bass_activity,
         tonal_centre=tonal_centre,
+        drum_grid=drum_grid,
+        bass_line=bass_line_hint,
+        sound_suggestions=_sound_suggestions(summary),
+        strudel_vocabulary_read=strudel_vocab.STRUDEL_DOCS_READ,
         notes=notes,
     )

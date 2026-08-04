@@ -21,7 +21,19 @@ from typer.testing import CliRunner
 from audio_pipeline import SCHEMA_VERSION
 from audio_pipeline import cli as cli_module
 from audio_pipeline.backends import BackendUnavailableError
-from audio_pipeline.schemas import RhythmFeatures, SourceAnalysis, StrudelHints, TrackSummary
+from audio_pipeline.schemas import (
+    BandEnergyRatios,
+    BassLine,
+    BassNote,
+    DrumDecomposition,
+    DrumHit,
+    DrumPattern,
+    RhythmFeatures,
+    SourceAnalysis,
+    SpectralFeatures,
+    StrudelHints,
+    TrackSummary,
+)
 from audio_pipeline.separate import DEFAULT_MODEL, FAST_MODEL, SeparationResult
 
 runner = CliRunner()
@@ -478,6 +490,165 @@ def test_export_hints_rehydrates_onset_times_from_analysis_files(
     rehydrated_drums = captured["summary"].sources["drums"]
     assert rehydrated_drums.rhythm.onset_times == [0.1, 0.2, 0.3]
     assert rehydrated_drums.rhythm.beat_times == [0.0, 0.5, 1.0]
+
+
+def _populated_drum_decomposition() -> DrumDecomposition:
+    """A small `status="ok"` decomposition with real hits, not just patterns.
+
+    `strudel_vocab.suggest_drum_sounds()` reads `hits` (specifically
+    `decay_ratio`, to tell `hh` from `oh`), not the folded `patterns` list --
+    see the Task 3 trap in `cli._load_track_summary_with_timing`'s docstring.
+    """
+    hits = [
+        DrumHit(
+            time_seconds=0.0,
+            drum="kick",
+            confidence=0.9,
+            step=0,
+            kick_ratio=0.95,
+            body_ratio=0.02,
+            noise_ratio=0.02,
+            air_ratio=0.01,
+            decay_ratio=2.0,
+            flatness=1e-5,
+        ),
+        DrumHit(
+            time_seconds=0.25,
+            drum="hat",
+            confidence=0.8,
+            step=2,
+            kick_ratio=0.0,
+            body_ratio=0.0,
+            noise_ratio=0.01,
+            air_ratio=0.99,
+            decay_ratio=10.0,
+            flatness=0.04,
+        ),
+    ]
+    return DrumDecomposition(
+        status="ok",
+        steps_per_cycle=16,
+        cycle_seconds=2.0,
+        grid_anchor_seconds=0.0,
+        grid_anchor_source="beats",
+        quantisation_error_steps=0.02,
+        patterns=[
+            DrumPattern(drum="kick", steps=[0], step_occupancy=[1.0], hit_count=1),
+            DrumPattern(drum="hat", steps=[2], step_occupancy=[1.0], hit_count=1),
+        ],
+        hits=hits,
+        unclassified_count=0,
+    )
+
+
+def _populated_bass_line() -> BassLine:
+    notes = [
+        BassNote(
+            start_seconds=0.0,
+            duration_seconds=0.46,
+            midi_note=33,
+            note_name="a1",
+            median_f0_hz=55.0,
+            cents_offset=0.0,
+            confidence=0.9,
+            step=0,
+        )
+    ]
+    return BassLine(
+        status="ok",
+        notes=notes,
+        median_midi_note=33,
+        median_cents_offset=0.0,
+        voiced_fraction=0.9,
+        octave_corrections=0,
+    )
+
+
+def _full_wave4_summary(track_name: str) -> TrackSummary:
+    """A `TrackSummary` with real drum hits and bass notes on drums/bass.
+
+    Deliberately built with populated `drum_decomposition.hits` and
+    `bass_line.notes` -- the fields `track_summary.json` strips -- so a test
+    reading from the written, stripped file must rehydrate to recover the
+    same `sound_suggestions`/`drum_grid` this in-memory summary would give
+    `strudel_hints.build()` directly.
+    """
+    drums = SourceAnalysis(
+        source="drums",
+        audio_path="output/demo/stems/drums.wav",
+        duration_seconds=8.5,
+        sample_rate=44100,
+        backend="librosa",
+        rhythm=RhythmFeatures(bpm=120.0, beat_times=[0.0], onset_times=[0.0, 0.25]),
+        drum_decomposition=_populated_drum_decomposition(),
+    )
+    bass = SourceAnalysis(
+        source="bass",
+        audio_path="output/demo/stems/bass.wav",
+        duration_seconds=8.5,
+        sample_rate=44100,
+        backend="librosa",
+        rhythm=RhythmFeatures(bpm=120.0),
+        spectral=SpectralFeatures(
+            centroid_mean=90.0,
+            brightness=0.02,
+            band_energy_ratios=BandEnergyRatios(low=0.9, low_mid=0.08, high_mid=0.01, high=0.01),
+        ),
+        bass_line=_populated_bass_line(),
+    )
+    mix = _make_source_analysis("mix", bpm=120.0)
+    return TrackSummary(
+        track_name=track_name,
+        input_path="demo.wav",
+        duration_seconds=8.5,
+        backend="librosa",
+        sources={"mix": mix, "drums": drums, "bass": bass},
+    )
+
+
+def test_export_hints_standalone_matches_all_for_sound_suggestions_and_drum_grid(
+    input_wav: Path, tmp_path: Path
+) -> None:
+    """The Task 3 trap, exercised end to end.
+
+    `all` calls `strudel_hints_module.build()` on the in-memory summary
+    `analyze_track` produced, with `drum_decomposition.hits` and
+    `bass_line.notes` intact. `export-strudel-hints` run standalone instead
+    reloads `track_summary.json`, which has both stripped to counts -- if
+    `cli._load_track_summary_with_timing` did not rehydrate them via
+    `schemas.rehydrate_stripped_lists`, `suggest_drum_sounds()` would
+    silently return `[]` instead of raising, and `drum_grid`/
+    `sound_suggestions` would quietly come back weaker than the `all` run
+    that produced the exact same underlying data. Real `write_analysis_outputs`
+    and real `strudel_hints_module.build` are used throughout -- nothing here
+    is mocked -- so this pins the actual on-disk round trip, not a stand-in
+    for it.
+    """
+    output_root = tmp_path / "out"
+    track_name = cli_module.separate_module.slugify(input_wav.stem)
+    summary = _full_wave4_summary(track_name)
+
+    # What `all` would have produced: hints built straight off the in-memory
+    # summary, lists intact.
+    all_hints = cli_module.strudel_hints_module.build(summary)
+    assert all_hints.sound_suggestions != []  # the fixture must actually exercise this
+
+    # Write it out exactly as `analyze`/`all` do, then run `export-strudel-hints`
+    # standalone against the resulting files.
+    cli_module.analyze_module.write_analysis_outputs(summary, output_root)
+
+    result = runner.invoke(
+        cli_module.app, ["export-strudel-hints", str(input_wav), "--output", str(output_root)]
+    )
+    assert result.exit_code == 0
+
+    hints_path = output_root / track_name / "strudel_hints.json"
+    standalone_payload = json.loads(hints_path.read_text())
+
+    all_payload = all_hints.model_dump(mode="json")
+    assert standalone_payload["sound_suggestions"] == all_payload["sound_suggestions"]
+    assert standalone_payload["drum_grid"] == all_payload["drum_grid"]
+    assert standalone_payload["bass_line"] == all_payload["bass_line"]
 
 
 # --- all -----------------------------------------------------------------
