@@ -11,7 +11,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from audio_pipeline import ANALYSIS_SAMPLE_RATE
+from audio_pipeline import ANALYSIS_SAMPLE_RATE, BAND_EDGES_HZ
 from audio_pipeline.audio_io import (
     AudioDecodeError,
     FFmpegNotFoundError,
@@ -68,17 +68,32 @@ def test_stereo_source_averaged_when_mono_requested(
     assert np.allclose(audio, stereo_pink_noise.mean(axis=1), atol=1e-6)
 
 
+def _tone(rate: int, seconds: float = 2.0, hz: float = 440.0) -> np.ndarray:
+    t = np.arange(int(rate * seconds), dtype=np.float64) / rate
+    return (0.5 * np.sin(2 * np.pi * hz * t)).astype(np.float32)
+
+
+def _peak_hz(audio: np.ndarray, rate: int) -> float:
+    spectrum = np.abs(np.fft.rfft(audio.astype(np.float64)))
+    return float(np.fft.rfftfreq(audio.size, 1.0 / rate)[int(np.argmax(spectrum))])
+
+
+# The two tests below are a pair, and should be read as one statement:
+# load_audio always returns exactly ANALYSIS_SAMPLE_RATE. Up from below, down
+# from above. Do not delete one without the other.
+
+
 def test_22050_input_is_upsampled_not_silently_accepted(
     wav_file: Callable[..., Path], sample_rate: int
 ) -> None:
-    """The load-bearing accuracy rule: a half-rate file must not pass through.
+    """Half-rate in, 44.1 kHz out. The disaster case this rule exists for.
 
-    Accepting 22.05 kHz would cap the spectrum at 11 kHz and quietly corrupt
-    every centroid, rolloff, and high-band ratio downstream.
+    Accepting 22.05 kHz would leave Nyquist at 11 kHz, cutting through hats and
+    cymbals and quietly corrupting every centroid, rolloff, brightness figure
+    and high-band ratio downstream — while still looking plausible.
     """
     half_rate = ANALYSIS_SAMPLE_RATE // 2
-    t = np.arange(half_rate * 2, dtype=np.float64) / half_rate
-    tone = (0.5 * np.sin(2 * np.pi * 440.0 * t)).astype(np.float32)
+    tone = _tone(half_rate)
     path = wav_file(tone, half_rate, name="half_rate.wav")
 
     audio, rate = load_audio(path)
@@ -88,17 +103,81 @@ def test_22050_input_is_upsampled_not_silently_accepted(
     # Duration is preserved: 2 s in, 2 s out.
     assert audio.size / rate == pytest.approx(2.0, abs=0.01)
     # And it is still a 440 Hz tone, not garbage.
-    spectrum = np.abs(np.fft.rfft(audio.astype(np.float64)))
-    peak_hz = float(np.fft.rfftfreq(audio.size, 1.0 / rate)[int(np.argmax(spectrum))])
-    assert peak_hz == pytest.approx(440.0, abs=2.0)
+    assert _peak_hz(audio, rate) == pytest.approx(440.0, abs=2.0)
 
 
-def test_upsampling_falls_back_to_interpolation_without_scipy(
+def test_48000_input_is_downsampled_to_exactly_44100(wav_file: Callable[..., Path]) -> None:
+    """48 kHz in, 44.1 kHz out, tone intact.
+
+    Converting down costs only the 22-24 kHz band: inaudible, and above the
+    20 kHz top of BAND_EDGES_HZ, so nothing measured is lost. What it buys is a
+    48 kHz input mix that stays comparable with its own 44.1 kHz Demucs stems,
+    and a `sample_rate` that always agrees with `analysis_sample_rate`.
+    """
+    high_rate = 48000
+    tone = _tone(high_rate)
+    path = wav_file(tone, high_rate, name="high_rate.wav")
+
+    audio, rate = load_audio(path)
+
+    assert rate == ANALYSIS_SAMPLE_RATE
+    assert audio.size == pytest.approx(tone.size * ANALYSIS_SAMPLE_RATE / high_rate, rel=0.01)
+    # Duration is preserved: 2 s in, 2 s out.
+    assert audio.size / rate == pytest.approx(2.0, abs=0.01)
+    assert _peak_hz(audio, rate) == pytest.approx(440.0, abs=2.0)
+
+
+@pytest.mark.parametrize("native_rate", [8000, 22050, 32000, 44100, 48000, 88200, 96000])
+def test_every_supported_rate_comes_back_at_44100(
+    wav_file: Callable[..., Path], native_rate: int
+) -> None:
+    """One invariant, stated once: the output rate is never anything else."""
+    path = wav_file(_tone(native_rate, seconds=0.5), native_rate, name=f"{native_rate}.wav")
+
+    audio, rate = load_audio(path)
+
+    assert rate == ANALYSIS_SAMPLE_RATE
+    assert audio.size / rate == pytest.approx(0.5, abs=0.01)
+    assert _peak_hz(audio, rate) == pytest.approx(440.0, abs=5.0)
+
+
+def test_downsampling_cannot_alias_into_a_measured_band(
+    wav_file: Callable[..., Path],
+) -> None:
+    """Discarding 22-24 kHz cannot pollute anything this tool measures.
+
+    A 23 kHz tone has nowhere to live at 44.1 kHz. `resample_poly` attenuates
+    it heavily but not infinitely, and what leaks through folds to ~21.1 kHz.
+    That is still above the 20 kHz ceiling of `BAND_EDGES_HZ` — and it always
+    will be, because anything between 22.05 and 24 kHz folds to 20.1-22.05 kHz.
+    So the 48 -> 44.1 kHz conversion cannot manufacture energy in a band any
+    descriptor reads. That is the property worth protecting, not the filter's
+    exact stopband.
+    """
+    high_rate = 48000
+    original = _tone(high_rate, hz=23000.0)
+    path = wav_file(original, high_rate, name="ultrasonic.wav")
+
+    audio, rate = load_audio(path)
+
+    assert rate == ANALYSIS_SAMPLE_RATE
+    # Strongly attenuated rather than passed through.
+    assert float(np.max(np.abs(audio))) < float(np.max(np.abs(original))) / 3
+
+    top_of_measured_range = BAND_EDGES_HZ["high"][1]
+    power = np.abs(np.fft.rfft(audio.astype(np.float64))) ** 2
+    frequencies = np.fft.rfftfreq(audio.size, 1.0 / rate)
+    leaked = power[frequencies < top_of_measured_range].sum() / power.sum()
+    assert leaked < 0.01
+
+
+def test_resampling_falls_back_to_interpolation_without_scipy(
     wav_file: Callable[..., Path], monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    """scipy ships with the librosa extra, so a core-only install must still work.
+    """scipy is a base dependency, so this path should be unreachable.
 
-    It warns rather than downsampling or silently accepting the low rate.
+    Kept as a genuine last resort for a broken install: it still hits exactly
+    44.1 kHz, and it warns loudly rather than degrading in silence.
     """
     real_import = builtins.__import__
 
@@ -110,8 +189,7 @@ def test_upsampling_falls_back_to_interpolation_without_scipy(
     monkeypatch.setattr(builtins, "__import__", no_scipy)
 
     half_rate = ANALYSIS_SAMPLE_RATE // 2
-    t = np.arange(half_rate, dtype=np.float64) / half_rate
-    tone = (0.5 * np.sin(2 * np.pi * 440.0 * t)).astype(np.float32)
+    tone = _tone(half_rate, seconds=1.0)
     path = wav_file(tone, half_rate, name="half_rate_no_scipy.wav")
 
     with pytest.warns(RuntimeWarning, match="scipy"):
@@ -120,18 +198,6 @@ def test_upsampling_falls_back_to_interpolation_without_scipy(
     assert rate == ANALYSIS_SAMPLE_RATE
     assert audio.dtype == np.float32
     assert audio.size == pytest.approx(tone.size * 2, rel=0.01)
-
-
-def test_higher_rate_input_is_never_downsampled(wav_file: Callable[..., Path]) -> None:
-    """48 kHz stays 48 kHz. The rate travels with the samples."""
-    high_rate = 48000
-    tone = (0.5 * np.sin(2 * np.pi * 440.0 * np.arange(high_rate) / high_rate)).astype(np.float32)
-    path = wav_file(tone, high_rate, name="high_rate.wav")
-
-    audio, rate = load_audio(path)
-
-    assert rate == high_rate
-    assert audio.size == tone.size
 
 
 def test_missing_file_raises_filenotfound(tmp_path: Path) -> None:

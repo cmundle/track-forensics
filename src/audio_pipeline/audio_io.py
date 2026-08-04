@@ -11,13 +11,15 @@ Dtype is always ``np.float32``.
 
 Sample rate — the accuracy-over-speed rule, in code:
 
-* Files at or above :data:`ANALYSIS_SAMPLE_RATE` are returned untouched, at
-  their own rate. **Nothing here ever downsamples.** Downsampling to 22.05 kHz
-  would cap the spectrum at 11 kHz and quietly wreck every centroid, rolloff,
-  and high-band ratio in the project. A 48 kHz file is therefore analysed at
-  48 kHz, and the rate travels with the samples in the returned tuple.
-* Files below it are resampled **up**, so a 22.05 kHz source never silently
-  passes through as if it were full rate.
+**Everything comes back at exactly :data:`ANALYSIS_SAMPLE_RATE` (44,100 Hz).**
+Up from lower rates, down from higher ones. 44,100 is a fixed target, never a
+variable, and never negotiable downward — see :func:`_to_analysis_rate` for why
+44.1 kHz specifically, and why 22.05 kHz would be a catastrophe rather than an
+optimisation.
+
+Locking the rate keeps a 48 kHz mix comparable with its own 44.1 kHz Demucs
+stems, and keeps every `SourceAnalysis.sample_rate` in agreement with
+`TrackSummary.analysis_sample_rate`.
 """
 
 from __future__ import annotations
@@ -90,21 +92,23 @@ def load_audio(
     sample_rate: int = ANALYSIS_SAMPLE_RATE,
     mono: bool = True,
 ) -> tuple[AudioArray, int]:
-    """Decode an audio file to float32 samples at `sample_rate` or higher.
+    """Decode an audio file to float32 samples at exactly `sample_rate`.
 
     Tries `soundfile` first and shells out to FFmpeg for anything it rejects
-    (m4a, and some mp3 builds). The returned rate is the rate of the returned
-    samples, which is `sample_rate` unless the source was already higher.
+    (m4a, and some mp3 builds). The returned rate always equals `sample_rate`:
+    lower sources are resampled up, higher sources down. See
+    :func:`_to_analysis_rate` before you touch that behaviour.
 
     Args:
         path: File to decode.
-        sample_rate: Floor for the output rate. Sources below it are resampled
-            up; sources above it are left alone. Defaults to
-            `ANALYSIS_SAMPLE_RATE`.
+        sample_rate: Exact output rate. Defaults to `ANALYSIS_SAMPLE_RATE`
+            (44,100 Hz), which is the only value the pipeline uses; the
+            parameter exists for tests, not for tuning runs.
         mono: `True` for `(n_samples,)`, `False` for `(n_samples, n_channels)`.
 
     Returns:
-        `(samples, actual_sample_rate)`.
+        `(samples, sample_rate)`. The second element is returned rather than
+        assumed so callers stay honest, but it is always `sample_rate`.
 
     Raises:
         FileNotFoundError: if `path` does not exist.
@@ -120,7 +124,7 @@ def load_audio(
     if mono:
         audio = to_mono(audio)
 
-    audio, actual_rate = _resample_up(audio, native_rate, sample_rate, source=path)
+    audio, actual_rate = _to_analysis_rate(audio, native_rate, sample_rate, source=path)
     return np.ascontiguousarray(audio, dtype=np.float32), actual_rate
 
 
@@ -192,49 +196,68 @@ def _decode_via_ffmpeg(path: Path, soundfile_error: Exception) -> tuple[AudioArr
     return np.asarray(audio, dtype=np.float32), int(native_rate)
 
 
-def _resample_up(
+def _to_analysis_rate(
     audio: AudioArray,
     native_rate: int,
     target_rate: int,
     source: Path | None = None,
 ) -> tuple[AudioArray, int]:
-    """Raise `audio` to `target_rate` if it is below it. Never lowers it."""
-    if native_rate == target_rate or audio.size == 0:
-        return audio, native_rate
+    """Convert `audio` to exactly `target_rate`, up or down as needed.
 
-    if native_rate > target_rate:
-        logger.info(
-            "%s is %d Hz, above the %d Hz analysis floor; keeping the native rate "
-            "(this pipeline never downsamples)",
-            source if source is not None else "input",
-            native_rate,
-            target_rate,
-        )
-        return audio, native_rate
+    READ THIS BEFORE CHANGING THE TARGET RATE.
+
+    `target_rate` is always `ANALYSIS_SAMPLE_RATE` = 44,100 Hz. It is a fixed
+    target, not a variable, and lowering it is not a valid optimisation:
+
+    * 44.1 kHz puts Nyquist at 22.05 kHz, above the top of human hearing and
+      above the 20 kHz ceiling of `BAND_EDGES_HZ`. Nothing this tool measures
+      lives higher, so converting 48 kHz down to 44.1 kHz discards only the
+      22-24 kHz band — inaudible, unmeasured, and free.
+    * Dropping to **22.05 kHz would put Nyquist at 11 kHz**, cutting straight
+      through hats and cymbals. Every spectral centroid, rolloff, brightness
+      figure and `high` band ratio in the project would be silently wrong, and
+      the output would still look plausible. That is the disaster this rule
+      exists to prevent, and it is why the fix is never "just resample lower
+      for speed".
+
+    Converting in both directions is what keeps a 48 kHz input mix comparable
+    with its own Demucs stems (which come back at 44.1 kHz), and keeps every
+    `SourceAnalysis.sample_rate` consistent with
+    `TrackSummary.analysis_sample_rate`.
+    """
+    if native_rate == target_rate or audio.size == 0:
+        return audio, target_rate
 
     logger.info(
-        "%s is %d Hz, below the %d Hz analysis floor; resampling up",
+        "%s is %d Hz; converting to the %d Hz analysis rate (%s)",
         source if source is not None else "input",
         native_rate,
         target_rate,
+        "up" if native_rate < target_rate else "down",
     )
     return _resample(audio, native_rate, target_rate), target_rate
 
 
 def _resample(audio: AudioArray, native_rate: int, target_rate: int) -> AudioArray:
-    """Rate-convert along axis 0.
+    """Rate-convert along axis 0 with `scipy.signal.resample_poly`.
 
-    Prefers `scipy.signal.resample_poly` (polyphase FIR, properly band-limited).
-    scipy ships with the `librosa` extra rather than the core install, so there
-    is a linear-interpolation fallback for a core-only environment — audibly
-    poorer above ~10 kHz, hence the warning.
+    Polyphase FIR, properly band-limited in both directions: it anti-aliases on
+    the way down from 48 kHz and suppresses imaging on the way up from 22.05
+    kHz. scipy is a **base dependency**, so this path is the only one any
+    supported install takes.
+
+    The linear-interpolation fallback below it is a genuine last resort for a
+    broken environment, not a supported configuration — it images badly above
+    ~10 kHz, precisely the band this tool exists to measure. It should be
+    unreachable; if the warning ever fires, the install is broken.
     """
     try:
         from scipy.signal import resample_poly
     except ImportError:
         warnings.warn(
-            "scipy is not installed; falling back to linear-interpolation resampling, "
-            'which is imprecise in the high band. Install it with: pip install -e ".[librosa]"',
+            "scipy is missing, so resampling fell back to linear interpolation, which is "
+            "imprecise above ~10 kHz and will skew spectral descriptors. scipy is a base "
+            'dependency of this package: reinstall with pip install -e ".[dev,librosa]"',
             RuntimeWarning,
             stacklevel=3,
         )

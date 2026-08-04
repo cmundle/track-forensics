@@ -15,6 +15,11 @@ dependencies = [
     "typer>=0.12",
     "pydantic>=2.7",
     "numpy>=1.26,<2.0",
+    # Base, not an extra: audio_io resamples every input to exactly 44.1 kHz and
+    # needs scipy's polyphase filter to do it without wrecking the high band.
+    # Installing the essentia extra without the librosa one would otherwise leave
+    # no band-limited resampler at all.
+    "scipy>=1.11",
     "soundfile>=0.12",
     "demucs>=4.0",
     "torch>=2.2",
@@ -26,7 +31,8 @@ dependencies = [
 # Install this extra first; if it fails, use the `librosa` extra as fallback.
 essentia = ["essentia>=2.1b6.dev1110"]
 # pyloudnorm supplies the ITU-R BS.1770 meter librosa does not have.
-librosa = ["librosa>=0.10", "scipy>=1.11", "pyloudnorm>=0.1.1"]
+# scipy is deliberately absent here — it is a base dependency (see above).
+librosa = ["librosa>=0.10", "pyloudnorm>=0.1.1"]
 dev = ["pytest>=8.0", "ruff>=0.5", "mypy>=1.10"]
 
 [project.scripts]
