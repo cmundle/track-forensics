@@ -82,10 +82,47 @@ was told to use. Either way W4B's "Done when — a clap class on steps 4 and 12"
 
 | package | state |
 |---|---|
-| W4A tempo | `tempo.py` written (1315 lines, imports clean, mypy clean) but **no tests and 2 ruff errors** — agent killed by a session limit before finishing. Resume, do not restart. |
+| W4A tempo | **complete and independently verified.** Committed. |
 | W4B drums | **not started** — killed by the same session limit at the first tool call. |
 | W4C note track | **complete and independently verified.** Committed. |
 | W4D spectral | complete, but its central design choice is wrong. **Send back.** |
+
+### W4A — verified
+
+`refine_bpm_from_envelope` on the committed fixture returns **131.99996 BPM**, 0.00004 from the
+verified 132.000, r=0.735, confidence `high`. Stability halves 131.9986 / 132.0017, delta 0.0031 →
+`high`. 67 tests, ruff and mypy clean on both its files.
+
+It corrected the orchestrator on two measurements and was right both times:
+
+1. **Parabolic interpolation cannot reach 0.01 BPM.** The autocorrelation peak is a symmetric lobe
+   but not a parabola, so a 3-point fit is biased by sampling phase and the bias does not shrink with
+   track length: +0.0050 BPM at 120, +0.0112 at 145, **+0.0230 at 174** — failing outright exactly
+   where corpus row 5 lives. The peak lobe's centroid is unbiased (≤0.0005 across the same range).
+   `V2-PLAN.md` W4A task 1 specifies the parabola; the plan is wrong.
+2. **The orchestrator's "N=64 is a wrong peak, do not extend" was a search-window artifact.**
+   Reproduced exactly: ±3% *of the lag* is ±1.9 beats at N=64, wide enough to reach the neighbouring
+   multiples, giving 129.97. With a beat-sized window the same lag gives **131.9973**. Verified
+   independently. The plan's ±3% is correct as a *guard* on the result and wrong as a *search window*;
+   the module now uses `min(3%, 0.45/N)` beats. Corrected in `tests/fixtures/real/PROVENANCE.md`.
+
+It also found a real bug while writing tests: a kick-only source resolved a bar phase out of float
+residue in the bright band (1.4e-07 of the low band's energy) and returned a wrong downbeat at 0.5
+confidence. Fixed with an activity floor matching `drum_elements`' existing `band_activity_floor`.
+
+**On the downbeat:** the bar phase is **two-fold** degenerate here, not four-fold as the orchestrator
+reported. The 6–16 kHz band separates beats {1,3} from {2,4} by 11×, halving the ambiguity; folding
+at 2 and 4 bars shows no asymmetry beyond one bar at all. The survivor is broken by convention (first
+significant onset) at **0.2322 s**, agreeing with F1's 0.228 to within one STFT frame, with phase
+confidence 0.115 and the alternative named in `unresolved_offsets`. The orchestrator's 1.6283 s came
+from a deliberately degenerate objective and is 32 ms late; prefer 0.2322.
+
+`find_downbeat` therefore returns a `DownbeatFit`, not a `float` as the plan specifies, and keeps
+`beat_offset_seconds` separate from `offset_seconds` — on this track the first is trustworthy and the
+second is a coin toss, and one number cannot carry both facts.
+
+**Merge-order coupling:** `tempo.py` imports `_stft_magnitude`, `_band_envelope`, `_spectral_flux`
+and `_clean` from `drum_elements.py`, which W4B owns. W4B has been told to keep all four stable.
 
 ### W4C — verified
 
