@@ -25,6 +25,8 @@ from audio_pipeline.strudel_vocab import (
     STRUDEL_DOCS_URLS,
     STRUDEL_DRUM_SAMPLES,
     STRUDEL_WAVEFORMS,
+    SUB_BASS_BRIGHTNESS_MAX,
+    SUB_BASS_CENTROID_HZ_MAX,
     suggest_bass_sound,
     suggest_drum_sounds,
     suggest_sounds,
@@ -174,17 +176,109 @@ def test_unrecognised_drum_class_string_is_ignored_not_raised() -> None:
 
 
 def _spectral(
-    low: float | None, brightness: float | None, centroid: float | None
+    low: float | None,
+    brightness: float | None,
+    centroid: float | None,
+    *,
+    centroid_mean: float | None = None,
 ) -> SpectralFeatures:
+    """A `SpectralFeatures` carrying only what `suggest_bass_sound` reads.
+
+    `centroid` is the **energy-weighted** centroid — the field the bass
+    verdict thresholds on since schema v5. `centroid_mean` defaults to `None`
+    rather than mirroring `centroid`, so any test that accidentally starts
+    depending on the contaminated field fails instead of quietly passing.
+    """
     return SpectralFeatures(
-        centroid_mean=centroid,
+        centroid_mean=centroid_mean,
+        centroid_energy_hz=centroid,
         brightness=brightness,
         band_energy_ratios=BandEnergyRatios(low=low),
     )
 
 
+# --- F4: the sub-bass branch reads centroid_energy_hz, not centroid_mean ----
+#
+# Measured on the v4 calibration bass stem
+# (`calibration/v4/madonna-.../analysis/bass.json` plus a recomputation of the
+# v5 fields from `stems/bass.wav`). A pure sine sub: 91.6% of its energy under
+# 250 Hz, 2e-06 of it above 6 kHz. The two backends read the energy-weighted
+# centroid as 139.7256 and 139.7254 Hz.
+F4_BASS_LOW_RATIO = 0.916392
+F4_BASS_BRIGHTNESS = 0.002093
+F4_BASS_CENTROID_MEAN_HZ = 1010.696524  # contaminated: 55% of the stem is unvoiced
+F4_BASS_CENTROID_ENERGY_HZ = 139.725  # energy-weighted, the number the branch needs
+
+
+def test_f4_sub_bass_stem_now_resolves_to_sine() -> None:
+    """The regression that finding F4 is about, at the numbers it was found at.
+
+    Before v5 this stem returned `match="none"`: the sub-bass branch was
+    thresholding `centroid_mean` (1010.7 Hz) against a 120 Hz ceiling, which no
+    real stem's frame-mean centroid ever clears. Nothing about the threshold
+    changed; the descriptor it reads did.
+    """
+    spectral = _spectral(
+        low=F4_BASS_LOW_RATIO,
+        brightness=F4_BASS_BRIGHTNESS,
+        centroid=F4_BASS_CENTROID_ENERGY_HZ,
+        centroid_mean=F4_BASS_CENTROID_MEAN_HZ,
+    )
+    result = suggest_bass_sound(BassLine(status="ok"), spectral)
+    assert len(result) == 1
+    assert result[0].sound == "sine"
+    assert result[0].match == "approximate"
+    # Both numbers travel in the evidence: the one the verdict was made on and
+    # the one a v4 output would have shown, so the fix is auditable.
+    assert result[0].evidence["centroid_energy_hz"] == F4_BASS_CENTROID_ENERGY_HZ
+    assert result[0].evidence["centroid_mean_hz"] == F4_BASS_CENTROID_MEAN_HZ
+
+
+def test_contaminated_centroid_mean_alone_cannot_produce_a_verdict() -> None:
+    """A v4-shaped analysis has no median, and must not fall back to the mean.
+
+    This is the guard on the fix rather than the fix itself: reading
+    `centroid_mean` when `centroid_energy_hz` is absent would reintroduce exactly
+    the descriptor F4 blames, and on this stem it would say "not a sub bass".
+    Declining, with the reason saying why, is the honest answer.
+    """
+    spectral = SpectralFeatures(
+        centroid_mean=F4_BASS_CENTROID_MEAN_HZ,
+        brightness=F4_BASS_BRIGHTNESS,
+        band_energy_ratios=BandEnergyRatios(low=F4_BASS_LOW_RATIO),
+    )
+    result = suggest_bass_sound(BassLine(status="ok"), spectral)
+    assert result[0].match == "none"
+    assert result[0].sound is None
+    assert "centroid_energy_hz" in result[0].reason
+    assert result[0].evidence["centroid_mean_hz"] == F4_BASS_CENTROID_MEAN_HZ
+    assert "centroid_energy_hz" not in result[0].evidence
+
+
+def test_sub_bass_threshold_is_not_quietly_loosened() -> None:
+    """Pins `SUB_BASS_CENTROID_HZ_MAX` at 120 Hz.
+
+    F4's trap was that the threshold looks wrong and is right. If a future
+    change widens it to make some stubborn stem fit, that is the descriptor
+    breaking again and this test is the tripwire.
+    """
+    assert SUB_BASS_CENTROID_HZ_MAX == 150.0
+    assert SUB_BASS_BRIGHTNESS_MAX == 0.005
+    just_over = _spectral(low=0.95, brightness=0.001, centroid=150.5)
+    assert suggest_bass_sound(BassLine(status="ok"), just_over)[0].match == "none"
+    just_under = _spectral(low=0.95, brightness=0.001, centroid=149.5)
+    assert suggest_bass_sound(BassLine(status="ok"), just_under)[0].sound == "sine"
+
+    # And the brightness clause, which is what actually separates a sawtooth
+    # from a sine — a synthetic 35 Hz sawtooth reads brightness 0.0131 with a
+    # centroid of 147.4 Hz, i.e. it clears the centroid clause and must be
+    # rejected here or not at all.
+    low_saw = _spectral(low=0.915, brightness=0.0131, centroid=147.4)
+    assert suggest_bass_sound(BassLine(status="ok"), low_saw)[0].match == "none"
+
+
 def test_sub_bass_spectral_shape_maps_to_sine() -> None:
-    spectral = _spectral(low=0.9, brightness=0.01, centroid=50.0)
+    spectral = _spectral(low=0.9, brightness=0.002, centroid=50.0)
     result = suggest_bass_sound(BassLine(status="ok"), spectral)
     assert len(result) == 1
     assert result[0].role == "bass"
@@ -220,7 +314,7 @@ def test_unvoiced_bass_line_still_classifies_from_spectral_shape() -> None:
     # status != "ok" must not crash and should still use the spectral
     # evidence, since sub-vs-harmonic is a spectral-shape question
     # independent of whether note segmentation succeeded.
-    spectral = _spectral(low=0.9, brightness=0.01, centroid=50.0)
+    spectral = _spectral(low=0.9, brightness=0.002, centroid=50.0)
     result = suggest_bass_sound(BassLine(status="unvoiced"), spectral)
     assert result[0].sound == "sine"
     assert "unvoiced" in result[0].reason
@@ -254,12 +348,21 @@ def _battery() -> list[StrudelSoundSuggestion]:
     ]
     bass_spectral_cases = [
         (BassLine(), SpectralFeatures()),
-        (BassLine(status="ok"), _spectral(low=0.9, brightness=0.01, centroid=50.0)),
+        (BassLine(status="ok"), _spectral(low=0.9, brightness=0.002, centroid=50.0)),
         (BassLine(status="ok"), _spectral(low=0.2, brightness=0.3, centroid=400.0)),
         (BassLine(status="ok"), _spectral(low=0.5, brightness=0.08, centroid=150.0)),
-        (BassLine(status="unvoiced"), _spectral(low=0.9, brightness=0.01, centroid=50.0)),
+        (BassLine(status="unvoiced"), _spectral(low=0.9, brightness=0.002, centroid=50.0)),
         (BassLine(status="too_few_hits"), SpectralFeatures()),
         (BassLine(status="failed"), _spectral(low=None, brightness=None, centroid=None)),
+        # v4-shaped: centroid_mean present, centroid_energy_hz absent.
+        (
+            BassLine(status="ok"),
+            SpectralFeatures(
+                centroid_mean=1010.7,
+                brightness=0.002,
+                band_energy_ratios=BandEnergyRatios(low=0.92),
+            ),
+        ),
     ]
 
     out: list[StrudelSoundSuggestion] = []
@@ -317,7 +420,7 @@ def test_reason_is_always_populated() -> None:
 def test_suggest_sounds_combines_drum_and_bass() -> None:
     decomp = DrumDecomposition(status="ok", hits=[_hit("kick", kick_ratio=0.7)])
     bass_line = BassLine(status="ok")
-    spectral = _spectral(low=0.9, brightness=0.01, centroid=50.0)
+    spectral = _spectral(low=0.9, brightness=0.002, centroid=50.0)
     combined = suggest_sounds(decomp, bass_line, spectral)
     roles = {s.role for s in combined}
     assert roles == {"kick", "bass"}

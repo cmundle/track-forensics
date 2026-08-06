@@ -39,6 +39,15 @@ from conftest import (  # noqa: E402
     SWUNG_SHORT_IOI_SECONDS,
 )
 
+# The F4 fixture lives in the librosa backend's test module and is imported,
+# not copied: the cross-backend claim is only meaningful if both backends are
+# handed the identical array. Nothing else is taken from there.
+from test_librosa_backend import (  # noqa: E402
+    SUB_BASS_CENTROID_ENERGY_HZ,
+    SUB_BASS_ROLLOFF_ENERGY_HZ,
+    sub_bass_over_noise_floor,
+)
+
 from audio_pipeline import ANALYSIS_SAMPLE_RATE, BAND_EDGES_HZ  # noqa: E402
 
 # Cross-backend comparison only — never edited, never used for anything but
@@ -54,11 +63,16 @@ from audio_pipeline.backends.essentia_backend import (  # noqa: E402
 )
 from audio_pipeline.note_track import segment_notes  # noqa: E402
 from audio_pipeline.schemas import (  # noqa: E402
+    BassLine,
     DynamicsFeatures,
     PitchTrack,
     RhythmFeatures,
     SpectralFeatures,
     TonalFeatures,
+)
+from audio_pipeline.strudel_vocab import (  # noqa: E402
+    SUB_BASS_CENTROID_HZ_MAX,
+    suggest_bass_sound,
 )
 
 
@@ -393,7 +407,9 @@ def test_silence_spectral(backend: EssentiaBackend, silence: np.ndarray) -> None
     spectral = backend.spectral(silence, ANALYSIS_SAMPLE_RATE)
     assert spectral.centroid_mean is None
     assert spectral.centroid_std is None
+    assert spectral.centroid_energy_hz is None
     assert spectral.rolloff_mean is None
+    assert spectral.rolloff_energy_hz is None
     assert spectral.brightness is None
     assert all(value is None for value in spectral.band_energy_ratios.model_dump().values())
 
@@ -578,6 +594,172 @@ def test_centroid_agrees_with_librosa_on_the_sine(
     l_centroid = librosa.spectral(sine_a440, ANALYSIS_SAMPLE_RATE).centroid_mean
     assert e_centroid is not None and l_centroid is not None
     assert e_centroid == pytest.approx(l_centroid, abs=15.0)
+
+
+#: Tolerance for `rolloff_energy_hz` across backends. **Zero** — not a loose
+#: bound like the 0.05 used for the band ratios above, and not an aspiration.
+#:
+#: `energy_percentile_hz` returns the centre frequency of an FFT bin on a grid
+#: both backends share exactly (`rfftfreq(2048, 1/44100)`), chosen by where a
+#: normalised cumulative sum crosses 0.85. Window normalisation and gain cancel
+#: in the normalisation, and because the result is a step function the small
+#: framing difference between the backends has to move the crossing bin
+#: entirely or not at all. Measured across the fixtures below and on all twelve
+#: v4 calibration stems — real 4-minute material — the delta is 0.000000 Hz
+#: every time.
+#:
+#: Pinned at exact equality rather than a tolerance because a non-zero delta
+#: here would mean something structural had changed (a different FFT size, a
+#: different band window, an interpolation step added), and that is worth
+#: failing on rather than absorbing. If real material ever does land a source
+#: on a knife-edge bin boundary, the honest fix is to record the case here, not
+#: to widen this to a number that hides it.
+ROLLOFF_ENERGY_CROSS_BACKEND_TOLERANCE_HZ = 0.0
+
+#: Relative tolerance for `centroid_energy_hz` across backends: 0.1%.
+#:
+#: This one is **not** exact, and the reason is structural rather than a defect
+#: in either backend. A centroid is a first moment and therefore a continuous
+#: function of the aggregate spectrum, so the 690-vs-691 frame-count difference
+#: documented in the backend's module docstring — a few hundred milliseconds of
+#: edge padding — perturbs it slightly instead of rounding away as it does for
+#: the percentile above.
+#:
+#: Measured worst case across the fixtures below and all twelve v4 calibration
+#: stems: **0.0307% relative, 0.240 Hz absolute**. The largest absolute deltas
+#: are all on the two short calibration clips (4.3 s and 17.1 s), where one
+#: extra frame is a much bigger share of the total; the 4:27 track's four stems
+#: agree to 0.0002 Hz. 0.001 is roughly 3x the measured worst case.
+#:
+#: For scale: `centroid_mean` on the same material diverges by up to ~1100 Hz,
+#: because there the two backends run genuinely different algorithms.
+CENTROID_ENERGY_CROSS_BACKEND_TOLERANCE = 0.001
+
+
+@pytest.mark.parametrize(
+    "fixture_name",
+    ["click_track_120bpm", "sine_a440", "white_noise", "swung_click_8ths"],
+)
+def test_rolloff_energy_agrees_with_librosa_exactly(
+    backend: EssentiaBackend,
+    librosa: librosa_backend.LibrosaBackend,
+    fixture_name: str,
+    request: pytest.FixtureRequest,
+) -> None:
+    """The one spectral descriptor the two backends agree on to the bit.
+
+    `rolloff_mean` cannot manage this — it reads 4333 Hz against 1097 Hz on the
+    v4 calibration bass stem. `rolloff_energy_hz` reads only the shape of the
+    aggregate power spectrum, which both compute identically, and lands on a
+    shared bin grid.
+    """
+    audio = request.getfixturevalue(fixture_name)
+    e_val = backend.spectral(audio, ANALYSIS_SAMPLE_RATE).rolloff_energy_hz
+    l_val = librosa.spectral(audio, ANALYSIS_SAMPLE_RATE).rolloff_energy_hz
+    assert e_val is not None and l_val is not None
+    assert e_val == pytest.approx(l_val, abs=ROLLOFF_ENERGY_CROSS_BACKEND_TOLERANCE_HZ), (
+        f"{fixture_name}: essentia={e_val:.6f} librosa={l_val:.6f}"
+    )
+
+
+@pytest.mark.parametrize(
+    "fixture_name",
+    ["click_track_120bpm", "sine_a440", "white_noise", "swung_click_8ths"],
+)
+def test_centroid_energy_agrees_with_librosa(
+    backend: EssentiaBackend,
+    librosa: librosa_backend.LibrosaBackend,
+    fixture_name: str,
+    request: pytest.FixtureRequest,
+) -> None:
+    """Close, and for a stated reason not bit-exact. See the tolerance above."""
+    audio = request.getfixturevalue(fixture_name)
+    e_val = backend.spectral(audio, ANALYSIS_SAMPLE_RATE).centroid_energy_hz
+    l_val = librosa.spectral(audio, ANALYSIS_SAMPLE_RATE).centroid_energy_hz
+    assert e_val is not None and l_val is not None
+    assert e_val == pytest.approx(l_val, rel=CENTROID_ENERGY_CROSS_BACKEND_TOLERANCE), (
+        f"{fixture_name}: essentia={e_val:.6f} librosa={l_val:.6f}"
+    )
+
+
+# --------------------------------------------------------------------------- #
+# F4 — the sub bass that rests. Same signal as the librosa backend sees, by
+# importing its builder rather than rewriting it: "both backends agree" is only
+# a claim about the descriptor if the input is bit-identical.
+# --------------------------------------------------------------------------- #
+
+
+@pytest.fixture(scope="module")
+def gated_sub_bass(backend: EssentiaBackend) -> SpectralFeatures:
+    return backend.spectral(sub_bass_over_noise_floor(rests=True), ANALYSIS_SAMPLE_RATE)
+
+
+def test_centroid_energy_reads_the_sub_bass_through_the_rests(
+    gated_sub_bass: SpectralFeatures,
+) -> None:
+    """A 55 Hz sub with 50% rests reads as 55 Hz here too.
+
+    Same number, different library. `strudel_vocab.SUB_BASS_CENTROID_HZ_MAX` is
+    the ceiling this has to clear, and F4 is that no unweighted frame-mean
+    centroid ever cleared it.
+    """
+    assert gated_sub_bass.centroid_energy_hz is not None
+    assert gated_sub_bass.centroid_energy_hz < SUB_BASS_CENTROID_HZ_MAX
+    assert gated_sub_bass.centroid_energy_hz == pytest.approx(
+        SUB_BASS_CENTROID_ENERGY_HZ, abs=0.05
+    )
+    assert gated_sub_bass.rolloff_energy_hz == pytest.approx(
+        SUB_BASS_ROLLOFF_ENERGY_HZ, abs=0.001
+    )
+
+
+def test_gated_sub_bass_energy_fields_match_librosa(
+    backend: EssentiaBackend, librosa: librosa_backend.LibrosaBackend
+) -> None:
+    """The `Done when` line of W4D, asserted directly."""
+    audio = sub_bass_over_noise_floor(rests=True)
+    essentia_spectral = backend.spectral(audio, ANALYSIS_SAMPLE_RATE)
+    librosa_spectral = librosa.spectral(audio, ANALYSIS_SAMPLE_RATE)
+    assert essentia_spectral.centroid_energy_hz is not None
+    assert librosa_spectral.centroid_energy_hz is not None
+    assert essentia_spectral.centroid_energy_hz == pytest.approx(
+        librosa_spectral.centroid_energy_hz, rel=CENTROID_ENERGY_CROSS_BACKEND_TOLERANCE
+    )
+    assert essentia_spectral.rolloff_energy_hz == pytest.approx(
+        librosa_spectral.rolloff_energy_hz, abs=ROLLOFF_ENERGY_CROSS_BACKEND_TOLERANCE_HZ
+    )
+
+
+def test_essentia_centroid_mean_is_also_contaminated_just_differently(
+    gated_sub_bass: SpectralFeatures,
+) -> None:
+    """Both backends are wrong here, and not wrong by the same amount.
+
+    `SpectralCentroidTime` reads ~4570 Hz on this signal where librosa's
+    centroid reads ~5139 Hz — both in the kilohertz on a signal with nothing
+    above ~100 Hz, and ~570 Hz apart. That gap is the second half of why the
+    old threshold could never have been calibrated: there was no single number
+    to calibrate, because the two backends did not report the same statistic.
+    """
+    mean = gated_sub_bass.centroid_mean
+    std = gated_sub_bass.centroid_std
+    assert mean is not None and std is not None
+    assert mean > 1000.0
+    assert std > mean  # the F4 signature: a standard deviation above the mean
+
+
+def test_the_f4_stem_resolves_to_a_sine_on_this_backend_too(
+    gated_sub_bass: SpectralFeatures,
+) -> None:
+    """End to end, same verdict as the librosa backend produces.
+
+    Two backends reaching the same Strudel sound name from the same audio is
+    the property that makes the fallback backend genuinely first-class.
+    """
+    result = suggest_bass_sound(BassLine(status="ok"), gated_sub_bass)
+    assert len(result) == 1
+    assert result[0].sound == "sine"
+    assert result[0].match == "approximate"
 
 
 def test_bpm_agrees_with_librosa_on_the_click_track(

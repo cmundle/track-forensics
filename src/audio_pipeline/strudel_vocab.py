@@ -93,6 +93,30 @@ Mapping rules, from the plan and pinned here:
   - harmonically rich bass -> `sawtooth`               match="approximate"
   - neither     -> `match="none"`, full waveform palette offered
 
+The two bass verdicts each read three descriptors, and one of those three
+changed in schema v5: they threshold `SpectralFeatures.centroid_energy_hz`,
+never `centroid_mean`. `centroid_mean` is an unweighted mean over per-frame
+centroids and a stem's silent frames drag it into the kilohertz, which is what
+made the sub-bass branch unreachable in v4 (finding F4 in `V2-PLAN.md`). Both
+values are reported in `evidence` so the contamination stays visible rather
+than merely fixed.
+
+Fixing the descriptor made the thresholds measurable for the first time, so
+two of them moved: see the calibration block above `SUB_BASS_LOW_RATIO_MIN`
+for the waveform sweep behind it, including the finding that **no absolute
+centroid threshold separates a square from a sine across the bass register**
+and that `brightness` has to carry that discrimination.
+
+A note on `match="approximate"` for both bass verdicts, since it looks like an
+undersell for a source that really is a sine: `"exact"` in this module means
+"Strudel ships a sound under this name for this thing" — it is the verdict a
+kick gets, because `bd` *is* the kick sample. A bass verdict is a reading of
+spectral shape mapped onto the nearest of four waveforms, and the pipeline has
+no way to know whether the source was a sine, a heavily filtered saw, or a
+sampled 808. `"approximate"` is that gap, stated. The v5 fix makes the branch
+reachable; it does not make the inference exact, and the two should not be
+confused.
+
 Two things this module deliberately refuses to claim, matching the plan:
 
   1. **`square` vs `sawtooth`.** Telling them apart needs an odd/even
@@ -245,17 +269,149 @@ SNARE_SHELL_BODY_RATIO_MIN: Final[float] = 0.15
 #: but WP-CAL should confirm it against `drum_elements.py`'s actual output.
 HAT_CLOSED_DECAY_RATIO_MIN: Final[float] = 4.0
 
-#: [guess] Sub-bass verdict requires ALL three: `low` band-energy ratio at or
-#: above this, `brightness` at or below its own threshold, and `centroid_mean`
-#: at or below its own threshold. Three-way agreement rather than any single
-#: descriptor, so one noisy measurement cannot flip the verdict alone.
+# ---------------------------------------------------------------------------
+# The sub-bass verdict, and the calibration behind it
+# ---------------------------------------------------------------------------
+#
+# All three clauses must hold: `low` band-energy ratio at or above
+# `SUB_BASS_LOW_RATIO_MIN`, `brightness` at or below
+# `SUB_BASS_BRIGHTNESS_MAX`, and **`centroid_energy_hz`** at or below
+# `SUB_BASS_CENTROID_HZ_MAX`. Two of the three were recalibrated in schema v5
+# against a descriptor that, for the first time, means what they assumed.
+#
+# **The calibration sweep.** Band-limited additive synthesis (harmonics summed
+# to Nyquist, so nothing aliases), fundamentals across the bass register at
+# 35.0, 41.2, 49.0, 55.0, 65.4, 82.4, 98.0 and 110.0 Hz, each gated to 50%
+# rests over a -82 dBFS noise floor and measured through the same
+# 2048/512 Hann STFT the backends use. Measured `centroid_energy_hz`:
+#
+#     waveform    centroid Hz      brightness       low ratio
+#     sine         35.3 - 109.8   0.0000 - 0.0001  0.999 - 1.000
+#     triangle     36.6 - 113.9   0.0000 - 0.0001  0.985 - 1.000
+#     square      108.3 - 288.4   0.0088 - 0.0266  0.813 - 0.944
+#     sawtooth    147.4 - 385.6   0.0131 - 0.0415  0.764 - 0.915
+#
+# Plus a one-pole-filtered sawtooth, which is what a real synth sub usually
+# is, at cutoffs from 4x to 32x the fundamental: centroid 46.3 - 246.6,
+# brightness 0.0000 - 0.0157. And the one real sub-bass stem available, the
+# v4 calibration bass: centroid **139.7 Hz**, brightness 0.0021, low 0.916.
+#
+# **Finding: no absolute centroid threshold separates these classes across the
+# register.** Square starts at 108.3 Hz and sine reaches 109.8 Hz — they
+# overlap, because a centroid in Hz is pitch-dependent and a square an octave
+# down looks exactly like a sine an octave up. The overlap is not an artefact
+# of the sweep's edges; it is intrinsic to comparing an absolute frequency
+# against material whose fundamental varies by 3:1. Reported to the
+# orchestrator as a real result rather than papered over with a boundary
+# fitted to whichever stem was in hand.
+#
+# **What carries the discrimination instead: `brightness`.** It is
+# pitch-independent by construction (a fixed 1500 Hz split), and on the same
+# sweep it separates {sine, triangle, filtered saw, the real sub-bass stem}
+# from {square, sawtooth} across the whole register with a wide margin —
+# 0.0001 or less against 0.0088 or more, roughly 90x. So the two clauses have
+# distinct jobs, and both are needed:
+#
+#   * `brightness` answers "does this have harmonic content" — the sine-vs-saw
+#     question the verdict is actually about.
+#   * `centroid_energy_hz` answers "is the energy in the sub register at all",
+#     which brightness cannot see: a bass filtered to 16x its fundamental has
+#     brightness ~0.005 whether the fundamental is 35 Hz or 110 Hz.
+#
+# **What this cannot do, stated plainly.** A heavily filtered sawtooth is
+# indistinguishable from a sine on every descriptor here (cutoff 4x f0:
+# brightness 0.0001, centroid 46-145 Hz), because at that point the harmonics
+# really are gone and it *is* a sub. That is the correct answer, not a failure,
+# and it is a large part of why both bass verdicts are `match="approximate"`
+# rather than `"exact"`.
+
+#: [guess] Below this share of energy under 250 Hz, a source is not a sub
+#: whatever else it looks like. Unchanged in v5, and it is the clause that
+#: keeps the `ancient-heavy-tech-donjon` bass (low ratio 0.628) out. Note from
+#: the sweep above that it does **not** separate square or sawtooth from sine
+#: (0.764 - 0.944 against 0.985 - 1.000, all above 0.75); tightening it to
+#: ~0.96 would separate them synthetically but would reject the one real
+#: sub-bass stem, at 0.916, because separated stems carry bleed that synthesis
+#: does not. Left alone rather than fitted to n=1.
 SUB_BASS_LOW_RATIO_MIN: Final[float] = 0.75
-SUB_BASS_BRIGHTNESS_MAX: Final[float] = 0.05
-SUB_BASS_CENTROID_HZ_MAX: Final[float] = 120.0
+
+#: [measured, v5] **Lowered 10x, from 0.05.** This is the clause that actually
+#: decides sine versus sawtooth; at 0.05 it decided nothing, admitting every
+#: square and every sawtooth in the register (max 0.0415).
+#:
+#: From the sweep above: sine and triangle reach 0.0001, the real sub-bass stem
+#: sits at 0.0021 (Demucs bleed puts it 20x above synthesis), the lowest
+#: square is 0.0088 and the lowest sawtooth 0.0131. 0.005 is roughly the
+#: geometric middle of the 0.0021-0.0088 gap: 2.4x above the one real sub-bass
+#: reading, 1.8x below the brightest thing that must be rejected.
+#:
+#: Both margins are under 3x, which is thin, and the accept side rests on a
+#: single real stem. If a real sub-bass with more bleed than that stem starts
+#: reading `none`, this number is the first thing to check — but it should be
+#: rechecked against more real material, not widened back toward a value the
+#: sweep shows is inert.
+SUB_BASS_BRIGHTNESS_MAX: Final[float] = 0.005
+
+#: [measured, v5] **Raised from 120.0**, and the reason is not that a stem
+#: failed to fit — it is that the descriptor underneath changed twice.
+#:
+#: The v4 history is finding **F4** in `V2-PLAN.md`. This clause read
+#: `SpectralFeatures.centroid_mean`, an unweighted mean over per-frame
+#: centroids. A resting frame in a real stem sits on a broadband noise floor,
+#: so its own centroid lands in the kilohertz and the mean follows it: the v4
+#: calibration bass stem — 0.916 low-band ratio, 0.0021 brightness, energy
+#: 2e-06 above 6 kHz, audibly a pure sine sub — measured `centroid_mean`
+#: 1010.7 Hz with `centroid_std` **1573.3 Hz, larger than the mean**, and
+#: returned `match="none"`. No unweighted frame-mean centroid over real
+#: material falls below 120 Hz, so the branch had most likely never fired on
+#: any input in the tool's history. 120 Hz was never calibrated, because
+#: nothing it was measured against was measurable.
+#:
+#: Against `centroid_energy_hz` the sweep above shows 120 Hz is **too
+#: permissive, not too strict** — it admits a square down to about 41 Hz
+#: (125.6 Hz) — while simultaneously rejecting the real sub-bass stem at
+#: 139.7 Hz and a sine at the top of the register. It is wrong in both
+#: directions at once, which is what an uncalibrated number looks like.
+#:
+#: 150.0 is set from the measurement: it clears the whole sine and triangle
+#: range (max 113.9 Hz) with headroom for the bleed real separation adds, and
+#: it clears the real sub-bass stem at 139.7 Hz. It sits just above the lowest
+#: synthetic sawtooth (147.4 Hz at a 35 Hz fundamental), so it does **not**
+#: reject that on its own — `SUB_BASS_BRIGHTNESS_MAX` does, and that division
+#: of labour is the point. Read this clause as "is the energy in the sub
+#: register", not as the harmonic-content test.
+#:
+#: **Pitch-dependence is a genuine weakness of any absolute-Hz threshold
+#: here**, and it is worth stating even though the number is kept. The real
+#: sub-bass stem plays both a1 (55 Hz) and a2 (110 Hz), so its 139.7 Hz is
+#: pushed up by its own note range as much as by its waveform; the same patch
+#: playing an octave lower would read near 70 Hz, and an octave higher would
+#: fail. A ratio against a measured fundamental would be the right descriptor
+#: and the pipeline does not produce one at this point in the analysis.
+#:
+#: Do not widen this to make a stubborn stem fit. Widening was the mistake F4
+#: exists to prevent, and the two v5 changes here were made only because the
+#: descriptor was fixed first and then re-measured against known signals.
+SUB_BASS_CENTROID_HZ_MAX: Final[float] = 150.0
 
 #: [guess] Harmonically-rich verdict requires ALL three, in the opposite
-#: direction: energy spread beyond the fundamental, some brightness, a
-#: centroid pulled up by the harmonics.
+#: direction: energy spread beyond the fundamental, some brightness, and a
+#: centroid pulled up above the fundamental by the harmonics. Also now read
+#: against `centroid_energy_hz` rather than `centroid_mean`.
+#:
+#: **These numbers have not been recalibrated and W8B must.** They were chosen
+#: against a contaminated descriptor, and only one stem in the calibration set
+#: reaches this branch (`showers-of-gold` bass: centroid 2676.5 Hz, brightness
+#: 0.482, low 0.223 — it passes all three comfortably either way). There is
+#: therefore no evidence here for moving them and none for keeping them.
+#:
+#: One thing the sub-bass sweep above does show: `HARMONIC_BASS_LOW_RATIO_MAX`
+#: at 0.55 means a genuinely harmonic bass low in the register cannot reach
+#: this branch at all — a synthetic 55 Hz sawtooth has a low ratio of 0.868,
+#: because at that fundamental even the harmonics are mostly under 250 Hz. It
+#: falls through to `match="none"` with the full palette, which is honest but
+#: is not the `sawtooth` a listener would pick. Flagged for W8B rather than
+#: changed here on synthetic evidence alone.
 HARMONIC_BASS_LOW_RATIO_MAX: Final[float] = 0.55
 HARMONIC_BASS_BRIGHTNESS_MIN: Final[float] = 0.12
 HARMONIC_BASS_CENTROID_HZ_MIN: Final[float] = 180.0
@@ -464,26 +620,28 @@ def suggest_drum_sounds(decomposition: DrumDecomposition) -> list[StrudelSoundSu
 
 
 def _sub_bass_match(
-    low_ratio: float | None, brightness: float | None, centroid: float | None
+    low_ratio: float | None, brightness: float | None, centroid_energy: float | None
 ) -> bool:
-    if low_ratio is None or brightness is None or centroid is None:
+    """All three clauses, or no verdict. `centroid_energy_hz`, never `centroid_mean`."""
+    if low_ratio is None or brightness is None or centroid_energy is None:
         return False
     return (
         low_ratio >= SUB_BASS_LOW_RATIO_MIN
         and brightness <= SUB_BASS_BRIGHTNESS_MAX
-        and centroid <= SUB_BASS_CENTROID_HZ_MAX
+        and centroid_energy <= SUB_BASS_CENTROID_HZ_MAX
     )
 
 
 def _harmonic_bass_match(
-    low_ratio: float | None, brightness: float | None, centroid: float | None
+    low_ratio: float | None, brightness: float | None, centroid_energy: float | None
 ) -> bool:
-    if low_ratio is None or brightness is None or centroid is None:
+    """All three clauses, or no verdict. `centroid_energy_hz`, never `centroid_mean`."""
+    if low_ratio is None or brightness is None or centroid_energy is None:
         return False
     return (
         low_ratio <= HARMONIC_BASS_LOW_RATIO_MAX
         and brightness >= HARMONIC_BASS_BRIGHTNESS_MIN
-        and centroid >= HARMONIC_BASS_CENTROID_HZ_MIN
+        and centroid_energy >= HARMONIC_BASS_CENTROID_HZ_MIN
     )
 
 
@@ -505,24 +663,41 @@ def suggest_bass_sound(
     itself is not a float and cannot go in `evidence`; when it is not `"ok"`
     or `"not_attempted"` it is folded into `reason` as a caveat instead.
 
+    Reads `spectral.centroid_energy_hz`, **not** `spectral.centroid_mean` —
+    see `SUB_BASS_CENTROID_HZ_MAX` for finding F4 and why. `centroid_mean` is
+    still carried in `evidence` alongside it, so a reader can see both the
+    corrected number the verdict was made on and the contaminated one a v4
+    output would have shown; it is never thresholded on. An analysis produced
+    before schema v5 has no `centroid_energy_hz` at all, in which case both
+    branches decline and the verdict is an honest `match="none"` with a caveat
+    naming the missing field, rather than a guess made from the field known to
+    be wrong.
+
     Never crashes: a `SpectralFeatures()` with every field `None` produces a
     `match="none"` suggestion with empty `evidence` rather than raising.
     """
     low_ratio = spectral.band_energy_ratios.low
     brightness = spectral.brightness
-    centroid = spectral.centroid_mean
+    centroid = spectral.centroid_energy_hz
 
     evidence = _evidence(
         [
             ("low_band_ratio", low_ratio),
             ("brightness", brightness),
-            ("centroid_mean_hz", centroid),
+            ("centroid_energy_hz", centroid),
+            ("centroid_mean_hz", spectral.centroid_mean),
         ]
     )
 
     status_note = ""
+    if centroid is None and spectral.centroid_mean is not None:
+        status_note += (
+            " (no centroid_energy_hz on this analysis — it arrived in schema "
+            "v5, and centroid_mean is contaminated by silent frames, so it "
+            "is reported as evidence but deliberately not used to decide)"
+        )
     if bass_line.status not in ("ok", "not_attempted"):
-        status_note = (
+        status_note += (
             f" (bass line status is '{bass_line.status}'; this verdict is based "
             "on the stem's overall spectral shape only, independent of note "
             "segmentation)"
@@ -536,9 +711,9 @@ def suggest_bass_sound(
                 sound="sine",
                 reason=(
                     "Energy is concentrated at the fundamental (low-band ratio "
-                    f"{low_ratio:.2f}, brightness {brightness:.2f}, centroid "
-                    f"{centroid:.0f} Hz) with little harmonic content: reads as "
-                    "sub bass. 'sine' is the closest default waveform."
+                    f"{low_ratio:.2f}, brightness {brightness:.2f}, median "
+                    f"centroid {centroid:.0f} Hz) with little harmonic content: "
+                    "reads as sub bass. 'sine' is the closest default waveform."
                     + status_note
                 ),
                 alternatives=[],
@@ -554,8 +729,9 @@ def suggest_bass_sound(
                 sound="sawtooth",
                 reason=(
                     "Energy reaches beyond the fundamental (low-band ratio "
-                    f"{low_ratio:.2f}, brightness {brightness:.2f}, centroid "
-                    f"{centroid:.0f} Hz): reads as a harmonically rich bass. "
+                    f"{low_ratio:.2f}, brightness {brightness:.2f}, median "
+                    f"centroid {centroid:.0f} Hz): reads as a harmonically rich "
+                    "bass. "
                     "'sawtooth' is the closest default waveform. Whether the "
                     "source is odd-harmonic (closer to 'square') or full-"
                     "harmonic cannot be told apart without an odd/even "

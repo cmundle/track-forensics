@@ -15,12 +15,13 @@ Implementation notes:
   run them against anything else rather than silently returning wrong numbers.
   Every other algorithm used here *does* take `sampleRate`, and it is always
   passed the real value explicitly.
-- Band-energy ratios and brightness reimplement `librosa_backend`'s contract
-  verbatim (see the module docstring there): same `BAND_EDGES_HZ`, same
-  linear-magnitude/power/zero-energy-gate rules. This is a deliberate
-  duplication rather than an import, so this backend has no load-time
-  dependency on `librosa_backend` — only the cross-backend test imports that
-  module, and only to compare numbers.
+- The energy-weighted descriptors (band ratios, brightness,
+  `energy_weighted_centroid_hz`, `energy_percentile_hz`) reimplement
+  `librosa_backend`'s contract verbatim (see the module docstring there): same
+  `BAND_EDGES_HZ`, same linear-magnitude/power/zero-energy-gate rules. This is
+  a deliberate duplication rather than an import, so this backend has no
+  load-time dependency on `librosa_backend` — only the cross-backend test
+  imports that module, and only to compare numbers.
 - `LoudnessEBUR128` requires stereo `(n_samples, 2)` input; mono is promoted
   via `audio_io.ensure_stereo`.
 - Anything that cannot be computed is `None` on the model, never an exception.
@@ -35,10 +36,19 @@ Framing convention, and its documented divergence from librosa:
   False)` centres the same way but pads/counts frames slightly differently at
   the signal's edges. Measured on an 8 s 44.1 kHz signal: librosa produces 690
   frames, Essentia produces 691 — one extra trailing frame. This is a few
-  hundred milliseconds of edge padding out of 8 seconds and has no measurable
+  hundred milliseconds of edge padding out of 8 seconds and has almost no
   effect on the *energy-summed-over-all-frames* descriptors this module
-  reports (band ratios, brightness, rolloff mean, centroid mean/std); it is
-  called out here rather than asserted away, per the brief.
+  reports (band ratios, brightness, `rolloff_energy_hz`, `centroid_energy_hz`,
+  rolloff mean, centroid mean/std); it is called out here rather than asserted
+  away, per the brief.
+
+  It is not quite nothing, though, and the two v5 fields divide on exactly
+  this. `rolloff_energy_hz` is a percentile — a step function on a bin grid
+  both backends share — so the extra trailing frame moves the crossing bin on
+  nothing measured and the two agree to **0.000000 Hz**. `centroid_energy_hz`
+  is a first moment and therefore a continuous function of the aggregate
+  spectrum, so the same edge padding perturbs it slightly rather than rounding
+  away. Measured bound in `tests/test_essentia_backend.py`.
 """
 
 from __future__ import annotations
@@ -70,12 +80,15 @@ __all__ = [
     "PITCH_CLASSES",
     "PITCH_FRAME_SIZE",
     "PITCH_MIN_CONFIDENCE",
+    "ROLLOFF_ENERGY_FRACTION",
     "ROLLOFF_PERCENT",
     "STFT_HOP_LENGTH",
     "STFT_N_FFT",
     "EssentiaBackend",
     "band_energy_ratios",
     "brightness",
+    "energy_percentile_hz",
+    "energy_weighted_centroid_hz",
 ]
 
 #: Matches `librosa_backend.STFT_N_FFT`. ~21.5 Hz/bin at 44.1 kHz.
@@ -92,6 +105,12 @@ ROLLOFF_PERCENT = 0.85
 
 #: Brightness split point. Matches `librosa_backend.BRIGHTNESS_CUTOFF_HZ`.
 BRIGHTNESS_CUTOFF_HZ = 1500.0
+
+#: Cumulative-energy fraction behind `SpectralFeatures.rolloff_energy_hz`.
+#: Matches `librosa_backend.ROLLOFF_ENERGY_FRACTION`, and equals
+#: `ROLLOFF_PERCENT` — named separately only so `energy_percentile_hz`'s
+#: default states what the field it feeds is defined as.
+ROLLOFF_ENERGY_FRACTION = ROLLOFF_PERCENT
 
 #: Lowest/highest frequency any band-relative descriptor considers, derived
 #: from `BAND_EDGES_HZ` so the two cannot drift apart. Matches
@@ -331,6 +350,118 @@ def brightness(
 
     above = float(power[in_range & (frequencies >= cutoff_hz)].sum())
     return above / total
+
+
+def _aggregate_band_power(
+    magnitude: npt.NDArray[np.floating[Any]],
+    freqs: npt.NDArray[np.floating[Any]],
+) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64]] | None:
+    """`(power, freqs)` for the in-band bins of one whole-signal spectrum.
+
+    Mirrors `librosa_backend._aggregate_band_power`: energy is
+    `magnitude ** 2` summed over all frames, restricted to
+    `[BAND_FLOOR_HZ, BAND_CEILING_HZ]`. `None` on empty, mismatched,
+    non-finite or zero-energy input.
+    """
+    spectrum = np.asarray(magnitude, dtype=np.float64)
+    frequencies = np.asarray(freqs, dtype=np.float64)
+    if spectrum.size == 0 or frequencies.size == 0:
+        return None
+    if spectrum.ndim == 1:
+        spectrum = spectrum[:, np.newaxis]
+    if spectrum.ndim != 2 or spectrum.shape[0] != frequencies.shape[0]:
+        return None
+
+    power = np.square(spectrum).sum(axis=1)
+    if not bool(np.all(np.isfinite(power))):
+        return None
+
+    in_range = (frequencies >= BAND_FLOOR_HZ) & (frequencies <= BAND_CEILING_HZ)
+    band_power = power[in_range]
+    band_freqs = frequencies[in_range]
+    if band_freqs.size == 0:
+        return None
+
+    total = float(band_power.sum())
+    if not np.isfinite(total) or total <= 0.0:
+        return None
+    return band_power, band_freqs
+
+
+def energy_weighted_centroid_hz(
+    magnitude: npt.NDArray[np.floating[Any]],
+    freqs: npt.NDArray[np.floating[Any]],
+) -> float | None:
+    """Energy-weighted spectral centroid: `sum(f * P) / sum(P)`, in Hz.
+
+    `SpectralFeatures.centroid_energy_hz`. Mirrors
+    `librosa_backend.energy_weighted_centroid_hz` exactly — see that docstring
+    for the full specification, for why it is a first moment rather than a
+    percentile (an energy median reads 64.6 Hz for a 55 Hz sine, square and
+    sawtooth alike, and `strudel_vocab` exists to tell those apart), and for
+    the silence-contamination measurements behind it.
+
+    Same energy measure and same `[BAND_FLOOR_HZ, BAND_CEILING_HZ]` window as
+    `band_energy_ratios`, `brightness` and `energy_percentile_hz`: power summed
+    over all frames, one aggregate spectrum for the whole signal, so a silent
+    frame contributes nothing. `None` on a zero or non-finite in-band total, or
+    on empty or mismatched input.
+
+    Cross-backend agreement is close but, unlike `energy_percentile_hz`, **not
+    bit-exact**, and the reason is structural rather than a defect in either
+    backend. Numerator and denominator scale together so window normalisation
+    and gain cancel, but a centroid is a continuous function of the aggregate
+    spectrum, so the 690-vs-691 frame-count difference noted in the module
+    docstring — a few hundred milliseconds of edge padding — perturbs it
+    slightly instead of rounding away. A percentile is a step function on a
+    shared bin grid and absorbs the same perturbation completely. See
+    `tests/test_essentia_backend.py` for the measured bound.
+    """
+    aggregated = _aggregate_band_power(magnitude, freqs)
+    if aggregated is None:
+        return None
+    band_power, band_freqs = aggregated
+    return float((band_freqs * band_power).sum() / band_power.sum())
+
+
+def energy_percentile_hz(
+    magnitude: npt.NDArray[np.floating[Any]],
+    freqs: npt.NDArray[np.floating[Any]],
+    fraction: float = ROLLOFF_ENERGY_FRACTION,
+) -> float | None:
+    """Frequency below which `fraction` of the in-band spectral energy sits.
+
+    At the default `fraction` (0.85) this is
+    `SpectralFeatures.rolloff_energy_hz`. Mirrors
+    `librosa_backend.energy_percentile_hz` exactly — see that docstring for the
+    full specification. Same energy measure and same window as
+    `band_energy_ratios` and `brightness`; the result is the centre frequency
+    of the first bin at which the cumulative in-band energy reaches `fraction`,
+    with no interpolation across that bin. `None` on a zero or non-finite
+    in-band total, on empty or mismatched input, or on a `fraction` outside
+    `(0, 1]`.
+
+    This is the one spectral descriptor in this module that agrees with the
+    librosa backend **exactly** rather than approximately, and the reason is
+    structural: it depends only on the shape of the aggregate power spectrum,
+    so the two backends' different window normalisations cancel, and because
+    the result is a step function on a shared bin grid the 690-vs-691
+    frame-count difference does not move the crossing bin on anything measured.
+    Measured delta on the fixtures and on all twelve v4 calibration stems
+    (4-minute real material): **0.000000 Hz in every case.** Contrast
+    `rolloff_mean`, where the two backends read 4333 Hz and 1097 Hz for the
+    same stem.
+    """
+    if not np.isfinite(fraction) or not 0.0 < fraction <= 1.0:
+        return None
+    aggregated = _aggregate_band_power(magnitude, freqs)
+    if aggregated is None:
+        return None
+    band_power, band_freqs = aggregated
+
+    cumulative = np.cumsum(band_power) / band_power.sum()
+    index = min(int(np.searchsorted(cumulative, fraction, side="left")), band_freqs.size - 1)
+    return float(band_freqs[index])
 
 
 # --------------------------------------------------------------------------- #
@@ -689,6 +820,22 @@ class EssentiaBackend:
         Both orderings and both magnitudes are musically sane; they are just
         not the same statistic on transient-heavy or broadband material, and
         should not be compared across backends past a coarse sanity check.
+
+        The schema v5 fields `centroid_energy_hz` and `rolloff_energy_hz` are
+        the exception to all of that. Both read only the shape of the aggregate
+        power spectrum, which both backends compute the same way, so gain and
+        window normalisation cancel: `rolloff_energy_hz` is identical to the
+        bit (0.000000 Hz on every fixture and all twelve v4 calibration stems)
+        and `centroid_energy_hz` agrees to a small measured bound. Both are
+        immune to the silence contamination `centroid_mean` and `rolloff_mean`
+        suffer; the measurements are tabulated in
+        `librosa_backend.LibrosaBackend.spectral`, and the reason F4 in
+        `V2-PLAN.md` happened is that `strudel_vocab`'s sub-bass branch was
+        reading `centroid_mean`. Note that `SpectralCentroidTime` here reports
+        1010.7 Hz on the v4 calibration bass stem where librosa's centroid
+        reports 2032.3 Hz — both contaminated, differently, which is exactly
+        why a threshold could never have been calibrated against either, and
+        why `centroid_energy_hz` reading 139.7 Hz on both is the fix.
         """
         mono = to_mono(np.asarray(audio, dtype=np.float32))
         if sample_rate <= 0 or _is_silent(mono):
@@ -732,7 +879,9 @@ class EssentiaBackend:
         return SpectralFeatures(
             centroid_mean=centroid_mean,
             centroid_std=centroid_std,
+            centroid_energy_hz=energy_weighted_centroid_hz(magnitude, freqs),
             rolloff_mean=rolloff_mean,
+            rolloff_energy_hz=energy_percentile_hz(magnitude, freqs),
             brightness=brightness(magnitude, freqs),
             band_energy_ratios=BandEnergyRatios(
                 low=ratios["low"],

@@ -14,6 +14,7 @@ backend.
 from __future__ import annotations
 
 import ast
+from collections.abc import Callable
 from pathlib import Path
 
 import numpy as np
@@ -43,22 +44,98 @@ from audio_pipeline.backends.librosa_backend import (
     LibrosaBackend,
     band_energy_ratios,
     brightness,
+    energy_percentile_hz,
+    energy_weighted_centroid_hz,
     transient_sharpness,
 )
 from audio_pipeline.note_track import segment_notes
 from audio_pipeline.schemas import (
+    BassLine,
     DynamicsFeatures,
     PitchTrack,
     RhythmFeatures,
     SpectralFeatures,
     TonalFeatures,
 )
+from audio_pipeline.strudel_vocab import SUB_BASS_CENTROID_HZ_MAX, suggest_bass_sound
 
 
 @pytest.fixture(scope="module")
 def backend() -> LibrosaBackend:
     """The backend under test, constructed directly rather than resolved."""
     return LibrosaBackend()
+
+
+# --------------------------------------------------------------------------- #
+# The F4 signal: a sub bass that rests, over a real stem's noise floor.
+#
+# `conftest.py` is owned by another package and has no fixture that rests over
+# a noise floor, which is the exact condition finding F4 turns on — so this one
+# is built here. `tests/test_essentia_backend.py` imports this builder rather
+# than reimplementing it, because "both backends agree" is only a claim about
+# the descriptor if both are fed a bit-identical signal.
+# --------------------------------------------------------------------------- #
+
+#: A1, the lowest note on a 4-string bass and squarely in sub territory.
+SUB_BASS_FREQUENCY_HZ = 55.0
+
+#: Peak of the tone while it is sounding. Nothing depends on the exact value —
+#: every descriptor under test here is scale-invariant — but it is well clear
+#: of the floor below.
+SUB_BASS_PEAK = 0.7
+
+#: On/off block length. 8 s of fixture divides into 16 whole blocks, 8 sounding
+#: and 8 resting, so the silent fraction is exactly 0.5.
+SUB_BASS_BLOCK_SECONDS = 0.5
+
+#: RMS of the broadband floor a Demucs stem actually rests at: 7.7e-05, about
+#: -82 dBFS. Measured on the v4 calibration bass stem, and it is the whole
+#: point of the fixture — **digital silence would not reproduce F4**. librosa
+#: reports a centroid of 0 Hz for a frame with no energy at all, which drags
+#: `centroid_mean` *down*; it is a floor with a flat spectrum that puts a
+#: resting frame's centroid up in the kilohertz and drags the mean up.
+STEM_NOISE_FLOOR_RMS = 7.7e-5
+
+#: Fixed so the numbers pinned below are reproducible.
+SUB_BASS_SEED = 3
+
+
+def sub_bass_over_noise_floor(*, rests: bool) -> np.ndarray:
+    """A 55 Hz sine over a -82 dBFS floor, with or without 50% rests.
+
+    The pair is the measurement: identical apart from the gate, so any
+    descriptor that moves between them is being moved by silence and nothing
+    else.
+    """
+    n_samples = int(round(ANALYSIS_SAMPLE_RATE * FIXTURE_DURATION_SECONDS))
+    times = np.arange(n_samples) / ANALYSIS_SAMPLE_RATE
+    tone = SUB_BASS_PEAK * np.sin(2 * np.pi * SUB_BASS_FREQUENCY_HZ * times)
+
+    if rests:
+        block = int(round(SUB_BASS_BLOCK_SECONDS * ANALYSIS_SAMPLE_RATE))
+        gate = np.zeros(n_samples)
+        for start in range(0, n_samples, 2 * block):
+            gate[start : start + block] = 1.0
+        assert gate.mean() == pytest.approx(0.5)  # the fixture's own ground truth
+        tone = tone * gate
+
+    floor = np.random.default_rng(SUB_BASS_SEED).standard_normal(n_samples)
+    return (tone + floor * STEM_NOISE_FLOOR_RMS).astype(np.float32)
+
+
+#: Measured `centroid_energy_hz` of both signals above: **54.91 Hz** against a
+#: synthesis frequency of 55.0, on both backends. A first moment is continuous
+#: in the input, so it lands on the tone rather than on a bin centre — the
+#: 0.09 Hz shortfall is the -82 dBFS floor's own broadband energy pulling very
+#: slightly, and nothing else.
+#:
+#: For contrast, and this is the reason the descriptor is a centroid and not a
+#: percentile: `rolloff_energy_hz` on the same signal reads 64.5996 Hz, FFT bin
+#: 3 of the 2048-point grid (3 * 44100 / 2048). A bin-quantised statistic reads
+#: the same 64.6 Hz for a 55 Hz sine, a 55 Hz square and a 55 Hz sawtooth
+#: alike, which is exactly the discrimination `suggest_bass_sound` needs.
+SUB_BASS_CENTROID_ENERGY_HZ = 54.91
+SUB_BASS_ROLLOFF_ENERGY_HZ = 64.599609375
 
 
 # Analysis results are cached per module: chroma_cqt over 8 s at 44.1 kHz is
@@ -364,6 +441,174 @@ def test_white_noise_spreads_across_every_band(noise_spectral: SpectralFeatures)
 
 
 # --------------------------------------------------------------------------- #
+# spectral(): silence contamination, and which descriptors survive it (F4)
+# --------------------------------------------------------------------------- #
+
+
+@pytest.fixture(scope="module")
+def gated_sub_bass_spectral(backend: LibrosaBackend) -> SpectralFeatures:
+    return backend.spectral(sub_bass_over_noise_floor(rests=True), ANALYSIS_SAMPLE_RATE)
+
+
+@pytest.fixture(scope="module")
+def continuous_sub_bass_spectral(backend: LibrosaBackend) -> SpectralFeatures:
+    return backend.spectral(sub_bass_over_noise_floor(rests=False), ANALYSIS_SAMPLE_RATE)
+
+
+def test_centroid_energy_reads_the_sub_bass_through_the_rests(
+    gated_sub_bass_spectral: SpectralFeatures,
+) -> None:
+    """The assertion finding F4 turns on: a 55 Hz sub reads as 55 Hz.
+
+    `SUB_BASS_CENTROID_HZ_MAX` is the ceiling this has to clear, and the whole
+    of F4 is that no unweighted frame-mean centroid ever clears it. The tighter
+    assertion is that the number is *right*, not merely small: a descriptor
+    that reported 100 Hz for everything in the bass register would also pass a
+    threshold test and would be useless to the verdict it feeds.
+    """
+    assert gated_sub_bass_spectral.centroid_energy_hz is not None
+    assert gated_sub_bass_spectral.centroid_energy_hz < SUB_BASS_CENTROID_HZ_MAX
+    assert gated_sub_bass_spectral.centroid_energy_hz == pytest.approx(
+        SUB_BASS_CENTROID_ENERGY_HZ, abs=0.05
+    )
+
+
+def test_rolloff_energy_survives_the_rests_too(
+    gated_sub_bass_spectral: SpectralFeatures,
+) -> None:
+    """`rolloff_energy_hz`, the corrected companion to `rolloff_mean`.
+
+    Bin-quantised, so 64.6 Hz rather than 54.9 — correct for a rolloff, and
+    the reason the same helper is not used for the centroid.
+    """
+    assert gated_sub_bass_spectral.rolloff_energy_hz is not None
+    assert gated_sub_bass_spectral.rolloff_energy_hz == pytest.approx(
+        SUB_BASS_ROLLOFF_ENERGY_HZ, abs=0.001
+    )
+    assert gated_sub_bass_spectral.rolloff_mean is not None
+    assert gated_sub_bass_spectral.rolloff_mean > 100 * gated_sub_bass_spectral.rolloff_energy_hz
+
+
+def test_centroid_mean_is_the_broken_descriptor_and_still_is(
+    gated_sub_bass_spectral: SpectralFeatures,
+) -> None:
+    """Pins the bug in place, deliberately.
+
+    `centroid_mean` is kept unchanged so v4 outputs stay comparable (settled
+    decision 1), so this asserts that it is still wrong: it reads in the
+    kilohertz on a signal with no energy above ~100 Hz, and — the signature F4
+    names — its standard deviation is larger than its mean. If this test ever
+    starts failing, someone has changed `centroid_mean` in place and the v4
+    calibration baseline no longer means anything.
+    """
+    mean = gated_sub_bass_spectral.centroid_mean
+    std = gated_sub_bass_spectral.centroid_std
+    assert mean is not None and std is not None
+    assert mean > 1000.0
+    assert std > mean
+
+
+def test_only_the_per_frame_descriptors_move_when_rests_are_added(
+    gated_sub_bass_spectral: SpectralFeatures,
+    continuous_sub_bass_spectral: SpectralFeatures,
+) -> None:
+    """The measurement behind the whole package.
+
+    Two signals identical but for a 50% gate. Energy-summed descriptors
+    (`centroid_energy_hz`, `rolloff_energy_hz`, `brightness`, the band ratios)
+    barely notice; unweighted per-frame means (`centroid_mean`, `rolloff_mean`)
+    move by three or four orders of magnitude.
+
+    `centroid_energy_hz` is not bit-identical between the two — 54.912 gated
+    against 55.014 continuous, **0.185%**. That is not the silence leaking in:
+    measured with the noise floor removed entirely, the same two signals differ
+    by the same 0.185%, so it is the gate's own 16 hard edges redistributing a
+    little energy, and it would shrink to nothing under a fade. The tolerance
+    below is set at 0.5%, about 2.7x the measured figure. Compare the numbers
+    it is standing next to: `centroid_mean` moves by 6007% across the same
+    pair.
+    """
+    gated, continuous = gated_sub_bass_spectral, continuous_sub_bass_spectral
+
+    assert gated.centroid_energy_hz is not None
+    assert continuous.centroid_energy_hz is not None
+    assert gated.centroid_energy_hz == pytest.approx(continuous.centroid_energy_hz, rel=0.005)
+    assert gated.rolloff_energy_hz == continuous.rolloff_energy_hz
+    assert gated.band_energy_ratios.low is not None
+    assert continuous.band_energy_ratios.low is not None
+    assert gated.band_energy_ratios.low == pytest.approx(
+        continuous.band_energy_ratios.low, abs=1e-4
+    )
+
+    assert gated.centroid_mean is not None and continuous.centroid_mean is not None
+    assert gated.centroid_mean > 20 * continuous.centroid_mean
+    assert gated.rolloff_mean is not None and continuous.rolloff_mean is not None
+    assert gated.rolloff_mean > 20 * continuous.rolloff_mean
+
+
+def test_brightness_needs_no_corrected_variant(backend: LibrosaBackend) -> None:
+    """Measured, not assumed — W4D task 2, and the answer is "no correction".
+
+    `brightness` is already summed over the energy of every frame, so it should
+    be immune to the same gating. On a signal with real content in both
+    registers (200 Hz and 4 kHz), inserting 50% rests over the stem noise floor
+    moves it by under 0.1% — measured 0.13793 either way. `centroid_mean` moves
+    by +345% and `rolloff_mean` by +169% on the same pair.
+
+    The sub-bass fixture cannot show this: its brightness is ~1e-9 either way,
+    and a ratio of two near-zeros is not a measurement.
+    """
+    n_samples = int(round(ANALYSIS_SAMPLE_RATE * FIXTURE_DURATION_SECONDS))
+    times = np.arange(n_samples) / ANALYSIS_SAMPLE_RATE
+    two_register = 0.5 * np.sin(2 * np.pi * 200.0 * times) + 0.2 * np.sin(
+        2 * np.pi * 4000.0 * times
+    )
+    floor = np.random.default_rng(SUB_BASS_SEED).standard_normal(n_samples) * STEM_NOISE_FLOOR_RMS
+
+    block = int(round(SUB_BASS_BLOCK_SECONDS * ANALYSIS_SAMPLE_RATE))
+    gate = np.zeros(n_samples)
+    for start in range(0, n_samples, 2 * block):
+        gate[start : start + block] = 1.0
+
+    continuous = backend.spectral((two_register + floor).astype(np.float32), ANALYSIS_SAMPLE_RATE)
+    gated = backend.spectral((two_register * gate + floor).astype(np.float32), ANALYSIS_SAMPLE_RATE)
+
+    assert continuous.brightness is not None and gated.brightness is not None
+    assert continuous.brightness == pytest.approx(0.13793, abs=0.001)
+    assert gated.brightness == pytest.approx(continuous.brightness, rel=0.001)
+
+    # The control: the per-frame descriptors on the very same pair of signals.
+    assert continuous.centroid_mean is not None and gated.centroid_mean is not None
+    assert gated.centroid_mean > 3 * continuous.centroid_mean
+    assert continuous.rolloff_mean is not None and gated.rolloff_mean is not None
+    assert gated.rolloff_mean > 2 * continuous.rolloff_mean
+
+
+def test_the_f4_stem_now_resolves_to_a_sine(
+    gated_sub_bass_spectral: SpectralFeatures,
+) -> None:
+    """End to end: audio in, Strudel sound name out. This is the F4 regression.
+
+    Reaching across into `strudel_vocab` from a backend test is deliberate —
+    F4 was invisible precisely because each half looked fine on its own. The
+    descriptor was plausible, the threshold was correct, and only the join
+    between them was broken.
+
+    On `match`: the plan's W4D task 3 asks for `"exact"` here. This module's
+    own settled semantics reserve `"exact"` for "Strudel ships a sound under
+    this name for this thing" (a kick really is `bd`), and a bass verdict is a
+    spectral reading mapped onto the nearest of four waveforms, which is
+    `"approximate"`. The v5 fix makes the branch reachable; it does not make
+    the inference exact. Flagged to the orchestrator rather than settled here.
+    """
+    result = suggest_bass_sound(BassLine(status="ok"), gated_sub_bass_spectral)
+    assert len(result) == 1
+    assert result[0].sound == "sine"
+    assert result[0].match == "approximate"
+    assert result[0].evidence["centroid_energy_hz"] < SUB_BASS_CENTROID_HZ_MAX
+
+
+# --------------------------------------------------------------------------- #
 # dynamics()
 # --------------------------------------------------------------------------- #
 
@@ -447,7 +692,9 @@ def test_silence_spectral(backend: LibrosaBackend, silence: np.ndarray) -> None:
     spectral = backend.spectral(silence, ANALYSIS_SAMPLE_RATE)
     assert spectral.centroid_mean is None
     assert spectral.centroid_std is None
+    assert spectral.centroid_energy_hz is None
     assert spectral.rolloff_mean is None
+    assert spectral.rolloff_energy_hz is None
     assert spectral.brightness is None
     assert all(value is None for value in spectral.band_energy_ratios.model_dump().values())
 
@@ -538,6 +785,29 @@ def _flat_spectrum(n_bins: int = 1025) -> tuple[np.ndarray, np.ndarray]:
     """A unit-magnitude spectrum on the 2048-point FFT grid at 44.1 kHz."""
     freqs = np.fft.rfftfreq(2048, d=1.0 / ANALYSIS_SAMPLE_RATE)
     return np.ones((n_bins, 4)), freqs
+
+
+def _spectrum_of(audio: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """`(magnitude, freqs)` on the project's pinned STFT grid.
+
+    The shared helpers take a spectrum rather than audio, so tests that want to
+    exercise them on a real signal need this one step. Same parameters
+    `LibrosaBackend.spectral` uses, so a helper called through here sees exactly
+    what it sees in production.
+    """
+    import librosa
+
+    magnitude = np.abs(
+        librosa.stft(
+            np.asarray(audio, dtype=np.float32),
+            n_fft=STFT_N_FFT,
+            hop_length=STFT_HOP_LENGTH,
+        )
+    )
+    freqs = np.asarray(
+        librosa.fft_frequencies(sr=ANALYSIS_SAMPLE_RATE, n_fft=STFT_N_FFT), dtype=np.float64
+    )
+    return magnitude, freqs
 
 
 def test_band_energy_ratios_partition_a_flat_spectrum() -> None:
@@ -642,6 +912,212 @@ def test_brightness_agrees_with_the_band_ratios() -> None:
 
 def test_brightness_cutoff_is_1500_hz() -> None:
     assert BRIGHTNESS_CUTOFF_HZ == 1500.0
+
+
+def test_energy_percentile_finds_the_bin_holding_the_energy() -> None:
+    """All the energy in one bin: every percentile is that bin's frequency."""
+    freqs = np.fft.rfftfreq(2048, d=1.0 / ANALYSIS_SAMPLE_RATE)
+    magnitude = np.zeros((freqs.size, 1))
+    target = int(np.argmin(np.abs(freqs - 5000.0)))
+    magnitude[target] = 1.0
+
+    for fraction in (0.01, 0.5, 0.85, 1.0):
+        assert energy_percentile_hz(magnitude, freqs, fraction) == pytest.approx(freqs[target])
+    # And the centroid agrees, because there is only one place to be.
+    assert energy_weighted_centroid_hz(magnitude, freqs) == pytest.approx(freqs[target])
+
+
+def test_energy_percentile_is_ill_conditioned_on_a_bimodal_spectrum() -> None:
+    """Half the energy at 100 Hz, half at 10 kHz: at 0.5 the answer is a coin toss.
+
+    The result is the first bin at which cumulative energy *reaches* the
+    fraction, which for an exact even split is the lower tone — and a hair more
+    energy up top moves it by 9.9 kHz. Asserted rather than hidden, because it
+    is the property that disqualified a percentile from being the centroid: a
+    descriptor that can swing three orders of magnitude on a rounding
+    difference cannot be thresholded. A first moment reads ~5 kHz for both of
+    these and moves smoothly.
+    """
+    freqs = np.fft.rfftfreq(2048, d=1.0 / ANALYSIS_SAMPLE_RATE)
+    low_bin = int(np.argmin(np.abs(freqs - 100.0)))
+    high_bin = int(np.argmin(np.abs(freqs - 10000.0)))
+
+    magnitude = np.zeros((freqs.size, 1))
+    magnitude[low_bin] = 1.0
+    magnitude[high_bin] = 1.0
+    assert energy_percentile_hz(magnitude, freqs, 0.5) == pytest.approx(freqs[low_bin])
+    steady = energy_weighted_centroid_hz(magnitude, freqs)
+
+    magnitude[high_bin] = 1.001
+    assert energy_percentile_hz(magnitude, freqs, 0.5) == pytest.approx(freqs[high_bin])
+    assert energy_weighted_centroid_hz(magnitude, freqs) == pytest.approx(steady, rel=0.002)
+
+
+def _bass_waveform(f0: float, harmonic_amplitude: Callable[[int], float]) -> np.ndarray:
+    """Band-limited additive synthesis, gated to 50% rests over the stem floor.
+
+    Harmonics are summed to Nyquist and no further, so nothing aliases and the
+    measured centroid is a property of the waveform rather than of the
+    synthesis. Same gate and same floor as :func:`sub_bass_over_noise_floor`.
+    """
+    n_samples = int(round(ANALYSIS_SAMPLE_RATE * FIXTURE_DURATION_SECONDS))
+    times = np.arange(n_samples) / ANALYSIS_SAMPLE_RATE
+    out = np.zeros(n_samples)
+    harmonic = 1
+    while f0 * harmonic < ANALYSIS_SAMPLE_RATE / 2:
+        amplitude = harmonic_amplitude(harmonic)
+        if amplitude:
+            out += amplitude * np.sin(2 * np.pi * f0 * harmonic * times)
+        harmonic += 1
+    out = 0.7 * out / np.max(np.abs(out))
+
+    block = int(round(SUB_BASS_BLOCK_SECONDS * ANALYSIS_SAMPLE_RATE))
+    gate = np.zeros(n_samples)
+    for start in range(0, n_samples, 2 * block):
+        gate[start : start + block] = 1.0
+    floor = np.random.default_rng(SUB_BASS_SEED).standard_normal(n_samples)
+    return (out * gate + floor * STEM_NOISE_FLOOR_RMS).astype(np.float32)
+
+
+#: Harmonic weights for the four Strudel waveforms `suggest_bass_sound` picks
+#: between. Textbook series: triangle is odd harmonics at 1/n^2 with alternating
+#: sign, square odd at 1/n, sawtooth all at 1/n.
+BASS_WAVEFORMS: dict[str, Callable[[int], float]] = {
+    "sine": lambda n: 1.0 if n == 1 else 0.0,
+    "triangle": lambda n: (1.0 / n**2) * (1 if n % 4 == 1 else -1) if n % 2 else 0.0,
+    "square": lambda n: (1.0 / n) if n % 2 else 0.0,
+    "sawtooth": lambda n: 1.0 / n,
+}
+
+
+def test_the_centroid_tells_bass_waveforms_apart_and_a_percentile_does_not() -> None:
+    """The measurement that made `centroid_energy_hz` a first moment.
+
+    At one fundamental, the energy-weighted centroid orders the four waveforms
+    by harmonic content — measured at 55 Hz: sine 54.9, triangle 57.0, square
+    159.2, sawtooth 215.8. The energy **median**, which is what this descriptor
+    was first implemented as, reads **64.6 Hz for all four**: more than half of
+    every one of these waveforms' energy is in the fundamental, so the CDF
+    crosses 0.5 in the same bin regardless of what sits above it. Same collapse
+    at 35 Hz (43.1 for all four) and at 110 Hz (107.7 for three of four).
+
+    `suggest_bass_sound` exists to choose between exactly these waveforms, so a
+    descriptor that returns one number for all of them carries no information
+    for the only decision it feeds. That is why the median was rejected and
+    this is a centroid.
+    """
+    centroids = {
+        name: energy_weighted_centroid_hz(*_spectrum_of(_bass_waveform(55.0, weights)))
+        for name, weights in BASS_WAVEFORMS.items()
+    }
+    assert all(value is not None for value in centroids.values())
+    assert centroids["sine"] == pytest.approx(54.9, abs=1.0)
+    assert centroids["triangle"] == pytest.approx(57.0, abs=1.5)
+    assert centroids["square"] == pytest.approx(159.2, abs=3.0)
+    assert centroids["sawtooth"] == pytest.approx(215.8, abs=4.0)
+
+    ordered = [centroids["sine"], centroids["triangle"], centroids["square"]]
+    assert ordered == sorted(ordered)  # type: ignore[type-var]
+    assert centroids["sawtooth"] > centroids["square"]  # type: ignore[operator]
+
+    # The median, on the very same signals, cannot separate any of them.
+    medians = {
+        name: energy_percentile_hz(*_spectrum_of(_bass_waveform(55.0, weights)), 0.5)
+        for name, weights in BASS_WAVEFORMS.items()
+    }
+    assert len(set(medians.values())) == 1, medians
+
+
+def test_the_centroid_cannot_separate_waveforms_across_the_whole_register() -> None:
+    """The honest limit of an absolute-Hz threshold, pinned so it stays visible.
+
+    A square an octave down and a sine an octave up read the same: measured,
+    square at 35 Hz is 108.3 and sine at 110 Hz is 109.8, so the two classes
+    overlap and no single centroid ceiling separates them across 35-110 Hz.
+
+    This is why `strudel_vocab.SUB_BASS_BRIGHTNESS_MAX` — pitch-independent by
+    construction — carries the sine-versus-sawtooth discrimination, and
+    `SUB_BASS_CENTROID_HZ_MAX` only answers "is this in the sub register".
+    Both constants document the same sweep.
+    """
+    low_square = energy_weighted_centroid_hz(
+        *_spectrum_of(_bass_waveform(35.0, BASS_WAVEFORMS["square"]))
+    )
+    high_sine = energy_weighted_centroid_hz(
+        *_spectrum_of(_bass_waveform(110.0, BASS_WAVEFORMS["sine"]))
+    )
+    assert low_square is not None and high_sine is not None
+    assert low_square == pytest.approx(108.3, abs=3.0)
+    assert high_sine == pytest.approx(109.8, abs=2.0)
+    assert low_square < high_sine  # the overlap, stated as an assertion
+
+
+def test_energy_percentile_is_scale_invariant() -> None:
+    """Gain cancels: it reads the spectrum's shape and nothing else.
+
+    This is why the two backends agree exactly on it despite normalising their
+    windows differently.
+    """
+    freqs = np.fft.rfftfreq(2048, d=1.0 / ANALYSIS_SAMPLE_RATE)
+    rng = np.random.default_rng(19)
+    magnitude = rng.random((freqs.size, 5))
+    quiet = energy_percentile_hz(magnitude * 1e-6, freqs)
+    loud = energy_percentile_hz(magnitude * 1e6, freqs)
+    assert quiet is not None
+    assert quiet == loud
+
+
+def test_energy_percentile_excludes_out_of_range_bins() -> None:
+    """DC, sub-20 Hz and above-20 kHz bins count for neither part of the ratio.
+
+    Same window as `band_energy_ratios` and `brightness`, so all three agree on
+    what "total energy" means.
+    """
+    freqs = np.fft.rfftfreq(2048, d=1.0 / ANALYSIS_SAMPLE_RATE)
+    magnitude = np.zeros((freqs.size, 1))
+    magnitude[int(np.argmin(np.abs(freqs - 1000.0)))] = 1.0
+    before = energy_percentile_hz(magnitude, freqs)
+
+    magnitude[0] = 50.0  # DC
+    magnitude[freqs > 20000.0] = 50.0
+    assert energy_percentile_hz(magnitude, freqs) == before
+
+
+def test_energy_percentile_matches_the_band_ratios_it_shares_a_denominator_with() -> None:
+    """A cross-check against an independently computed number.
+
+    Put 60% of the energy below 250 Hz and 40% above 2 kHz. `band_energy_ratios`
+    must report `low` = 0.6, and the median must therefore land on the low tone
+    — the two are reading the same aggregate spectrum.
+    """
+    freqs = np.fft.rfftfreq(2048, d=1.0 / ANALYSIS_SAMPLE_RATE)
+    low_bin = int(np.argmin(np.abs(freqs - 100.0)))
+    high_bin = int(np.argmin(np.abs(freqs - 4000.0)))
+    magnitude = np.zeros((freqs.size, 1))
+    magnitude[low_bin] = np.sqrt(0.6)  # squared to power inside the helpers
+    magnitude[high_bin] = np.sqrt(0.4)
+
+    assert band_energy_ratios(magnitude, freqs)["low"] == pytest.approx(0.6)
+    assert energy_percentile_hz(magnitude, freqs, 0.5) == pytest.approx(freqs[low_bin])
+    assert energy_percentile_hz(magnitude, freqs, 0.85) == pytest.approx(freqs[high_bin])
+
+
+def test_energy_percentile_is_none_when_undefined() -> None:
+    freqs = np.fft.rfftfreq(2048, d=1.0 / ANALYSIS_SAMPLE_RATE)
+    assert energy_percentile_hz(np.zeros((freqs.size, 3)), freqs) is None
+    assert energy_percentile_hz(np.zeros((0, 0)), freqs) is None
+    assert energy_percentile_hz(np.ones((10, 2)), np.linspace(0.0, 20000.0, 11)) is None
+    assert energy_percentile_hz(np.ones((freqs.size, 1)), freqs, 0.0) is None
+    assert energy_percentile_hz(np.ones((freqs.size, 1)), freqs, 1.5) is None
+    assert energy_percentile_hz(np.ones((freqs.size, 1)), freqs, float("nan")) is None
+
+
+def test_energy_percentile_accepts_a_single_frame() -> None:
+    """1-D input is one frame, same as the other two shared helpers."""
+    freqs = np.fft.rfftfreq(2048, d=1.0 / ANALYSIS_SAMPLE_RATE)
+    magnitude = np.zeros(freqs.size)
+    magnitude[int(np.argmin(np.abs(freqs - 800.0)))] = 1.0
+    assert energy_percentile_hz(magnitude, freqs) == pytest.approx(800.0, abs=15.0)
 
 
 def test_transient_sharpness_saturates_on_a_silent_floor() -> None:

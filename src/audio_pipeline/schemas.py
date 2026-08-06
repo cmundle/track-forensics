@@ -71,23 +71,47 @@ class SpectralFeatures(BaseModel):
             "silence reads far brighter than it sounds. Measured on the v4 "
             "calibration bass stem: mean 1010.7 Hz with std 1573.3 Hz, on a "
             "sub-bass with no energy at all above 4 kHz. A standard deviation "
-            "larger than the mean is the signature. Prefer `centroid_median`; "
+            "larger than the mean is the signature. Prefer `centroid_energy_hz`; "
             "this field is kept so v4 outputs stay comparable."
         ),
     )
     centroid_std: float | None = None
-    centroid_median: float | None = Field(
+    centroid_energy_hz: float | None = Field(
         default=None,
         description=(
-            "Energy-weighted centroid: the frequency below which half the "
-            "source's total spectral energy sits. Silent frames carry no weight, "
-            "so this reads what the stem sounds like rather than what its noise "
-            "floor looks like. Both backends use an identical definition. This is "
-            "the field thresholds should read; `centroid_mean` is retained only "
-            "for continuity with v4."
+            "Energy-weighted spectral centroid: `sum(f * power) / sum(power)` over "
+            "every bin of every frame, in Hz. A first moment, not a median — the "
+            "distinction is load-bearing. Silent frames carry almost no energy and "
+            "so almost no weight, which is what makes this immune to the "
+            "contamination `centroid_mean` suffers. Both backends compute it from "
+            "the shared magnitude spectrogram and must agree exactly.\n\n"
+            "Measured against known signals, all gated 50% over a −82 dBFS floor: "
+            "a 55 Hz sine reads 55.0, a 55 Hz square 86.6, a 55 Hz sawtooth 109.0. "
+            "An energy *median* reads 64.6 for all three and cannot tell them "
+            "apart, which is why this is a centroid. This is the field thresholds "
+            "should read; `centroid_mean` is retained only for continuity with v4."
         ),
     )
-    rolloff_mean: float | None = None
+    rolloff_mean: float | None = Field(
+        default=None,
+        description=(
+            "Unweighted mean of the per-frame 85% rolloff. **Contaminated by "
+            "silent frames** for the same reason as `centroid_mean`. Measured on "
+            "the v4 calibration bass stem: 4333 Hz (librosa) and 1097 Hz "
+            "(essentia), on a stem with 2e-06 of its energy above 6 kHz, against "
+            "an energy-weighted 215 Hz. Prefer `rolloff_energy_hz`."
+        ),
+    )
+    rolloff_energy_hz: float | None = Field(
+        default=None,
+        description=(
+            "Energy-weighted 85% rolloff: the frequency below which 85% of the "
+            "source's total spectral energy sits, aggregated over all frames so "
+            "silent frames carry no weight. Both backends identical. Unlike a "
+            "centroid this one *is* a percentile, because a rolloff is defined as "
+            "one. Resolution is a single FFT bin, ~21.5 Hz."
+        ),
+    )
     brightness: float | None = None
     band_energy_ratios: BandEnergyRatios = Field(default_factory=BandEnergyRatios)
 

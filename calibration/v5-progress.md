@@ -85,7 +85,7 @@ was told to use. Either way W4B's "Done when — a clap class on steps 4 and 12"
 | W4A tempo | **complete and independently verified.** Committed. |
 | W4B drums | **not started** — killed by the same session limit at the first tool call. |
 | W4C note track | **complete and independently verified.** Committed. |
-| W4D spectral | complete, but its central design choice is wrong. **Send back.** |
+| W4D spectral | **complete and independently verified**, after one revision. Committed. |
 
 ### W4A — verified
 
@@ -204,6 +204,56 @@ both — it is too permissive, not too strict. The Madonna bass reads 139.7 and 
 Recalibrating it against a correct descriptor is the work F4 actually implies, and it is *not* the
 "widen the threshold to hide a broken descriptor" trap: the descriptor is being fixed first, and the
 threshold has never been calibrated against any correct input. That distinction must be held.
+
+### W4D revision — verified, and the calibration answer was "no"
+
+`centroid_energy_hz` is now `Σ f·P / Σ P` over the aggregate spectrum. A 55 Hz tone reads **54.91 Hz**
+against the median's 64.6. `rolloff_energy_hz` is wired from the same aggregate power. Cross-backend:
+`rolloff_energy_hz` exact in all 16 cases; `centroid_energy_hz` worst delta 0.240 Hz (0.031%), and the
+reason is structural rather than a defect — a centroid is continuous in the input, so the known
+690-vs-691 frame difference perturbs it where a percentile absorbs it on the shared bin grid. The two
+worst cases are both short clips; the 4:27 track's four stems agree to 0.0002 Hz.
+
+**The threshold could not be calibrated, and that is the result.** Band-limited additive synthesis
+across f0 ∈ 35–110 Hz, re-measured independently by the orchestrator through the real backend:
+
+| | max sine/triangle | min square/saw |
+|---|---|---|
+| `centroid_energy_hz` | **114.0** | **108.8** |
+| `brightness` | 0.00006 | 0.00890 |
+
+**The classes overlap on centroid** — a square an octave down looks exactly like a sine an octave up —
+so no absolute-Hz ceiling separates them across a 3:1 register. This is intrinsic. `brightness`,
+which is pitch-independent by construction, separates the same signals by **149×**.
+
+So the sub-bass branch was restructured rather than retuned: `SUB_BASS_CENTROID_HZ_MAX` 120 → **150**,
+demoted to a "is the energy in the sub register" sanity check, and `SUB_BASS_BRIGHTNESS_MAX`
+0.05 → **0.005**, now carrying the actual discrimination.
+
+The orchestrator's prediction that 120 was "too permissive" was half right and the full picture is
+worse: **120 was wrong in both directions at once**, admitting a square down to ~41 Hz while
+rejecting the real sub-bass stem at 139.7. And at 0.05 the brightness clause was entirely inert — the
+brightest sawtooth in the register reads 0.0418, so every square and every sawtooth passed it.
+
+`SUB_BASS_LOW_RATIO_MIN` was deliberately **left at 0.75**. Tightening to ~0.96 would separate the
+synthetic classes perfectly and reject the one real sub-bass stem at 0.916, because real stems carry
+separation bleed that synthesis does not. Correctly refused.
+
+**Caveat to carry into W8B:** the accept side of `SUB_BASS_BRIGHTNESS_MAX` rests on **n=1** — the
+single Madonna bass stem at 0.0021. Synthetic sines read 0.00006, thirty-five times lower, so real
+bleed dominates the margin and one record is setting it. Both margins are under 3×. The failure
+direction is safe (a real sub-bass reported as `none` rather than a saw reported as `sine`), which
+matches this module's standing rule that inventing a plausible sound name is worse than saying
+nothing — but it needs the corpus.
+
+Also for W8B: `HARMONIC_BASS_LOW_RATIO_MAX = 0.55` makes that branch unreachable for a low-register
+harmonic bass — a synthetic 55 Hz sawtooth has a low ratio of 0.868, because at that fundamental even
+its harmonics sit mostly under 250 Hz. Documented, not changed. And a heavily filtered sawtooth is
+indistinguishable from a sine on every descriptor here, which is the correct answer (the harmonics
+really are gone) and part of why both bass verdicts stay `match="approximate"`.
+
+Verdicts across all three v4 tracks, identical on both backends: Madonna `approximate`/`sine`
+(**F4 fixed**), the other two unchanged.
 
 ### Accepted from W4D without change
 
