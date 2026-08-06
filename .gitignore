@@ -25,3 +25,7 @@ output/
 
 # macOS
 .DS_Store
+
+# strudel-verify is a dev-time harness; its install tree is not committed
+tools/strudel-verify/node_modules/
+tools/strudel-verify/package-lock.json

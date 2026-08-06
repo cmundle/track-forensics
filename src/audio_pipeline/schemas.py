@@ -62,8 +62,31 @@ class BandEnergyRatios(BaseModel):
 class SpectralFeatures(BaseModel):
     """Timbre-related descriptors."""
 
-    centroid_mean: float | None = None
+    centroid_mean: float | None = Field(
+        default=None,
+        description=(
+            "Unweighted mean of the per-frame spectral centroid. **Contaminated "
+            "by silent frames** — a frame at the noise floor has a flat spectrum "
+            "and therefore a centroid up in the kilohertz, so a stem that is half "
+            "silence reads far brighter than it sounds. Measured on the v4 "
+            "calibration bass stem: mean 1010.7 Hz with std 1573.3 Hz, on a "
+            "sub-bass with no energy at all above 4 kHz. A standard deviation "
+            "larger than the mean is the signature. Prefer `centroid_median`; "
+            "this field is kept so v4 outputs stay comparable."
+        ),
+    )
     centroid_std: float | None = None
+    centroid_median: float | None = Field(
+        default=None,
+        description=(
+            "Energy-weighted centroid: the frequency below which half the "
+            "source's total spectral energy sits. Silent frames carry no weight, "
+            "so this reads what the stem sounds like rather than what its noise "
+            "floor looks like. Both backends use an identical definition. This is "
+            "the field thresholds should read; `centroid_mean` is retained only "
+            "for continuity with v4."
+        ),
+    )
     rolloff_mean: float | None = None
     brightness: float | None = None
     band_energy_ratios: BandEnergyRatios = Field(default_factory=BandEnergyRatios)
