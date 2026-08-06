@@ -83,7 +83,7 @@ was told to use. Either way W4B's "Done when — a clap class on steps 4 and 12"
 | package | state |
 |---|---|
 | W4A tempo | **complete and independently verified.** Committed. |
-| W4B drums | **not started** — killed by the same session limit at the first tool call. |
+| W4B drums | **complete and independently verified.** Committed. |
 | W4C note track | **complete and independently verified.** Committed. |
 | W4D spectral | **complete and independently verified**, after one revision. Committed. |
 
@@ -165,6 +165,84 @@ does not.
   left alone; a v6 item.
 - The F6 caveat window (0.15–0.30 voiced fraction) is reasoned, not measured — nothing in the corpus
   lands in it. W8B's ambient/rubato track should decide it.
+
+### W4B — verified, and it corrected the orchestrator's reasoning
+
+Run end to end on the real drums stem, wired to W4A's live output (131.99996 BPM, downbeat 0.2322 s):
+
+| | v4 | v5 |
+|---|---|---|
+| grid status | `no_grid` | **`ok`**, 16 steps |
+| quantisation error | 0.2875 | **0.0332** (allowance untouched at 0.18) |
+| kick occupancy on 0/4/8/12 | not reported | **0.96 / 0.94 / 0.95 / 0.91** |
+| hat count | 1240 | **784** |
+| hat occupancy on 2/6/10/14 | not reported | 0.76 / 0.84 / 0.92 / 0.94 |
+| hat occupancy on the kick's own steps | — | ≤ 0.11 |
+| total hits | 1872 | 1422 |
+| kick count | 487 | **487, unchanged** |
+
+The offbeat eighths the hats land on are the same four steps W4C's bass lands on, from a completely
+independent code path.
+
+**The orchestrator's central argument for the F2 disconfirmation was void, and W4B said so.** The
+claim was: the 246 backbeat "hats" carry `kick_ratio` 0.84, a clap has no low end, therefore they are
+duplicate kick detections. But a *genuine* hat sitting on top of a kick measures **0.99** on the same
+statistic, because the analysis window contains the kick either way. `kick_ratio` cannot separate
+bleed from a real coincident hit and should not be cited again.
+
+The conclusion survives on evidence the orchestrator did not have. The discriminator that works is
+`air/(air+noise)` **conditional on a kick being present**: a kick's bright content is a 1–6 kHz beater
+click with a 6–16 kHz shoulder, a hat is the reverse. Measured in scope: n=878, median 0.201, p95
+0.295, max 0.574, against 0.9894 for a closed hat over a kick and 0.9981 for an open hat. The 0.50
+boundary is where the two halves of the bright spectrum hold equal energy — physical, not a tuned
+midpoint. 875 of 878 suppressed.
+
+Two further discriminators were measured and **rejected**: absolute air level (this kick deposits
+4.5× the air energy of the record's actual hats) and raising `hat_air_over_noise` (bleed 0.20 against
+a closed hat over a snare at 0.0552 — any threshold catching the first deletes real hats).
+
+**Stated cost, pinned by a test rather than left to be discovered:** where the kick's beater click
+outweighs the hat, the hat is suppressed too.
+
+### Three things W4B found that W6 must act on
+
+1. **A supplied downbeat needs its sub-step phase refined or the grid is rejected.** The
+   orchestrator's 1.6283 s is 0.267 steps (30 ms) from where the hits actually are: fitted raw it
+   scores 0.2672 and fails; snapped to the hits' own phase it scores 0.0332. The snap is a circular
+   mean bounded by half a step, so it **cannot renumber a step** — the two-fold bar ambiguity stays
+   the caller's problem. Nothing anticipated this and it would have looked exactly like F1 again.
+2. **`beat_times[0]` is not a downbeat.** At 0.348299 s the kick lands on steps 3/7/11/15. W6 must
+   pass `downbeat_seconds` from `tempo.find_downbeat`, never fall back to the beat list.
+3. **Steps 0/8 and 4/12 are not the same sound.** Air-band envelope peaks measure 1909 / 208 / 1904 /
+   145 while the kick band is equal across all four (137k / 155k / 138k / 159k). Two alternating kick
+   layers, or a bright element on beats 1 and 3 only.
+
+Point 3 independently corroborates W4A, which found the 6–16 kHz band separates beats {1,3} from
+{2,4} by 11× (this measures 9.2× and 13×), from a different module on a different code path. It also
+makes the clap story *less* supported than the orchestrator's disconfirmation did: the bright energy
+sits on steps 0 and 8, not on 4 and 12, which is the opposite of where a backbeat clap would put it.
+
+### F1, now diagnosed rather than merely failing
+
+At the v4 tempo the module no longer reports a bare `no_grid`. It reports: *"the hits DO fit a grid
+that is drifting: each half fits its own phase to 0.09 and 0.08 steps, while the two halves disagree
+by +0.37 steps. That is a period error accumulating, not loose playing. Implied cycle 1.817053 s
+(132.082 BPM) — approximate, because some hits have already wrapped. Re-fit with a measured period."*
+At the mix's 131.855 BPM it correctly says the hits fit no grid at all.
+
+### Also from W4B
+
+- The plan's "stop using per-hit picking to decide whether a grid exists" is **half right**. A fold
+  contrast can score *higher* at a wrong tempo than at the right one (0.773 at a wrong 97.3 BPM
+  against 0.801 at its own), and three cycles is not enough material for a median. Both gates are
+  required; the module reports which failed.
+- `1 − mean/peak` on a fold is a **sparsity** measure, not a periodicity one — 40 uniformly random
+  kicks score 0.755. Used only to choose the subdivision.
+- Corrected hat count is **784, not the ~736 the orchestrator estimated** — reported, not tuned
+  toward. The extra ~48 are 16th-note decoration the "eighths across playing bars" estimate misses.
+- Correction to the orchestrator's shared-helper list: `_clean` is defined **in `tempo.py`**, not
+  imported from `drum_elements`. The shared surface is three names, not four, and a new test pins
+  their origin, qualname and signature.
 
 ## W4D's `centroid_median` definition is wrong and must be revised
 
@@ -270,3 +348,48 @@ Verdicts across all three v4 tracks, identical on both backends: Madonna `approx
   reasoning — the pipeline cannot know whether the source was a sine, a filtered saw or a sampled
   808 — is strengthened, not weakened, by the descriptor finding above. Keep `approximate`.
   Contradicts W4D task 3 of the plan; the plan is wrong.
+
+---
+
+## Wave 4 closed
+
+`pytest` **873 passed**, `ruff check .` clean repo-wide, `mypy src` clean. Verified by the
+orchestrator, not taken from any agent's report.
+
+### Accumulated for W6
+
+| from | what |
+|---|---|
+| W4A | promote `TempoFit`, `MultipleFit`, `TempoStability`, `DownbeatFit` into `schemas.py`, **track-level not per-source** |
+| W4B | add `"supplied"` to `GRID_ANCHOR_SOURCES`; a tripwire test fails once it lands, telling W6 to delete its shim |
+| W4B | pass `downbeat_seconds` into `decompose`, never `beat_times[0]` |
+| W4C | call `segment_notes(track, beat_period_seconds=…, downbeat_seconds=…)` directly; it no longer needs to route through `DrumDecomposition` |
+| W4D | `centroid_energy_hz` and `rolloff_energy_hz` are already in `schemas.py` and populated |
+
+Note `DrumPattern.step_occupancy` already existed in v4 and is now populated, so W6 task 1's "extend
+`DrumPattern` with per-step occupancy" is already done and its clap half is dead.
+
+### Standing caveats for W8B
+
+- `SUB_BASS_BRIGHTNESS_MAX` accept side rests on **n=1**.
+- `stability_medium_bpm` (0.50), `downbeat_tie_fraction` (0.25) and `downbeat_conflict_ceiling` (0.50)
+  are `[guess]` — corpus rows 3 and 4 settle them.
+- The F6 voiced-fraction caveat window (0.15–0.30) is reasoned, not measured.
+- `HARMONIC_BASS_LOW_RATIO_MAX` (0.55) makes that branch unreachable for a low-register harmonic bass.
+- The kick-bleed rule swallows a hat quieter than the kick's own beater click.
+
+### Scoreboard on Part 1
+
+Four of the eight findings needed correction. Every underlying *problem* was real; the *explanations*
+were written from one track without re-derivation and did not survive.
+
+| finding | verdict |
+|---|---|
+| F1 tempo destroys the grid | **holds.** Arithmetic wrong (0.040 BPM, not 0.145) and the requirement is tighter than stated. Fixed. |
+| F2 clap class | **fails.** No clap. The real bug was duplicate cross-band detection. |
+| F3 32 ms bass lag | **holds**, cause misattributed. Not the median filter; the tracker's confidence ramp, and pitch-dependent. Fixed. |
+| F4 sub-bass branch unreachable | **holds.** The threshold was wrong in both directions at once, and centroid alone cannot carry the branch. Fixed. |
+| F5 silent stem reports ok | **holds.** Half fixed in W4C; the `tonal_centre` half is W6. |
+| F6 voiced-fraction caveat | **holds.** Fixed. |
+| F7 arrangement / harmony / bass placement | bass placement **confirmed** (103/103/103/103). Arrangement is W5A. |
+| F8 envelope folding beats onset picking | **half.** Both gates are needed; a fold can score higher at a wrong tempo. |

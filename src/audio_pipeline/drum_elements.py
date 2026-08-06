@@ -177,6 +177,163 @@ Two post-passes then run, both consequences of detecting per band:
   by the hat.
 
 
+Kick bleed: when the second detection is the same drum again (WP-CAL v5)
+------------------------------------------------------------------------
+
+Those two post-passes handle leakage that stays *unclassified*. They do nothing
+about leakage that gets classified **confidently and wrongly**, and on real
+material that is the larger failure. Measured on the committed Madonna drums
+envelopes, folded onto the verified 132.000 BPM grid: of 1240 hits reported as
+`hat`, **504 sat on steps 0/4/8/12 — the kick's own steps — carrying a median
+`kick_ratio` of 0.81**. They are the kick's broadband transient, found a second
+time by the noise and air detectors and then scored as a hat, because the hat
+rule normalises the kick away: `air / (air + noise)` is a *share of the bright
+half* and says nothing about how much bright content there is.
+
+The obvious fixes all fail, and each failure is worth recording because each
+looks right on paper:
+
+* **`kick_ratio` alone cannot do it.** A genuine hat sounding *with* a kick
+  measures `kick_ratio` 0.99 in `drum_pattern_120bpm`, higher than the bleed's
+  0.81, because the kick carries ~100x the hat's energy either way.
+* **Absolute air-band level cannot do it.** The bleed's air-band peak on
+  Madonna is 4.5x the median air-band peak of the hits that fire the air
+  detector alone. The kick deposits *more* 6-16 kHz energy than this record's
+  hats do.
+* **Raising `hat_air_over_noise` cannot do it.** The bleed measures 0.21 and a
+  closed hat sounding with a snare measures 0.0552, so any threshold that
+  catches the first deletes the second — and the second is
+  `test_all_thirty_two_hats_survive_coincidence`, the module's load-bearing
+  assertion.
+
+What does work is the same descriptor made **conditional on a kick being
+present**. A kick's transient is broadband but falls off steeply with
+frequency: its beater click lives at 1-6 kHz and its 6-16 kHz content is a
+shoulder of that click. A hat is the other way round. So at an instant where
+the kick band has *also* fired, and the window is kick-dominated, a hit found
+by the noise or air detector belongs to the kick unless the bright half of its
+spectrum is genuinely air-weighted. Measured `air / (air + noise)` at exactly
+those instants:
+
+===================================== ==================================
+material                              `air / (air + noise)`
+===================================== ==================================
+Madonna, the 878 hits inside this     0.201 median, 0.295 at the 95th
+rule's exact scope                    percentile, 0.375 at the 99th
+`drum_pattern_120bpm`, hat over kick  0.9894
+`drum_pattern_open_hats`, over kick   0.9981
+===================================== ==================================
+
+`KICK_BLEED_AIR_OVER_NOISE` sits at 0.50, which is not a midpoint reached for
+convenience: it is the point where the two halves of the bright spectrum hold
+equal energy, so the question it asks — *is this hit weighted to the air side
+or the noise side?* — has a physical answer rather than a tuned one. It happens
+to leave a factor of 1.6 of headroom below the real material and 2.0 above the
+synthetic hat.
+
+The dominance clause is not decoration either: in `drum_pattern_120bpm` the
+kick band fires on the **snare's** shell tone, so co-detection alone would
+catch every hat sounding with a snare. Those windows measure `kick_ratio`
+0.0116, far under `KICK_BLEED_DOMINANCE`, and the rule never looks at them.
+
+A suppressed hit is demoted to `unclassified` rather than deleted, so it is the
+existing leakage post-pass that removes it, and a bleed detection beside a kick
+that was *not* itself classified survives as an honest unclassified hit instead
+of vanishing. Measured effect: Madonna 1240 hats -> 784 and 1872 hits -> 1422,
+with the kick count unchanged at 487, and **zero** hits changed on any of the
+four synthetic drum fixtures.
+
+The cost, stated rather than discovered later: where a kick's beater click
+carries more 1-6 kHz energy than a coincident hat carries at 6-16 kHz, the hat
+goes with the bleed. On a synthetic kick built to the Madonna kick's own band
+shares that boundary sits at a hat peaking at 0.4 against a kick at 0.5 — a
+hat much quieter than the kick's own click is swallowed by it, the same shape
+of cost as `_resolve_coincidences`' tom swallowed by a hat, and
+`test_a_hat_quieter_than_the_kicks_own_click_is_swallowed` pins it.
+
+
+The grid comes from an envelope fold, not from the hit list (WP-CAL v5)
+-----------------------------------------------------------------------
+
+Folding the *band flux envelope* into a (cycle x step) matrix and taking the
+median across cycles is far more robust than folding peak-picked onsets: it
+needs no detection threshold and it degrades gracefully across sections where
+an element drops out. That is finding F8 of `V2-PLAN.md` and it is what this
+module now uses to choose the subdivision and to decide whether the material is
+periodic at all.
+
+Three things had to be measured before that could replace the old rule, and two
+of them contradict the plan:
+
+1. **The fold cannot judge a grid from the shape of the profile.** The obvious
+   statistic, `1 - mean/max` of the normalised median profile, measures
+   *sparsity*, not periodicity: 40 uniformly random kicks in 8.5 s score 0.755
+   and a genuine 8th-note pattern with 5% jitter scores 0.532. It is still the
+   right statistic for **choosing** `steps_per_cycle`, because a pattern that
+   does not divide into 12 smears across the 12-step fold, and it is used for
+   exactly that and nothing else.
+2. **What does judge a grid is where the folded energy sits *within* a step.**
+   `_on_grid_share` folds at `GRID_OVERSAMPLE` sub-slots per step and reports
+   the share of the median profile that lands on the sub-slots that are step
+   centres. Chance is `1 / GRID_OVERSAMPLE` = 0.25. Measured: Madonna at the
+   corrected period 1.000, `drum_pattern_120bpm` 0.962, `drum_pattern_kick_only`
+   0.909, `drum_pattern_ambiguous` 0.991; against Madonna at the v4 period
+   0.052, Madonna at 97.3 BPM 0.303, `drum_pattern_120bpm` at 97.3 BPM 0.369,
+   200 random kicks over 60 s 0.051. `GRID_ON_GRID_SHARE_MIN` is 0.50 — twice
+   chance, with the nearest accepted reading at 0.909 and the nearest rejected
+   one at 0.369.
+3. **The fold still cannot replace the per-hit quantisation check on short
+   material.** `drum_pattern_120bpm` fitted to a deliberately wrong 97.3 BPM
+   scores a *higher* profile contrast (0.773) than it does at its own tempo
+   (0.801 is barely above it), because three cycles of a sparse pattern is not
+   enough for a median to mean anything. `MAX_QUANTISATION_ERROR_STEPS` still
+   has to hold, and it is unchanged at 0.18. So the plan's "stop using per-hit
+   picking to decide whether a grid exists" is only half right, and this module
+   requires **both** gates and says which one failed.
+
+
+The anchor is phase-snapped, and that is not optional
+-----------------------------------------------------
+
+A supplied downbeat fixes which step is step 0. It does **not** fix the
+sub-step phase, and the difference is the whole grid. The downbeat verified for
+the Madonna fixture, 1.6283 s, puts the kick on steps 0/4/8/12 correctly and
+still sits 0.267 steps — 30 ms — away from where the hits actually are. Fitted
+raw it scores a mean quantisation error of 0.2672 and the grid is rejected;
+snapped it scores **0.0332** and the grid is textbook. The same material
+anchored on `beat_times[0]` = 0.348299 s needs no snap at all (0.0334), so this
+is a property of the supplied offset, not of the record.
+
+`_snap_anchor` therefore moves the anchor by the circular mean of the hits'
+fractional step positions, which is bounded by half a step by construction and
+so **cannot renumber the steps** — the four-fold downbeat ambiguity documented
+in `calibration/v5-progress.md` is the caller's to resolve and this module does
+not touch it. The snap is measured and reported in `caveats` whenever it moves
+the anchor by more than `ANCHOR_SNAP_CAVEAT_STEPS`.
+
+It also cannot rescue a wrong period: on `drum_pattern_120bpm` fitted to 97.3
+BPM the snap moves the error from 0.2464 to 0.2473, because the residuals of a
+wrong period are spread rather than offset.
+
+
+Two ways to fail a grid, and they are not the same failure
+-----------------------------------------------------------
+
+`BLOCK_STATUSES` has one value for both, so the distinction lives in `caveats`:
+
+* **The hits do not fit any grid.** Each half of the source, snapped to its own
+  phase, still misses the allowance.
+* **The hits fit a grid that is drifting.** Each half fits comfortably on its
+  own but the two halves disagree about phase, which is what a period error
+  looks like once it has accumulated. Measured on Madonna at the v4 period of
+  132.040 BPM: whole-source error 0.1841, halves 0.0926 and 0.0841, phase
+  difference +0.366 steps over 131.8 s. The implied period is reported with it,
+  and it is explicitly approximate — assignments have already begun to wrap by
+  the time the whole-source fit fails, so it recovers 132.08 rather than
+  132.000. It is a pointer at the real cause, not a tempo estimate; `tempo.py`
+  is where a tempo estimate comes from.
+
+
 What this cannot do
 -------------------
 
@@ -202,8 +359,11 @@ from .heuristics import ramp
 from .schemas import DrumDecomposition, DrumHit, DrumPattern
 
 __all__ = [
+    "ANCHOR_SNAP_CAVEAT_STEPS",
     "ATTACK_SECONDS",
     "BAND_ACTIVITY_FLOOR",
+    "BLEED_SOURCE_BAND",
+    "BLEED_TARGET_BANDS",
     "DECISION_FLOOR",
     "DECISION_MARGIN",
     "DETECTION_BANDS",
@@ -216,10 +376,15 @@ __all__ = [
     "FLUX_PEAK_FLOOR",
     "FLUX_SPARSITY_MIN",
     "GRID_IMPROVEMENT_FRACTION",
+    "GRID_ON_GRID_SHARE_MIN",
+    "GRID_OVERSAMPLE",
     "GRID_STEP_CANDIDATES",
+    "KICK_BLEED_AIR_OVER_NOISE",
+    "KICK_BLEED_DOMINANCE",
     "MAX_DECAY_RATIO",
     "MAX_QUANTISATION_ERROR_STEPS",
     "MIN_HIT_SEPARATION_SECONDS",
+    "MIN_FOLD_CYCLES",
     "PEAK_DELTA_FRACTION",
     "PEAK_REFERENCE_QUANTILE",
     "STFT_HOP_LENGTH",
@@ -412,6 +577,45 @@ THRESHOLDS: Final[dict[str, float]] = {
     # neither is yet tested by real material.
     "decision_floor": 0.15,
     "decision_margin": 0.10,
+    # -- Kick bleed --------------------------------------------------------
+    # [grounded, measured] Share of a hit window's band energy below 150 Hz
+    # above which the window is "kick-dominated" and the bleed rule is allowed
+    # to look at it at all. Deliberately the same number as `kick_low_ratio`,
+    # and for the same reason: it is the bar a window has to clear before this
+    # module is willing to say the kick is what is in it.
+    #
+    # This clause is what keeps the rule off the snare. In
+    # `drum_pattern_120bpm` the kick band fires on the snare's 200 Hz shell
+    # tone, so a hat sounding with a snare *is* coincident with a kick-band
+    # detection — but its window measures `kick_ratio` 0.0116, fifty times
+    # under this floor, so the rule never reaches it. Measured kick-dominated
+    # windows: real kicks 0.979-0.992, the Madonna bleed 0.72-0.84, a genuine
+    # hat over a synthetic kick 0.99.
+    "kick_bleed_dominance": 0.60,
+    # [grounded, measured] `air / (air + noise)` at or above which a hit found
+    # by the noise or air detector, at a kick-dominated instant where the kick
+    # band also fired, is kept as a hit of its own rather than suppressed as
+    # the kick's own transient.
+    #
+    # **0.50 is physical, not a tuned midpoint**: it is the point at which the
+    # two halves of the bright spectrum hold equal energy. A kick's bright
+    # content is its 1-6 kHz beater click with a 6-16 kHz shoulder, so it is
+    # noise-weighted by construction; a hat is air-weighted. Measured over the
+    # 878 Madonna hits that fall inside this rule's exact scope: 0.201 median,
+    # 0.295 at the 95th percentile, 0.375 at the 99th, 0.574 at the maximum —
+    # against 0.9894 for a closed hat over a synthetic kick and 0.9981 for an
+    # open one. A factor of 1.7 of headroom over the 95th percentile below and
+    # 2.0 below the synthetic hat above. 875 of the 878 are suppressed; the
+    # three that survive are the only ones on the record with an air-weighted
+    # bright half, and letting them through is the honest outcome.
+    #
+    # This is a *different threshold from* `hat_air_over_noise` (0.015) and
+    # must stay that way: that one runs on every hit and is held down by a hat
+    # sounding with a snare measuring 0.0552, while this one only ever runs
+    # where a kick has already been found. Raising the shared threshold to
+    # catch this would delete the snare-coincident hats, which is
+    # `test_all_thirty_two_hats_survive_coincidence`.
+    "kick_bleed_air_over_noise": 0.50,
     # -- Grid --------------------------------------------------------------
     # [grounded, measured] Mean absolute distance from a hit to its nearest
     # step, in steps, above which no grid is reported at all.
@@ -432,6 +636,25 @@ THRESHOLDS: Final[dict[str, float]] = {
     # its kicks on steps 0/3/6/9 instead of 0/4/8/12. 10% asks a triplet grid to
     # actually fit better before this module claims a triplet feel.
     "grid_improvement_fraction": 0.10,
+    # [grounded, measured] Share of the oversampled median fold profile that
+    # must land on the sub-slots that are step centres before the material is
+    # accepted as periodic at this cycle length. This is the envelope-fold test
+    # of F8 and it replaces nothing: it runs *beside*
+    # `max_quantisation_error_steps`, because neither catches the other's case.
+    #
+    # Chance is `1 / GRID_OVERSAMPLE` = 0.25, so 0.50 asks for twice chance.
+    # Measured accepted: Madonna at the corrected period 1.000,
+    # `drum_pattern_ambiguous` 0.991, `drum_pattern_120bpm` 0.962,
+    # `drum_pattern_kick_only` 0.909. Measured rejected: 200 uniformly random
+    # kicks over 60 s 0.051, Madonna at the v4 period 0.052, Madonna at 97.3
+    # BPM 0.303, `drum_pattern_120bpm` at 97.3 BPM 0.369. The nearest accepted
+    # reading is 2.5x this and the nearest rejected one is 0.74x it.
+    "grid_on_grid_share_min": 0.50,
+    # [grounded] Anchor snap, in steps, above which the move is reported as a
+    # caveat rather than applied silently. A tenth of a step is 11 ms at 132
+    # BPM, one STFT hop, so anything smaller is below the time resolution of
+    # every hit in this module and there is nothing to tell the reader.
+    "anchor_snap_caveat_steps": 0.10,
     # [guess] Share of hits that may be `unclassified` before that fact is
     # raised as a caveat rather than left to the reader to notice.
     "unclassified_caveat_fraction": 0.25,
@@ -452,6 +675,32 @@ DECISION_FLOOR: Final[float] = THRESHOLDS["decision_floor"]
 DECISION_MARGIN: Final[float] = THRESHOLDS["decision_margin"]
 MAX_QUANTISATION_ERROR_STEPS: Final[float] = THRESHOLDS["max_quantisation_error_steps"]
 GRID_IMPROVEMENT_FRACTION: Final[float] = THRESHOLDS["grid_improvement_fraction"]
+KICK_BLEED_DOMINANCE: Final[float] = THRESHOLDS["kick_bleed_dominance"]
+KICK_BLEED_AIR_OVER_NOISE: Final[float] = THRESHOLDS["kick_bleed_air_over_noise"]
+GRID_ON_GRID_SHARE_MIN: Final[float] = THRESHOLDS["grid_on_grid_share_min"]
+ANCHOR_SNAP_CAVEAT_STEPS: Final[float] = THRESHOLDS["anchor_snap_caveat_steps"]
+
+#: The band whose transient bleeds upward, and the bands it bleeds into. A
+#: kick is the only drum in a kit loud enough and broad enough to fire a
+#: detector two bands above its own, which is why this is a named pair rather
+#: than a loop over every band below every other one — every other such pair
+#: was measured and none of them fires. `body` is absent from the targets
+#: because a body-band detection at a kick instant is already classified as the
+#: kick and collapsed by `_resolve_coincidences`.
+BLEED_SOURCE_BAND: Final[str] = "kick"
+BLEED_TARGET_BANDS: Final[tuple[str, ...]] = ("noise", "air")
+
+#: Sub-slots per step in the oversampled fold. 4 puts chance at 0.25 for
+#: `_on_grid_share` and keeps a sub-slot at 28 ms at 132 BPM — still two to
+#: three STFT hops wide, so a slot is never narrower than the measurement grid
+#: that fills it.
+GRID_OVERSAMPLE: Final[int] = 4
+
+#: Cycles a source must span before a fold means anything. Two is the minimum
+#: at which a median across cycles is not simply the one cycle there was; below
+#: it the fold abstains and says so rather than returning a verdict from a
+#: sample of one.
+MIN_FOLD_CYCLES: Final[int] = 2
 
 #: How likely a hit found by each band's detector is to belong to each class,
 #: as a multiplier on that class's shape score.
@@ -808,17 +1057,26 @@ def _window_end(candidate: _Candidate, candidates: list[_Candidate], limit: int,
 
 def _measure(
     candidates: list[_Candidate],
-    magnitude: npt.NDArray[np.float64],
-    freqs: npt.NDArray[np.float64],
+    magnitude: npt.NDArray[np.float64] | None,
+    freqs: npt.NDArray[np.float64] | None,
     envelopes: dict[str, npt.NDArray[np.float64]],
     sample_rate: int,
 ) -> None:
-    """Fill in every candidate's ratios, decay and flatness, in place."""
-    n_frames = magnitude.shape[1]
+    """Fill in every candidate's ratios, decay and flatness, in place.
+
+    `magnitude` and `freqs` are optional and only `flatness` needs them, which
+    is why they are: everything that *classifies* a hit is computed from the
+    band envelopes alone. That is what lets `tests/fixtures/real/` ship four
+    envelope arrays per frame instead of audio and still exercise this module
+    on real material — ground rule 9 of `KICKOFF-v2.md`. Without a spectrum,
+    `flatness` is `None`, which is what it already means everywhere else:
+    not measurable here.
+    """
+    n_frames = next(iter(envelopes.values())).size if envelopes else 0
     span = _frames(FEATURE_WINDOW_SECONDS, sample_rate)
     attack = _frames(ATTACK_SECONDS, sample_rate)
     low_hz, high_hz = FLATNESS_RANGE_HZ
-    in_range = (freqs >= low_hz) & (freqs <= high_hz)
+    in_range = None if freqs is None else (freqs >= low_hz) & (freqs <= high_hz)
 
     for candidate in candidates:
         start = candidate.frame
@@ -830,7 +1088,11 @@ def _measure(
             candidate.ratios = {name: value / total for name, value in per_band.items()}
 
         candidate.decay_ratio = _decay_ratio(envelopes[candidate.band], start, end, attack)
-        candidate.flatness = _flatness(magnitude[:, start:end], in_range)
+        candidate.flatness = (
+            None
+            if magnitude is None or in_range is None
+            else _flatness(magnitude[:, start:end], in_range)
+        )
 
 
 def _decay_ratio(
@@ -890,6 +1152,23 @@ def _flatness(
 # ---------------------------------------------------------------------------
 
 
+def _air_over_noise(candidate: _Candidate) -> float | None:
+    """`air / (air + noise)` of a candidate's window, or `None` if neither fired.
+
+    How much of the bright half of this hit's spectrum is genuinely *air*
+    rather than the top of a 1-6 kHz rattle or a beater click. Read twice: by
+    `_class_scores` against `hat_air_over_noise`, and by `_suppress_kick_bleed`
+    against `KICK_BLEED_AIR_OVER_NOISE`. Those two thresholds sit a factor of
+    33 apart on purpose — see their notes.
+    """
+    air = candidate.ratios["air"]
+    noise = candidate.ratios["noise"]
+    if air is None or noise is None:
+        return None
+    bright = air + noise
+    return None if bright <= 0.0 else air / bright
+
+
 def _score(value: float | None, threshold: float, saturation: float) -> float:
     """`heuristics.ramp`, with "did not fire" folded to 0.0.
 
@@ -941,10 +1220,7 @@ def _class_scores(candidate: _Candidate) -> dict[str, float]:
     module docstring.
     """
     affinity = DETECTOR_CLASS_AFFINITY.get(candidate.band, {})
-    air = candidate.ratios["air"]
-    noise = candidate.ratios["noise"]
-    bright = air + noise if air is not None and noise is not None else None
-    air_over_noise = None if not bright or air is None else air / bright
+    air_over_noise = _air_over_noise(candidate)
     shapes = {
         "kick": _score(
             candidate.ratios["kick"],
@@ -989,6 +1265,70 @@ def _decide(scores: dict[str, float]) -> tuple[str, float]:
     if best >= DECISION_FLOOR and best - runner_up >= DECISION_MARGIN:
         return winner, best
     return "unclassified", best
+
+
+def _suppress_kick_bleed(
+    candidates: list[_Candidate], sample_rate: int
+) -> int:
+    """Demote upper-band detections that are the kick's own transient. In place.
+
+    The failure this exists for is documented at length in the module
+    docstring: on real material the noise and air detectors fire on a kick's
+    broadband transient, and the hat rule — which normalises the kick away by
+    construction — then scores those detections a confident 1.0. Measured on
+    the Madonna drums fixture, 504 of 1240 reported hats were the kick found
+    twice.
+
+    Three conditions, all required, and every one of them is load-bearing:
+
+    1. the hit was found by a `BLEED_TARGET_BANDS` detector;
+    2. a `BLEED_SOURCE_BAND` detection lies within
+       `MIN_HIT_SEPARATION_SECONDS` — the same resolution "the same instant"
+       means everywhere else in this module — **and** the window is
+       kick-dominated past `KICK_BLEED_DOMINANCE`. Co-detection alone is not
+       enough: the kick band fires on a synthetic snare's shell tone, so
+       without the dominance clause this would delete every hat sounding with
+       a snare;
+    3. `air / (air + noise)` is below `KICK_BLEED_AIR_OVER_NOISE`, i.e. the
+       bright half of the hit is weighted to the beater-click side rather than
+       the air side. This is the only one of the three that separates the
+       bleed from a genuine coincident hat, and it separates them by a factor
+       of five.
+
+    A suppressed candidate becomes `unclassified` with its winning score
+    intact rather than being deleted here. Deletion is then
+    `_resolve_coincidences`' rule 2, which drops it *because* a classified
+    kick is beside it — so a bleed detection next to a kick that somehow did
+    not classify survives as an honest unclassified hit rather than
+    disappearing on the strength of a rule about kicks.
+
+    Returns:
+        How many candidates were demoted. Reported as a caveat, because
+        silently removing a third of a source's hits is exactly the kind of
+        thing a reader should be told about.
+    """
+    separation = _frames(MIN_HIT_SEPARATION_SECONDS, sample_rate)
+    source_frames = np.asarray(
+        [item.frame for item in candidates if item.band == BLEED_SOURCE_BAND], dtype=np.int64
+    )
+    if source_frames.size == 0:
+        return 0
+
+    suppressed = 0
+    for candidate in candidates:
+        if candidate.band not in BLEED_TARGET_BANDS or candidate.drum == "unclassified":
+            continue
+        kick_ratio = candidate.ratios[BLEED_SOURCE_BAND]
+        if kick_ratio is None or kick_ratio < KICK_BLEED_DOMINANCE:
+            continue
+        if not bool(np.any(np.abs(source_frames - candidate.frame) < separation)):
+            continue
+        air_over_noise = _air_over_noise(candidate)
+        if air_over_noise is not None and air_over_noise >= KICK_BLEED_AIR_OVER_NOISE:
+            continue
+        candidate.drum = "unclassified"
+        suppressed += 1
+    return suppressed
 
 
 def _resolve_coincidences(
@@ -1046,13 +1386,26 @@ def _resolve_coincidences(
 
 
 class _Grid:
-    """A cycle grid fitted to the hits, or the reason there isn't one."""
+    """A cycle grid fitted to the hits, or the reason there isn't one.
+
+    Working state, like `_Candidate`: it carries the diagnostic quantities that
+    decided the grid (`contrast`, `on_grid_share`, `anchor_shift_steps`, the
+    drift readings) so `_decompose` can turn them into caveats, and none of
+    them leak into the schema.
+    """
 
     __slots__ = (
         "anchor_seconds",
+        "anchor_shift_steps",
         "anchor_source",
+        "contrast",
         "cycle_seconds",
+        "drift_steps",
         "error_steps",
+        "failure",
+        "half_error_steps",
+        "implied_cycle_seconds",
+        "on_grid_share",
         "steps",
         "steps_per_cycle",
     )
@@ -1065,6 +1418,14 @@ class _Grid:
         anchor_source: str | None = None,
         error_steps: float | None = None,
         steps: list[int] | None = None,
+        *,
+        anchor_shift_steps: float | None = None,
+        contrast: float | None = None,
+        on_grid_share: float | None = None,
+        half_error_steps: tuple[float, float] | None = None,
+        drift_steps: float | None = None,
+        implied_cycle_seconds: float | None = None,
+        failure: str | None = None,
     ) -> None:
         self.steps_per_cycle = steps_per_cycle
         self.cycle_seconds = cycle_seconds
@@ -1072,83 +1433,389 @@ class _Grid:
         self.anchor_source = anchor_source
         self.error_steps = error_steps
         self.steps = steps
+        self.anchor_shift_steps = anchor_shift_steps
+        self.contrast = contrast
+        self.on_grid_share = on_grid_share
+        self.half_error_steps = half_error_steps
+        self.drift_steps = drift_steps
+        self.implied_cycle_seconds = implied_cycle_seconds
+        self.failure = failure
+
+
+def _fold(
+    values: npt.NDArray[np.float64],
+    sample_rate: int,
+    cycle_seconds: float,
+    anchor_seconds: float,
+    slots_per_cycle: int,
+) -> npt.NDArray[np.float64] | None:
+    """Fold one band's flux into a `(cycle, slot)` matrix. The F8 primitive.
+
+    Every frame is assigned to its **nearest** slot and a slot takes the
+    largest flux assigned to it, so a hit that straddles two frames counts once
+    at its peak rather than being split between neighbours. Frames before the
+    anchor are dropped; there is no cycle -1 to put them in.
+
+    Nearest rather than floor is not cosmetic: with `floor`, an event sitting a
+    hair before a slot boundary lands in the previous slot, and the whole
+    profile reads one slot early. That is how the Madonna kick first appeared
+    on steps 3/7/11/15.
+
+    Returns:
+        `(n_cycles, slots_per_cycle)`, or `None` when the source does not span
+        `MIN_FOLD_CYCLES` whole cycles — below that a median across cycles is
+        a median of one thing, and abstaining is the honest answer.
+    """
+    if values.size == 0 or slots_per_cycle <= 0:
+        return None
+    if not math.isfinite(cycle_seconds) or cycle_seconds <= 0.0:
+        return None
+    slot_seconds = cycle_seconds / slots_per_cycle
+    times = np.arange(values.size, dtype=np.float64) * STFT_HOP_LENGTH / sample_rate
+    slots = np.rint((times - anchor_seconds) / slot_seconds).astype(np.int64)
+    keep = slots >= 0
+    if not bool(keep.any()):
+        return None
+    slots, kept = slots[keep], values[keep]
+    total = int(slots.max()) + 1
+    folded = np.zeros(total, dtype=np.float64)
+    np.maximum.at(folded, slots, kept)
+    cycles = total // slots_per_cycle
+    if cycles < MIN_FOLD_CYCLES:
+        return None
+    return folded[: cycles * slots_per_cycle].reshape(cycles, slots_per_cycle)
+
+
+def _fold_profile(
+    fluxes: dict[str, npt.NDArray[np.float64]],
+    bands: Sequence[str],
+    sample_rate: int,
+    cycle_seconds: float,
+    anchor_seconds: float,
+    slots_per_cycle: int,
+) -> dict[str, npt.NDArray[np.float64]]:
+    """Median-across-cycles profile per band. The median is the point of F8.
+
+    A mean would let one crash in one bar decide a step; a median asks "does
+    this step fire in *most* cycles", which is what a pattern is, and it is
+    what makes the fold survive a breakdown where an element drops out for
+    sixteen bars.
+    """
+    profiles: dict[str, npt.NDArray[np.float64]] = {}
+    for band in bands:
+        matrix = _fold(fluxes[band], sample_rate, cycle_seconds, anchor_seconds, slots_per_cycle)
+        if matrix is None:
+            continue
+        profile = np.median(matrix, axis=0).astype(np.float64)
+        if float(profile.max()) > 0.0:
+            profiles[band] = profile
+    return profiles
+
+
+def _profile_contrast(profile: npt.NDArray[np.float64]) -> float:
+    """`1 - mean/peak` of a normalised profile. The subdivision chooser.
+
+    Matches `tempo.DownbeatFit.beat_confidence`, which measures the same thing
+    for the same reason, so the two modules describe a fold the same way.
+
+    **This does not measure periodicity** and must not be used as if it did:
+    40 uniformly random kicks in 8.5 s score 0.755 on it, because a sparse
+    random set leaves most steps empty in most cycles and emptiness reads as
+    contrast. What it does measure well is whether the material divides into
+    `slots_per_cycle` at all — a pattern that does not smears across the wrong
+    fold and flattens it. `_on_grid_share` is the periodicity test.
+    """
+    peak = float(profile.max())
+    if not math.isfinite(peak) or peak <= 0.0:
+        return 0.0
+    return float(1.0 - (profile / peak).mean())
+
+
+def _on_grid_share(profile: npt.NDArray[np.float64], oversample: int) -> float | None:
+    """Share of an oversampled profile that lands on the step centres.
+
+    The periodicity test. `profile` is folded at `oversample` sub-slots per
+    step, so the sub-slots at indices `0, oversample, 2 * oversample, ...` are
+    the step centres and everything between them is off-grid. A pattern locked
+    to the grid puts nearly all of its folded energy on the centres; a wrong
+    period puts each cycle's events at a different in-cycle position, the
+    median flattens, and the share falls to chance, `1 / oversample`.
+
+    Measured, against `GRID_ON_GRID_SHARE_MIN` = 0.50 and chance = 0.25:
+    Madonna at the corrected period 1.000, `drum_pattern_ambiguous` 0.991,
+    `drum_pattern_120bpm` 0.962, `drum_pattern_kick_only` 0.909; Madonna at
+    the v4 period 0.052, Madonna at 97.3 BPM 0.303, `drum_pattern_120bpm` at
+    97.3 BPM 0.369, 200 uniformly random kicks over 60 s 0.051.
+
+    Returns:
+        `None` when the profile is empty — every step silent in more than half
+        the cycles — because that is no evidence either way rather than
+        evidence against.
+    """
+    total = float(profile.sum())
+    if not math.isfinite(total) or total <= 0.0:
+        return None
+    return float(profile[::oversample].sum() / total)
+
+
+def _fractional_steps(
+    times: npt.NDArray[np.float64],
+    cycle_seconds: float,
+    anchor_seconds: float,
+    steps_per_cycle: int,
+) -> npt.NDArray[np.float64]:
+    """Signed distance from each hit to its nearest step, in steps, in [-0.5, 0.5]."""
+    scaled = (times - anchor_seconds) / cycle_seconds * steps_per_cycle
+    residual: npt.NDArray[np.float64] = (scaled - np.round(scaled)).astype(np.float64)
+    return residual
+
+
+def _snap_anchor(
+    times: npt.NDArray[np.float64],
+    cycle_seconds: float,
+    anchor_seconds: float,
+    steps_per_cycle: int,
+) -> tuple[float, float]:
+    """Move the anchor onto the hits' own phase. Returns `(anchor, shift_steps)`.
+
+    The shift is the **circular** mean of the fractional step positions, taken
+    as an angle so that hits sitting either side of a step boundary average to
+    the boundary rather than to the middle of the cycle. It is bounded by half
+    a step by construction, so it cannot renumber a single step: which step is
+    step 0 stays exactly as the caller supplied it, and the four-fold downbeat
+    ambiguity that `calibration/v5-progress.md` documents is not this module's
+    to resolve.
+
+    Why this is necessary rather than tidy: the downbeat verified for the
+    Madonna fixture, 1.6283 s, is 0.267 steps — 30 ms — from where the hits
+    are. Fitted raw it scores 0.2672 steps of mean error and the grid is
+    rejected; snapped it scores 0.0332. A supplied downbeat pins *which* step
+    is step 0; it does not pin the sub-step phase, and the grid needs both.
+
+    Why it is not a way of forcing a fit: on `drum_pattern_120bpm` fitted to a
+    deliberately wrong 97.3 BPM the snap moves the error from 0.2464 to 0.2473
+    — it makes it very slightly worse. A wrong period spreads its residuals
+    instead of offsetting them, so there is no phase for the snap to find.
+    """
+    if times.size == 0:
+        return anchor_seconds, 0.0
+    fractional = _fractional_steps(times, cycle_seconds, anchor_seconds, steps_per_cycle)
+    angles = 2.0 * np.pi * fractional
+    mean_angle = float(
+        np.arctan2(float(np.sin(angles).mean()), float(np.cos(angles).mean()))
+    )
+    shift = mean_angle / (2.0 * np.pi)
+    if not math.isfinite(shift):
+        return anchor_seconds, 0.0
+    return anchor_seconds + shift * cycle_seconds / steps_per_cycle, shift
+
+
+def _mean_error(
+    times: npt.NDArray[np.float64],
+    cycle_seconds: float,
+    anchor_seconds: float,
+    steps_per_cycle: int,
+) -> float:
+    """Mean absolute distance from a hit to its nearest step, in steps."""
+    if times.size == 0:
+        return 0.0
+    return float(
+        np.mean(np.abs(_fractional_steps(times, cycle_seconds, anchor_seconds, steps_per_cycle)))
+    )
+
+
+def _drift_reading(
+    times: npt.NDArray[np.float64],
+    cycle_seconds: float,
+    anchor_seconds: float,
+    steps_per_cycle: int,
+) -> tuple[tuple[float, float], float, float | None] | None:
+    """Fit each half of the source on its own phase. The drift-versus-no-fit test.
+
+    A period error and a loose performance both blow the whole-source
+    quantisation allowance, and they are not the same finding: the first is the
+    caller's tempo being slightly wrong and is fixable, the second is the
+    material. Splitting at the midpoint and snapping each half separately
+    separates them, because a period error is a *phase ramp* — each half fits
+    its own phase comfortably and the two phases disagree.
+
+    Measured on Madonna at the v4 period of 132.040 BPM: whole-source 0.1841,
+    halves 0.0926 and 0.0841, phase difference +0.366 steps over 131.8 s. At
+    the truly wrong 97.3 BPM on `drum_pattern_120bpm` both halves score 0.243
+    and 0.247, so nothing is rescued and the answer is honestly "no grid".
+
+    Returns:
+        `((first_error, second_error), drift_steps, implied_cycle_seconds)`, or
+        `None` when either half holds too few hits to fit. The implied cycle is
+        **approximate and says so**: by the time a whole-source fit fails, some
+        hits have already wrapped to the wrong step, which biases the ramp. On
+        the Madonna case it recovers 132.08 BPM against a true 132.000. It
+        points at the cause; `tempo.py` measures the tempo.
+    """
+    if times.size < 8:
+        return None
+    midpoint = 0.5 * (float(times.min()) + float(times.max()))
+    halves = (times[times <= midpoint], times[times > midpoint])
+    if any(half.size < 4 for half in halves):
+        return None
+
+    anchors: list[float] = []
+    errors: list[float] = []
+    centres: list[float] = []
+    for half in halves:
+        snapped, _shift = _snap_anchor(half, cycle_seconds, anchor_seconds, steps_per_cycle)
+        anchors.append(snapped)
+        errors.append(_mean_error(half, cycle_seconds, snapped, steps_per_cycle))
+        centres.append(float(half.mean()))
+
+    step_seconds = cycle_seconds / steps_per_cycle
+    drift = (anchors[1] - anchors[0]) / step_seconds
+    # Both anchors are phases, so their difference is only meaningful modulo a
+    # whole step; take the representative in (-0.5, 0.5].
+    drift = float((drift + 0.5) % 1.0 - 0.5)
+    elapsed = centres[1] - centres[0]
+    implied: float | None = None
+    if elapsed > 0.0:
+        rate = drift * step_seconds / elapsed
+        if abs(rate) < 0.5:
+            implied = cycle_seconds * (1.0 - rate)
+    return (errors[0], errors[1]), drift, implied
+
+
+def _cycle_seconds(
+    bpm: float | None, beat_period_seconds: float | None, beats_per_cycle: int
+) -> float | None:
+    """One cycle in seconds, preferring a supplied beat period over a BPM label.
+
+    `beat_period_seconds` is `tempo.TempoFit.period_seconds` — a refined
+    measurement. `bpm` is whichever backend produced the rhythm block, accurate
+    to roughly +/- 0.2 BPM, which finding F1 showed is four decimal places too
+    coarse to extend a grid across a four-minute track. When both are present
+    the measurement wins and the label is ignored.
+    """
+    if beats_per_cycle <= 0:
+        return None
+    period = beat_period_seconds
+    if period is None and bpm is not None and math.isfinite(bpm) and bpm > 0.0:
+        period = 60.0 / float(bpm)
+    if period is None or not math.isfinite(period) or period <= 0.0:
+        return None
+    cycle = beats_per_cycle * period
+    return cycle if math.isfinite(cycle) and cycle > 0.0 else None
 
 
 def _fit_grid(
     times: list[float],
+    fluxes: dict[str, npt.NDArray[np.float64]],
+    active: Sequence[str],
+    sample_rate: int,
+    *,
     bpm: float | None,
+    beat_period_seconds: float | None,
     beat_times: Sequence[float],
+    downbeat_seconds: float | None,
     beats_per_cycle: int,
 ) -> _Grid:
-    """Fit a cycle grid to the hit times, or return one with `steps_per_cycle=None`.
+    """Fit a cycle grid, or return one with `steps_per_cycle=None` and a reason.
 
-    The anchor is `beat_times[0]` when there is one, else the first hit, and
-    which of those it was is recorded — a grid anchored on a tempo estimate and
-    one anchored on whatever happened to be loudest first deserve different
-    amounts of trust.
+    Four stages, in this order, because each depends on the one before it:
 
-    `GRID_STEP_CANDIDATES` are tried in order and the one that fits best wins,
-    where "best" is the mean absolute distance from a hit to its nearest step
-    **in seconds**, not in steps.
+    1. **Cycle length.** A supplied `beat_period_seconds` if there is one, else
+       `bpm`. No length, no grid.
+    2. **Anchor.** `downbeat_seconds` if supplied, else `beat_times[0]`, else
+       the first hit — recorded either way, because a grid anchored on a
+       measured downbeat, one anchored on a tempo estimate and one anchored on
+       whatever happened to be loudest first deserve different amounts of
+       trust. Then phase-snapped onto the hits, which cannot renumber a step
+       and which the Madonna fixture does not fit without.
+    3. **Subdivision.** `GRID_STEP_CANDIDATES` in order, scored by the best
+       band's `_profile_contrast` on the median fold. 16 is the incumbent and
+       12 must beat it by `GRID_IMPROVEMENT_FRACTION` to displace it, because a
+       quarter-note pattern lands exactly on both grids and the choice would
+       otherwise be decided by float noise — `drum_pattern_kick_only` reported
+       its kicks on steps 0/3/6/9 until this rule existed.
+    4. **Two gates, both required, and the failure names which one gave way.**
+       `_on_grid_share` against `GRID_ON_GRID_SHARE_MIN` asks whether the
+       *envelope* is periodic at this cycle length; the mean per-hit error
+       against `MAX_QUANTISATION_ERROR_STEPS` asks whether the *hits* land on
+       it. Neither subsumes the other: the fold is blind on material spanning
+       three cycles (`drum_pattern_120bpm` scores a higher contrast at a wrong
+       97.3 BPM than at its own tempo), and the hit error is marginal on
+       material where the fold is decisive (Madonna at the v4 period scores
+       0.1841 against a 0.18 allowance, and 0.052 against a 0.50 fold floor).
 
-    That distinction is load-bearing and easy to get wrong. For a fixed amount
-    of timing jitter, the error measured *in steps* is smaller on a coarser
-    grid purely because its steps are longer — a 12-step cycle scores 25% lower
-    than a 16-step one on identical hits, so comparing step errors always
-    prefers 12 regardless of the material. Seconds are neutral. On a genuine
-    tie (a quarter-note pattern lands exactly on both grids) the earlier
-    candidate keeps its place unless the challenger improves by
-    `GRID_IMPROVEMENT_FRACTION`.
-
-    The winner's error is then converted back to steps for reporting and
-    compared against `MAX_QUANTISATION_ERROR_STEPS`; over that, no grid is
-    reported at all. The bias throughout this project is that a wrong grid is
-    worse than none, and a mean error of a quarter of a step means the
-    assignment carries no information.
-
-    No BPM means no cycle length, so no grid at all.
+    The allowance is **not** relaxed anywhere in here. Finding F1 was a tempo
+    error wearing a threshold's clothes: at the corrected period the same hits
+    score 0.0332.
     """
-    if bpm is None or not math.isfinite(bpm) or bpm <= 0.0 or not times:
-        return _Grid()
-    if beats_per_cycle <= 0:
-        return _Grid()
+    cycle_seconds = _cycle_seconds(bpm, beat_period_seconds, beats_per_cycle)
+    if cycle_seconds is None or not times:
+        return _Grid(failure="no_cycle_length")
 
-    cycle_seconds = beats_per_cycle * 60.0 / float(bpm)
-    if not math.isfinite(cycle_seconds) or cycle_seconds <= 0.0:
-        return _Grid()
-
-    anchor_source = "beats" if len(beat_times) else "first_hit"
-    anchor = float(beat_times[0]) if len(beat_times) else float(times[0])
+    if downbeat_seconds is not None and math.isfinite(downbeat_seconds):
+        anchor, anchor_source = float(downbeat_seconds), "supplied"
+    elif len(beat_times):
+        anchor, anchor_source = float(beat_times[0]), "beats"
+    else:
+        anchor, anchor_source = float(times[0]), "first_hit"
     if not math.isfinite(anchor):
-        return _Grid()
+        return _Grid(failure="no_cycle_length")
 
-    positions = (np.asarray(times, dtype=np.float64) - anchor) / cycle_seconds
-    best: tuple[float, int, npt.NDArray[np.float64]] | None = None
+    hit_times = np.asarray(times, dtype=np.float64)
+    best: tuple[float, int] | None = None
     for steps_per_cycle in GRID_STEP_CANDIDATES:
-        scaled = positions * steps_per_cycle
-        error_steps = float(np.mean(np.abs(scaled - np.round(scaled))))
-        error_seconds = error_steps * cycle_seconds / steps_per_cycle
-        if best is None or error_seconds < best[0] * (1.0 - GRID_IMPROVEMENT_FRACTION):
-            best = (error_seconds, steps_per_cycle, scaled)
-    assert best is not None  # noqa: S101 - GRID_STEP_CANDIDATES is never empty
-    _, steps_per_cycle, scaled = best
-    error = float(np.mean(np.abs(scaled - np.round(scaled))))
-    if error > MAX_QUANTISATION_ERROR_STEPS:
-        return _Grid(
-            cycle_seconds=cycle_seconds,
-            anchor_seconds=anchor,
-            anchor_source=anchor_source,
-            error_steps=error,
+        snapped, _shift = _snap_anchor(hit_times, cycle_seconds, anchor, steps_per_cycle)
+        profiles = _fold_profile(
+            fluxes, active, sample_rate, cycle_seconds, snapped, steps_per_cycle
         )
-    absolute = np.round(scaled).astype(np.int64)
-    return _Grid(
-        steps_per_cycle=steps_per_cycle,
+        contrast = max((_profile_contrast(p) for p in profiles.values()), default=0.0)
+        if best is None or contrast > best[0] * (1.0 + GRID_IMPROVEMENT_FRACTION):
+            best = (contrast, steps_per_cycle)
+    assert best is not None  # noqa: S101 - GRID_STEP_CANDIDATES is never empty
+    contrast, steps_per_cycle = best
+
+    anchor, shift = _snap_anchor(hit_times, cycle_seconds, anchor, steps_per_cycle)
+    error = _mean_error(hit_times, cycle_seconds, anchor, steps_per_cycle)
+    oversampled = _fold_profile(
+        fluxes,
+        active,
+        sample_rate,
+        cycle_seconds,
+        anchor,
+        steps_per_cycle * GRID_OVERSAMPLE,
+    )
+    shares = [
+        share
+        for share in (_on_grid_share(p, GRID_OVERSAMPLE) for p in oversampled.values())
+        if share is not None
+    ]
+    on_grid = max(shares) if shares else None
+
+    partial = _Grid(
         cycle_seconds=cycle_seconds,
         anchor_seconds=anchor,
         anchor_source=anchor_source,
         error_steps=error,
-        steps=[int(value) for value in absolute],
+        anchor_shift_steps=shift,
+        contrast=contrast,
+        on_grid_share=on_grid,
     )
+    if on_grid is not None and on_grid < GRID_ON_GRID_SHARE_MIN:
+        partial.failure = "not_periodic"
+        return partial
+    if error > MAX_QUANTISATION_ERROR_STEPS:
+        reading = _drift_reading(hit_times, cycle_seconds, anchor, steps_per_cycle)
+        partial.failure = "no_fit"
+        if reading is not None:
+            partial.half_error_steps, partial.drift_steps, partial.implied_cycle_seconds = reading
+            if max(reading[0]) <= MAX_QUANTISATION_ERROR_STEPS:
+                partial.failure = "drifting"
+        return partial
+
+    scaled = (hit_times - anchor) / cycle_seconds * steps_per_cycle
+    partial.steps_per_cycle = steps_per_cycle
+    partial.steps = [int(value) for value in np.round(scaled).astype(np.int64)]
+    return partial
 
 
 def _patterns(
@@ -1156,9 +1823,29 @@ def _patterns(
 ) -> list[DrumPattern]:
     """Fold the hits onto one cycle, one `DrumPattern` per class present.
 
-    `step_occupancy` divides by the number of cycles the hits actually span, not
-    by the number of cycles that fit in the file. A four-bar loop with two bars
-    of silence after it should read as a full pattern, not a half-occupied one.
+    `step_occupancy` is the share of the cycles **this class was playing in**
+    that hold a hit of it on this step, and the choice of denominator is the
+    whole value of the field. Three candidates, and only one of them says
+    anything:
+
+    * *cycles in the file* punishes every element for the arrangement. On the
+      Madonna track the kick sits out a sixteen-bar breakdown, so a four-on-the
+      floor kick would read 0.79-0.83 and look intermittent.
+    * *cycles the hits span* is the same number for anything that plays at the
+      start and at the end, which on a full track is everything.
+    * *cycles this class plays in* answers the question a reader actually has:
+      when this drum is playing, does it hit this step every time? Measured on
+      Madonna the kick reads 0.906/0.953/0.929/0.945 on steps 0/4/8/12 — a
+      backbone — and its off-grid steps read 0.008-0.031, which is the same
+      pattern the envelope fold shows independently.
+
+    On a fixture where a class plays throughout, all three agree, which is why
+    the synthetic expectations are unchanged: a repeating four-cycle pattern
+    still reads 1.0 and one ghost kick in one cycle of four still reads 0.25.
+
+    `step_occupancy` was empty in every v4 output because v4 never resolved a
+    grid, not because it was never computed — there is no schema change here
+    and nothing to migrate.
     """
     if steps_per_cycle is None or absolute_steps is None:
         return [
@@ -1167,21 +1854,23 @@ def _patterns(
         ]
 
     cycles = [step // steps_per_cycle for step in absolute_steps]
-    span = max(1, max(cycles) - min(cycles) + 1) if cycles else 1
 
     patterns: list[DrumPattern] = []
     for drum in _pattern_order(hits):
         occupied: dict[int, set[int]] = {}
+        playing: set[int] = set()
         for hit, absolute, cycle in zip(hits, absolute_steps, cycles, strict=True):
             if hit.drum != drum:
                 continue
             occupied.setdefault(absolute % steps_per_cycle, set()).add(cycle)
+            playing.add(cycle)
         steps = sorted(occupied)
+        denominator = max(1, len(playing))
         patterns.append(
             DrumPattern(
                 drum=drum,
                 steps=steps,
-                step_occupancy=[min(1.0, len(occupied[step]) / span) for step in steps],
+                step_occupancy=[min(1.0, len(occupied[step]) / denominator) for step in steps],
                 hit_count=sum(1 for hit in hits if hit.drum == drum),
             )
         )
@@ -1192,6 +1881,83 @@ def _pattern_order(hits: list[DrumHit]) -> list[str]:
     """Classes actually present, in a stable reporting order."""
     present = {hit.drum for hit in hits}
     return [drum for drum in (*_SCORED_CLASSES, "unclassified") if drum in present]
+
+
+#: Why a grid was not reported, keyed by `_Grid.failure`. `BLOCK_STATUSES` is
+#: frozen and has one `no_grid` for all of these, so the distinction lives here
+#: — and it is a real distinction: "your tempo is 0.04 BPM out" and "this
+#: material has no pulse" are different findings with different fixes, and v4
+#: printed the same sentence for both.
+_GRID_FAILURE_CAVEATS: Final[dict[str, str]] = {
+    "no_cycle_length": (
+        "no cycle grid: no usable tempo estimate, so there is no cycle length to "
+        "fold onto"
+    ),
+    "not_periodic": (
+        "no cycle grid: folding the band flux onto this cycle length puts only "
+        "{on_grid:.2f} of the profile on the grid, against {floor:g} required and "
+        "{chance:.2f} expected by chance. The hits do not fit any grid at this "
+        "period — this is not a near miss."
+    ),
+    "no_fit": (
+        "no cycle grid: hits sit {error:.2f} steps from their nearest step on "
+        "average, over the {allowance:g} allowed, and each half of the source "
+        "fails on its own phase too. The hits do not fit any grid here; the "
+        "allowance is not the problem."
+    ),
+    "drifting": (
+        "no cycle grid, but the hits DO fit a grid that is drifting: each half of "
+        "the source fits its own phase to {first:.2f} and {second:.2f} steps, "
+        "while the two halves disagree by {drift:+.2f} steps. That is a period "
+        "error accumulating, not loose playing. Implied cycle {implied:.6f} s "
+        "({implied_bpm:.3f} BPM at {beats} beats per cycle) — approximate, "
+        "because some hits have already wrapped to the wrong step by the time a "
+        "whole-source fit fails. Re-fit with a measured period from tempo.py."
+    ),
+}
+
+
+def _grid_caveats(grid: _Grid, beats_per_cycle: int) -> list[str]:
+    """Turn a grid's diagnostics into plain English. Nothing else reads `_Grid`."""
+    caveats: list[str] = []
+    if (
+        grid.anchor_shift_steps is not None
+        and abs(grid.anchor_shift_steps) >= ANCHOR_SNAP_CAVEAT_STEPS
+    ):
+        caveats.append(
+            f"the grid anchor was moved {grid.anchor_shift_steps:+.2f} steps onto the "
+            "hits' own phase. A supplied downbeat fixes which step is step 0, not "
+            "the sub-step phase, and this move cannot change any step number."
+        )
+    if grid.on_grid_share is None and grid.cycle_seconds is not None:
+        caveats.append(
+            "the envelope fold could not be read — the source spans fewer than "
+            f"{MIN_FOLD_CYCLES} whole cycles, or no step fires in more than half of "
+            "them — so the grid rests on the per-hit fit alone"
+        )
+    if grid.failure is None:
+        return caveats
+
+    template = _GRID_FAILURE_CAVEATS.get(grid.failure)
+    if template is None:  # pragma: no cover - every failure has a template
+        return [*caveats, "no cycle grid"]
+    implied = grid.implied_cycle_seconds
+    caveats.append(
+        template.format(
+            on_grid=grid.on_grid_share if grid.on_grid_share is not None else float("nan"),
+            floor=GRID_ON_GRID_SHARE_MIN,
+            chance=1.0 / GRID_OVERSAMPLE,
+            error=grid.error_steps if grid.error_steps is not None else float("nan"),
+            allowance=MAX_QUANTISATION_ERROR_STEPS,
+            first=grid.half_error_steps[0] if grid.half_error_steps else float("nan"),
+            second=grid.half_error_steps[1] if grid.half_error_steps else float("nan"),
+            drift=grid.drift_steps if grid.drift_steps is not None else float("nan"),
+            implied=implied if implied else float("nan"),
+            implied_bpm=(beats_per_cycle * 60.0 / implied) if implied else float("nan"),
+            beats=beats_per_cycle,
+        )
+    )
+    return caveats
 
 
 # ---------------------------------------------------------------------------
@@ -1206,6 +1972,8 @@ def decompose(
     bpm: float | None,
     beat_times: Sequence[float],
     beats_per_cycle: int = 4,
+    beat_period_seconds: float | None = None,
+    downbeat_seconds: float | None = None,
 ) -> DrumDecomposition:
     """Decompose a drum source into kick, snare and hat hits on a cycle grid.
 
@@ -1219,13 +1987,28 @@ def decompose(
         sample_rate: Must be the project's `ANALYSIS_SAMPLE_RATE`. Any other
             rate still works, but every threshold here was calibrated at 44.1
             kHz and a caveat says so.
-        bpm: Tempo estimate, or `None`. `None` means no cycle length and
-            therefore `status="no_grid"` — hits are still reported in full.
+        bpm: Tempo estimate, or `None`. Ignored when `beat_period_seconds` is
+            supplied. Neither means no cycle length and therefore
+            `status="no_grid"` — hits are still reported in full.
         beat_times: The rhythm block's beat positions. Only `beat_times[0]` is
-            read, as the grid anchor. **`onset_times` is deliberately not a
-            parameter**: this module finds its own onsets per band, so its
-            output is identical whichever backend produced the rhythm block.
+            read, as the grid anchor, and only when `downbeat_seconds` is not
+            supplied. **`onset_times` is deliberately not a parameter**: this
+            module finds its own onsets per band, so its output is identical
+            whichever backend produced the rhythm block.
         beats_per_cycle: Beats in one Strudel cycle. 4 is one bar of 4/4.
+        beat_period_seconds: Seconds per beat from a real measurement —
+            `tempo.TempoFit.period_seconds`. Takes precedence over `bpm`,
+            because F1 showed a backend's BPM label is accurate to about
+            +/- 0.2 BPM and a grid across a four-minute track needs four
+            decimal places. `None` falls back to `bpm`, so this module stays
+            testable on its own.
+        downbeat_seconds: Where bar one starts —
+            `tempo.DownbeatFit.offset_seconds`. Taken as given: **which** step
+            is step 0 is the caller's call, and on four-on-the-floor material
+            it is four-fold ambiguous, so re-deriving it here would silently
+            rotate the caller's answer. Its sub-step *phase* is refined, which
+            cannot renumber anything — see `_snap_anchor`. `None` falls back to
+            `beat_times[0]`, then to the first hit.
 
     Returns:
         A `DrumDecomposition`. Never raises: any internal failure is caught and
@@ -1235,10 +2018,20 @@ def decompose(
 
     Status:
         `ok` grid and hits; `no_grid` hits but no usable grid; `too_few_hits`
-        nothing detected; `failed` an exception was swallowed.
+        nothing detected; `failed` an exception was swallowed. `no_grid` covers
+        three different failures and `caveats` says which one — see
+        `_GRID_FAILURE_CAVEATS`.
     """
     try:
-        return _decompose(audio, sample_rate, bpm, beat_times, beats_per_cycle)
+        return _decompose(
+            audio,
+            sample_rate,
+            bpm,
+            beat_times,
+            beats_per_cycle,
+            beat_period_seconds,
+            downbeat_seconds,
+        )
     except Exception as error:  # noqa: BLE001 - deliberate: never break an analysis
         return DrumDecomposition(
             status="failed",
@@ -1252,8 +2045,15 @@ def _decompose(
     bpm: float | None,
     beat_times: Sequence[float],
     beats_per_cycle: int,
+    beat_period_seconds: float | None = None,
+    downbeat_seconds: float | None = None,
 ) -> DrumDecomposition:
-    """The body of `decompose`, without the never-raise wrapper."""
+    """The body of `decompose`, without the never-raise wrapper.
+
+    Does exactly two things the envelope path cannot: the STFT, and the
+    too-short check that needs to know how many frames came out of it.
+    Everything after that is `_decompose_bands`.
+    """
     caveats: list[str] = []
     if sample_rate != ANALYSIS_SAMPLE_RATE:
         caveats.append(
@@ -1267,7 +2067,44 @@ def _decompose(
             status="too_few_hits", caveats=[*caveats, "source too short to analyse"]
         )
 
-    envelopes = _band_envelopes(magnitude, freqs)
+    return _decompose_bands(
+        _band_envelopes(magnitude, freqs),
+        sample_rate,
+        bpm=bpm,
+        beat_times=beat_times,
+        beats_per_cycle=beats_per_cycle,
+        beat_period_seconds=beat_period_seconds,
+        downbeat_seconds=downbeat_seconds,
+        magnitude=magnitude,
+        freqs=freqs,
+        caveats=caveats,
+    )
+
+
+def _decompose_bands(
+    envelopes: dict[str, npt.NDArray[np.float64]],
+    sample_rate: int,
+    *,
+    bpm: float | None,
+    beat_times: Sequence[float],
+    beats_per_cycle: int,
+    beat_period_seconds: float | None = None,
+    downbeat_seconds: float | None = None,
+    magnitude: npt.NDArray[np.float64] | None = None,
+    freqs: npt.NDArray[np.float64] | None = None,
+    caveats: list[str] | None = None,
+) -> DrumDecomposition:
+    """Everything after the STFT: detect, classify, suppress bleed, fit a grid.
+
+    Split out from `_decompose` because **every measurement that decides a hit's
+    class or the grid is a function of the four band envelopes alone** — only
+    `flatness`, which is reported and never read, needs the spectrum. That makes
+    the four committed arrays in `tests/fixtures/real/` a complete input to this
+    module, so real-material regressions can be asserted without shipping audio
+    (ground rule 9 of `KICKOFF-v2.md`). It is a seam with a purpose, not a
+    convenience: the alternative is a real-material test that cannot exist.
+    """
+    caveats = [] if caveats is None else caveats
     fluxes = {name: _spectral_flux(envelope) for name, envelope in envelopes.items()}
     active, dormant = _active_bands(envelopes, fluxes)
     if dormant:
@@ -1288,11 +2125,30 @@ def _decompose(
     for candidate in candidates:
         candidate.scores = _class_scores(candidate)
         candidate.drum, candidate.confidence = _decide(candidate.scores)
+    bleed = _suppress_kick_bleed(candidates, sample_rate)
+    if bleed:
+        caveats.append(
+            f"{bleed} detections in the {'/'.join(BLEED_TARGET_BANDS)} bands were the "
+            "kick's own transient found a second time, not hits of their own — "
+            f"their windows are over {KICK_BLEED_DOMINANCE:g} kick energy and their "
+            f"air/(air+noise) is under {KICK_BLEED_AIR_OVER_NOISE:g}, which is a "
+            "beater click rather than a hat"
+        )
     candidates = _resolve_coincidences(candidates, MIN_HIT_SEPARATION_SECONDS, sample_rate)
     candidates.sort(key=lambda item: (item.frame, item.drum))
 
     times = [candidate.frame * STFT_HOP_LENGTH / sample_rate for candidate in candidates]
-    grid = _fit_grid(times, bpm, beat_times, beats_per_cycle)
+    grid = _fit_grid(
+        times,
+        fluxes,
+        active,
+        sample_rate,
+        bpm=bpm,
+        beat_period_seconds=beat_period_seconds,
+        beat_times=beat_times,
+        downbeat_seconds=downbeat_seconds,
+        beats_per_cycle=beats_per_cycle,
+    )
 
     hits = [
         DrumHit(
@@ -1327,17 +2183,7 @@ def _decompose(
             "most hits are unclassified, so read the kick/snare/hat pattern as a "
             "partial transcription of this source rather than a complete one"
         )
-    if grid.steps_per_cycle is None:
-        caveats.append(
-            "no cycle grid: no usable tempo estimate"
-            if bpm is None
-            else (
-                "no cycle grid: the best of "
-                f"{'/'.join(str(value) for value in GRID_STEP_CANDIDATES)} steps per cycle "
-                f"still misplaced hits by {grid.error_steps:.2f} steps on average, over the "
-                f"{MAX_QUANTISATION_ERROR_STEPS:g} allowed"
-            )
-        )
+    caveats.extend(_grid_caveats(grid, beats_per_cycle))
 
     return DrumDecomposition(
         status="ok" if grid.steps_per_cycle is not None else "no_grid",
