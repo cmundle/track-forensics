@@ -1,0 +1,110 @@
+{
+  "schema_version": 4,
+  "source": "other",
+  "audio_path": "calibration/ancient-heavy-tech-donjon/stems/other.wav",
+  "duration_seconds": 4.295986,
+  "sample_rate": 44100,
+  "backend": "essentia",
+  "rhythm": {
+    "bpm": 87.894737,
+    "bpm_confidence": 0.0,
+    "beat_times": [
+      0.673379,
+      1.358367,
+      2.043356,
+      2.728345,
+      3.413333,
+      4.086712
+    ],
+    "onset_times": [
+      0.01161,
+      0.1161,
+      0.24381,
+      0.568889,
+      0.661769,
+      0.812698,
+      1.439637,
+      2.658685,
+      2.798005,
+      2.937324,
+      3.181134,
+      3.343673,
+      3.947392,
+      4.144762
+    ],
+    "onset_density": 3.258856,
+    "transient_sharpness": 2.11557
+  },
+  "tonal": {
+    "key": "C",
+    "scale": "major",
+    "key_confidence": 0.357706,
+    "hpcp_mean": [
+      0.03139,
+      0.03592,
+      0.025864,
+      0.092224,
+      0.579685,
+      0.104754,
+      0.476867,
+      0.130804,
+      0.039026,
+      0.037353,
+      0.027853,
+      0.067517
+    ],
+    "tonal_stability": 0.814295
+  },
+  "spectral": {
+    "centroid_mean": 1305.244711,
+    "centroid_std": 567.236257,
+    "rolloff_mean": 1203.138782,
+    "brightness": 0.123934,
+    "band_energy_ratios": {
+      "low": 0.024986,
+      "low_mid": 0.851774,
+      "high_mid": 0.114471,
+      "high": 0.00877
+    }
+  },
+  "dynamics": {
+    "loudness_lufs": -22.143044,
+    "rms_mean": 0.032446,
+    "rms_std": 0.032552,
+    "crest_factor": 7.510312
+  },
+  "drum_decomposition": {
+    "status": "not_attempted",
+    "steps_per_cycle": null,
+    "cycle_seconds": null,
+    "grid_anchor_seconds": null,
+    "grid_anchor_source": null,
+    "quantisation_error_steps": null,
+    "patterns": [],
+    "hits": [],
+    "unclassified_count": 0,
+    "caveats": []
+  },
+  "bass_line": {
+    "status": "not_attempted",
+    "notes": [],
+    "median_midi_note": null,
+    "median_cents_offset": null,
+    "voiced_fraction": null,
+    "octave_corrections": 0,
+    "caveats": []
+  },
+  "labels": [
+    {
+      "label": "tonally stable",
+      "confidence": 0.063515,
+      "evidence": {
+        "chroma_entropy": 0.749188,
+        "max_chroma_entropy": 0.8,
+        "key_confidence": 0.357706,
+        "tonal_stability": 0.814295
+      }
+    }
+  ],
+  "unavailable_features": []
+}

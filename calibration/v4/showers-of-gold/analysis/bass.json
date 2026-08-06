@@ -1,0 +1,171 @@
+{
+  "schema_version": 4,
+  "source": "bass",
+  "audio_path": "calibration/showers-of-gold/stems/bass.wav",
+  "duration_seconds": 17.09,
+  "sample_rate": 44100,
+  "backend": "essentia",
+  "rhythm": {
+    "bpm": 102.629395,
+    "bpm_confidence": 0.793693,
+    "beat_times": [
+      0.603719,
+      1.219048,
+      1.822766,
+      2.414875,
+      2.995374,
+      3.587483,
+      4.167982,
+      4.760091,
+      5.34059,
+      5.921088,
+      6.513197,
+      7.082086,
+      7.662585,
+      8.254694,
+      8.846803,
+      9.427301,
+      10.01941,
+      10.599909,
+      11.192018,
+      11.784127,
+      12.353016,
+      12.921905,
+      13.467573,
+      14.036463,
+      14.593741,
+      15.15102,
+      15.708299,
+      16.288797,
+      16.857687
+    ],
+    "onset_times": [
+      0.01161,
+      1.184218,
+      1.822766,
+      2.089796,
+      2.380045,
+      2.496145,
+      2.728345,
+      3.668753,
+      3.796463,
+      3.947392,
+      4.295691,
+      4.423401,
+      4.725261,
+      5.2361,
+      5.317369,
+      5.526349,
+      6.420318,
+      6.803447,
+      6.942767,
+      7.267846,
+      7.964445,
+      8.103765,
+      8.370793,
+      8.765532,
+      8.846803,
+      9.287982,
+      9.578231,
+      9.7756,
+      9.961361,
+      10.878549,
+      11.726077,
+      12.051156,
+      13.223764,
+      13.630114,
+      14.152562,
+      14.976871,
+      15.592199,
+      15.66186,
+      16.497778,
+      17.031837
+    ],
+    "onset_density": 2.34055,
+    "transient_sharpness": 1.680786
+  },
+  "tonal": {
+    "key": "C",
+    "scale": "minor",
+    "key_confidence": 0.687967,
+    "hpcp_mean": [
+      0.267376,
+      0.130086,
+      0.322682,
+      0.062253,
+      0.062743,
+      0.150594,
+      0.079258,
+      0.084607,
+      0.198028,
+      0.14104,
+      0.238682,
+      0.045071
+    ],
+    "tonal_stability": 0.645719
+  },
+  "spectral": {
+    "centroid_mean": 3735.231901,
+    "centroid_std": 732.567194,
+    "rolloff_mean": 4021.742031,
+    "brightness": 0.482186,
+    "band_energy_ratios": {
+      "low": 0.223196,
+      "low_mid": 0.356717,
+      "high_mid": 0.293653,
+      "high": 0.126434
+    }
+  },
+  "dynamics": {
+    "loudness_lufs": -69.528786,
+    "rms_mean": 8.4e-05,
+    "rms_std": 3.3e-05,
+    "crest_factor": 21.323462
+  },
+  "drum_decomposition": {
+    "status": "not_attempted",
+    "steps_per_cycle": null,
+    "cycle_seconds": null,
+    "grid_anchor_seconds": null,
+    "grid_anchor_source": null,
+    "quantisation_error_steps": null,
+    "patterns": [],
+    "hits": [],
+    "unclassified_count": 0,
+    "caveats": []
+  },
+  "bass_line": {
+    "status": "ok",
+    "notes": [
+      {
+        "start_seconds": 15.41805,
+        "duration_seconds": 0.08127,
+        "midi_note": 64,
+        "note_name": "e4",
+        "median_f0_hz": 332.435944,
+        "cents_offset": 14.687424,
+        "confidence": 0.76928,
+        "step": null
+      }
+    ],
+    "median_midi_note": 64,
+    "median_cents_offset": 14.687424,
+    "voiced_fraction": 0.012212,
+    "octave_corrections": 0,
+    "caveats": [
+      "Median note is e4 (MIDI 64), above c3 \u2014 high for a bass. A stem whose fundamental was rolled off tracks an octave high consistently, and neither the octave guard nor median_cents_offset can see that (an octave is 0 cents). Check the octave by ear before typing this in.",
+      "Only 1% of frames were voiced, so this line is built from less than half the stem. Expect missed notes."
+    ]
+  },
+  "labels": [
+    {
+      "label": "silent/absent stem",
+      "confidence": 0.976439,
+      "evidence": {
+        "loudness_lufs": -69.528786,
+        "max_loudness_lufs": -50.0
+      }
+    }
+  ],
+  "unavailable_features": []
+}

@@ -1,0 +1,60 @@
+{
+  "schema_version": 4,
+  "track_name": "ancient-heavy-tech-donjon",
+  "bpm": 90.38639831542969,
+  "suggested_cycle_seconds": 2.655267,
+  "subdivision_feel": null,
+  "drum_density": "moderate",
+  "bass_activity": "moderate",
+  "tonal_centre": "E minor",
+  "drum_grid": {
+    "status": "too_few_hits",
+    "steps_per_cycle": null,
+    "kick_steps": [],
+    "snare_steps": [],
+    "hat_steps": [],
+    "unclassified_count": 0,
+    "caveats": [
+      "no hits looked for in these bands \u2014 they hold nothing, or nothing transient: kick, body, noise, air",
+      "no drum hits detected"
+    ]
+  },
+  "bass_line": {
+    "status": "ok",
+    "note_sequence": [
+      "e4",
+      "a2"
+    ],
+    "truncated_from": null,
+    "median_midi_note": 64,
+    "caveats": [
+      "Median note is e4 (MIDI 64), above c3 \u2014 high for a bass. A stem whose fundamental was rolled off tracks an octave high consistently, and neither the octave guard nor median_cents_offset can see that (an octave is 0 cents). Check the octave by ear before typing this in.",
+      "Only 9% of frames were voiced, so this line is built from less than half the stem. Expect missed notes."
+    ]
+  },
+  "sound_suggestions": [
+    {
+      "role": "bass",
+      "match": "none",
+      "sound": null,
+      "reason": "Spectral shape does not clearly read as sub bass or as harmonically rich; picking a synth waveform from this evidence alone would be a guess, not a measurement.",
+      "alternatives": [
+        "sine",
+        "sawtooth",
+        "square",
+        "triangle"
+      ],
+      "evidence": {
+        "low_band_ratio": 0.6285943147366199,
+        "brightness": 0.0871374240061465,
+        "centroid_mean_hz": 1351.1169066070229
+      }
+    }
+  ],
+  "strudel_vocabulary_read": "2026-08-04",
+  "notes": [
+    "drum inter-onset intervals fit neither an even nor a swung grid, subdivision not inferred \u2014 verify by ear",
+    "tonal centre taken from the bass stem; mix key confidence low or unavailable",
+    "drum grid status is 'too_few_hits', see analysis/drums.json for detail"
+  ]
+}

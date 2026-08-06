@@ -1,0 +1,131 @@
+{
+  "schema_version": 4,
+  "source": "bass",
+  "audio_path": "calibration/ancient-heavy-tech-donjon/stems/bass.wav",
+  "duration_seconds": 4.295986,
+  "sample_rate": 44100,
+  "backend": "essentia",
+  "rhythm": {
+    "bpm": 89.41555,
+    "bpm_confidence": 0.0,
+    "beat_times": [
+      0.673379,
+      1.346757,
+      2.020136,
+      2.693515,
+      3.355283,
+      4.028662
+    ],
+    "onset_times": [
+      0.01161,
+      0.13932,
+      0.24381,
+      0.650159,
+      1.323537,
+      1.671837,
+      1.973696,
+      2.217506,
+      2.647075,
+      2.937324,
+      3.320453,
+      3.982222,
+      4.156372
+    ],
+    "onset_density": 3.026081,
+    "transient_sharpness": 1.861558
+  },
+  "tonal": {
+    "key": "E",
+    "scale": "minor",
+    "key_confidence": 0.687967,
+    "hpcp_mean": [
+      0.086456,
+      0.039857,
+      0.086469,
+      0.165273,
+      0.291222,
+      0.262453,
+      0.221155,
+      0.114932,
+      0.154255,
+      0.17568,
+      0.105841,
+      0.128825
+    ],
+    "tonal_stability": 0.361352
+  },
+  "spectral": {
+    "centroid_mean": 1351.116907,
+    "centroid_std": 462.238872,
+    "rolloff_mean": 200.687138,
+    "brightness": 0.087137,
+    "band_energy_ratios": {
+      "low": 0.628594,
+      "low_mid": 0.292137,
+      "high_mid": 0.046812,
+      "high": 0.032457
+    }
+  },
+  "dynamics": {
+    "loudness_lufs": -70.0,
+    "rms_mean": 7.7e-05,
+    "rms_std": 2.8e-05,
+    "crest_factor": 10.395771
+  },
+  "drum_decomposition": {
+    "status": "not_attempted",
+    "steps_per_cycle": null,
+    "cycle_seconds": null,
+    "grid_anchor_seconds": null,
+    "grid_anchor_source": null,
+    "quantisation_error_steps": null,
+    "patterns": [],
+    "hits": [],
+    "unclassified_count": 0,
+    "caveats": []
+  },
+  "bass_line": {
+    "status": "ok",
+    "notes": [
+      {
+        "start_seconds": 0.13932,
+        "duration_seconds": 0.15093,
+        "midi_note": 64,
+        "note_name": "e4",
+        "median_f0_hz": 325.298126,
+        "cents_offset": -22.889214,
+        "confidence": 0.766479,
+        "step": null
+      },
+      {
+        "start_seconds": 4.156372,
+        "duration_seconds": 0.08127,
+        "midi_note": 45,
+        "note_name": "a2",
+        "median_f0_hz": 112.412369,
+        "cents_offset": 37.556713,
+        "confidence": 0.766587,
+        "step": null
+      }
+    ],
+    "median_midi_note": 64,
+    "median_cents_offset": 7.33375,
+    "voiced_fraction": 0.08871,
+    "octave_corrections": 0,
+    "caveats": [
+      "Median note is e4 (MIDI 64), above c3 \u2014 high for a bass. A stem whose fundamental was rolled off tracks an octave high consistently, and neither the octave guard nor median_cents_offset can see that (an octave is 0 cents). Check the octave by ear before typing this in.",
+      "Only 9% of frames were voiced, so this line is built from less than half the stem. Expect missed notes."
+    ]
+  },
+  "labels": [
+    {
+      "label": "silent/absent stem",
+      "confidence": 1.0,
+      "evidence": {
+        "loudness_lufs": -70.0,
+        "max_loudness_lufs": -50.0
+      }
+    }
+  ],
+  "unavailable_features": []
+}
