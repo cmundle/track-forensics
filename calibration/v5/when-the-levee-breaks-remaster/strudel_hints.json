@@ -1,0 +1,129 @@
+{
+  "schema_version": 4,
+  "track_name": "when-the-levee-breaks-remaster",
+  "bpm": 143.2527313232422,
+  "suggested_cycle_seconds": 1.675361,
+  "subdivision_feel": null,
+  "drum_density": "moderate",
+  "bass_activity": "moderate",
+  "tonal_centre": "F minor",
+  "drum_grid": {
+    "status": "no_grid",
+    "steps_per_cycle": null,
+    "kick_steps": [],
+    "snare_steps": [],
+    "hat_steps": [],
+    "unclassified_count": 48,
+    "caveats": [
+      "no hits looked for in these bands \u2014 they hold nothing, or nothing transient: kick, body",
+      "48 of 1164 hits are unclassified. Three classes cannot describe a full kit: toms, rides, crashes, claps and shakers all land here, and on percussive material that is correct rather than a failure.",
+      "the grid anchor was moved +0.32 steps onto the hits' own phase. A supplied downbeat fixes which step is step 0, not the sub-step phase, and this move cannot change any step number.",
+      "no cycle grid: folding the band flux onto this cycle length puts only 0.33 of the profile on the grid, against 0.5 required and 0.25 expected by chance. The hits do not fit any grid at this period \u2014 this is not a near miss."
+    ]
+  },
+  "bass_line": {
+    "status": "ok",
+    "note_sequence": [
+      "g#2",
+      "f2",
+      "f2",
+      "f2",
+      "f2",
+      "g#2",
+      "f2",
+      "f2",
+      "a#2",
+      "g#2",
+      "f2",
+      "f2",
+      "f2",
+      "f2",
+      "f2",
+      "g#2",
+      "f2",
+      "f2",
+      "g#2",
+      "f2",
+      "f2",
+      "a#2",
+      "g#2",
+      "f2",
+      "f2",
+      "f2",
+      "g#2",
+      "f2",
+      "f2",
+      "g#2",
+      "f2",
+      "f2"
+    ],
+    "truncated_from": 1055,
+    "median_midi_note": 41,
+    "caveats": []
+  },
+  "sound_suggestions": [
+    {
+      "role": "snare",
+      "match": "exact",
+      "sound": "sd",
+      "reason": "274 hit(s) classified as snare; 'sd' is Strudel's default snare sample.",
+      "alternatives": [],
+      "evidence": {
+        "hit_count": 274.0,
+        "mean_body_ratio": 0.6761842637453391,
+        "mean_confidence": 0.9296003633313753
+      }
+    },
+    {
+      "role": "hat",
+      "match": "exact",
+      "sound": "oh",
+      "reason": "842 hit(s) classified as hat; median decay ratio 1.03 reads as open, so 'oh' is the closer default sample. Open versus closed is decided by decay length alone, which this pipeline measures directly.",
+      "alternatives": [],
+      "evidence": {
+        "hit_count": 842.0,
+        "mean_confidence": 0.9594713773175422,
+        "median_decay_ratio": 1.0296723939190584
+      }
+    },
+    {
+      "role": "unclassified",
+      "match": "none",
+      "sound": null,
+      "reason": "48 hit(s) did not clear the kick/snare/hat decision margin. This pipeline recognises only three drum classes; toms, rides, crashes, claps and shakers all land here on percussive material, correctly, not as a failure. Source by ear from Strudel's percussion set.",
+      "alternatives": [
+        "ht",
+        "mt",
+        "lt",
+        "cr",
+        "rd",
+        "perc",
+        "sh",
+        "cb",
+        "tb"
+      ],
+      "evidence": {
+        "hit_count": 48.0,
+        "mean_confidence": 0.17731635905682638
+      }
+    },
+    {
+      "role": "bass",
+      "match": "approximate",
+      "sound": "sine",
+      "reason": "Energy is concentrated at the fundamental (low-band ratio 0.98, brightness 0.00, median centroid 120 Hz) with little harmonic content: reads as sub bass. 'sine' is the closest default waveform.",
+      "alternatives": [],
+      "evidence": {
+        "low_band_ratio": 0.9778664976608755,
+        "brightness": 0.00042107039448569244,
+        "centroid_energy_hz": 120.3587580443455,
+        "centroid_mean_hz": 334.031202242699
+      }
+    }
+  ],
+  "strudel_vocabulary_read": "2026-08-04",
+  "notes": [
+    "drum inter-onset intervals fit neither an even nor a swung grid, subdivision not inferred \u2014 verify by ear",
+    "drum grid status is 'no_grid', see analysis/drums.json for detail"
+  ]
+}

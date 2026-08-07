@@ -1,0 +1,512 @@
+{
+  "schema_version": 4,
+  "track_name": "roni-size-reprazent-brown-paper-bag",
+  "input_path": "examples/Roni_Size_Reprazent_-_Brown_Paper_Bag.wav",
+  "duration_seconds": 302.683741,
+  "backend": "essentia",
+  "separation_model": "htdemucs_ft",
+  "separation_device": "mps",
+  "analysis_sample_rate": 44100,
+  "sources": {
+    "mix": {
+      "schema_version": 4,
+      "source": "mix",
+      "audio_path": "examples/Roni_Size_Reprazent_-_Brown_Paper_Bag.wav",
+      "duration_seconds": 302.683741,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 84.934517,
+        "bpm_confidence": 1.788258,
+        "beat_count": 455,
+        "onset_count": 1575,
+        "onset_density": 5.203451,
+        "transient_sharpness": 2.577555
+      },
+      "tonal": {
+        "key": "G",
+        "scale": "major",
+        "key_confidence": 0.677122,
+        "hpcp_mean": [
+          0.081359,
+          0.119698,
+          0.147063,
+          0.126814,
+          0.208976,
+          0.131764,
+          0.176944,
+          0.289731,
+          0.102961,
+          0.155447,
+          0.164131,
+          0.234493
+        ],
+        "tonal_stability": 0.502968
+      },
+      "spectral": {
+        "centroid_mean": 1526.040083,
+        "centroid_std": 1033.999357,
+        "centroid_energy_hz": 494.606374,
+        "rolloff_mean": 1118.296962,
+        "rolloff_energy_hz": 430.664062,
+        "brightness": 0.070592,
+        "band_energy_ratios": {
+          "low": 0.794196,
+          "low_mid": 0.144918,
+          "high_mid": 0.040108,
+          "high": 0.020777
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -19.624016,
+        "rms_mean": 0.072593,
+        "rms_std": 0.039494,
+        "crest_factor": 7.030957
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [],
+      "unavailable_features": []
+    },
+    "drums": {
+      "schema_version": 4,
+      "source": "drums",
+      "audio_path": "calibration/v5/roni-size-reprazent-brown-paper-bag/stems/drums.wav",
+      "duration_seconds": 302.683719,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 84.918991,
+        "bpm_confidence": 1.756308,
+        "beat_count": 473,
+        "onset_count": 1561,
+        "onset_density": 5.157198,
+        "transient_sharpness": 4.359367
+      },
+      "tonal": {
+        "key": "G",
+        "scale": "minor",
+        "key_confidence": 0.466354,
+        "hpcp_mean": [
+          0.140561,
+          0.153043,
+          0.232467,
+          0.18249,
+          0.110151,
+          0.111013,
+          0.17779,
+          0.187737,
+          0.156263,
+          0.174101,
+          0.23418,
+          0.125308
+        ],
+        "tonal_stability": 0.29248
+      },
+      "spectral": {
+        "centroid_mean": 3737.830803,
+        "centroid_std": 2148.15102,
+        "centroid_energy_hz": 1275.743687,
+        "rolloff_mean": 5318.613625,
+        "rolloff_energy_hz": 3143.847656,
+        "brightness": 0.206546,
+        "band_energy_ratios": {
+          "low": 0.616034,
+          "low_mid": 0.191436,
+          "high_mid": 0.125704,
+          "high": 0.066826
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -24.370054,
+        "rms_mean": 0.025272,
+        "rms_std": 0.026643,
+        "crest_factor": 12.144214
+      },
+      "drum_decomposition": {
+        "status": "no_grid",
+        "steps_per_cycle": null,
+        "cycle_seconds": 2.826223,
+        "grid_anchor_seconds": 0.537777,
+        "grid_anchor_source": "beats",
+        "quantisation_error_steps": 0.242911,
+        "patterns": [
+          {
+            "drum": "kick",
+            "steps": [],
+            "step_occupancy": [],
+            "hit_count": 73
+          },
+          {
+            "drum": "snare",
+            "steps": [],
+            "step_occupancy": [],
+            "hit_count": 1015
+          },
+          {
+            "drum": "hat",
+            "steps": [],
+            "step_occupancy": [],
+            "hit_count": 1380
+          },
+          {
+            "drum": "unclassified",
+            "steps": [],
+            "step_occupancy": [],
+            "hit_count": 168
+          }
+        ],
+        "total_hit_count": 2636,
+        "unclassified_count": 168,
+        "caveats": [
+          "47 detections in the noise/air bands were the kick's own transient found a second time, not hits of their own \u2014 their windows are over 0.6 kick energy and their air/(air+noise) is under 0.5, which is a beater click rather than a hat",
+          "168 of 2636 hits are unclassified. Three classes cannot describe a full kit: toms, rides, crashes, claps and shakers all land here, and on percussive material that is correct rather than a failure.",
+          "the grid anchor was moved +0.11 steps onto the hits' own phase. A supplied downbeat fixes which step is step 0, not the sub-step phase, and this move cannot change any step number.",
+          "no cycle grid: folding the band flux onto this cycle length puts only 0.31 of the profile on the grid, against 0.5 required and 0.25 expected by chance. The hits do not fit any grid at this period \u2014 this is not a near miss."
+        ]
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "percussive",
+          "confidence": 0.345351,
+          "evidence": {
+            "crest_factor": 12.144214,
+            "onset_density": 5.157198,
+            "min_crest_factor": 8.0,
+            "min_onset_density": 2.0
+          }
+        },
+        {
+          "label": "kick-heavy",
+          "confidence": 0.331525,
+          "evidence": {
+            "band_energy_low": 0.616034,
+            "min_band_energy_low": 0.5
+          }
+        },
+        {
+          "label": "noisy",
+          "confidence": 0.22506,
+          "evidence": {
+            "centroid_mean": 3737.830803,
+            "chroma_entropy": 0.988589,
+            "min_centroid_hz": 2500.0,
+            "min_chroma_entropy": 0.93,
+            "key_confidence": 0.466354,
+            "tonal_stability": 0.29248
+          }
+        },
+        {
+          "label": "busy drums",
+          "confidence": 0.022457,
+          "evidence": {
+            "onset_density": 5.157198,
+            "min_onset_density": 5.0
+          }
+        }
+      ],
+      "unavailable_features": [
+        "drum_decomposition (status=no_grid)"
+      ]
+    },
+    "bass": {
+      "schema_version": 4,
+      "source": "bass",
+      "audio_path": "calibration/v5/roni-size-reprazent-brown-paper-bag/stems/bass.wav",
+      "duration_seconds": 302.683719,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 111.544594,
+        "bpm_confidence": 0.112883,
+        "beat_count": 607,
+        "onset_count": 769,
+        "onset_density": 2.540606,
+        "transient_sharpness": 1.702149
+      },
+      "tonal": {
+        "key": "G",
+        "scale": "major",
+        "key_confidence": 0.777433,
+        "hpcp_mean": [
+          0.052625,
+          0.094938,
+          0.090522,
+          0.062804,
+          0.176821,
+          0.114206,
+          0.114552,
+          0.204299,
+          0.096455,
+          0.105271,
+          0.128659,
+          0.189419
+        ],
+        "tonal_stability": 0.487094
+      },
+      "spectral": {
+        "centroid_mean": 745.206697,
+        "centroid_std": 1304.901336,
+        "centroid_energy_hz": 79.013851,
+        "rolloff_mean": 604.930875,
+        "rolloff_energy_hz": 107.666016,
+        "brightness": 0.000111,
+        "band_energy_ratios": {
+          "low": 0.988909,
+          "low_mid": 0.011071,
+          "high_mid": 2e-05,
+          "high": 1e-06
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -22.22876,
+        "rms_mean": 0.049487,
+        "rms_std": 0.041795,
+        "crest_factor": 4.635614
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "ok",
+        "note_count": 631,
+        "median_midi_note": 35,
+        "median_cents_offset": -7.260931,
+        "voiced_fraction": 0.462488,
+        "octave_corrections": 313,
+        "caveats": []
+      },
+      "labels": [],
+      "unavailable_features": []
+    },
+    "vocals": {
+      "schema_version": 4,
+      "source": "vocals",
+      "audio_path": "calibration/v5/roni-size-reprazent-brown-paper-bag/stems/vocals.wav",
+      "duration_seconds": 302.683719,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 172.265823,
+        "bpm_confidence": 0.117506,
+        "beat_count": 667,
+        "onset_count": 573,
+        "onset_density": 1.893065,
+        "transient_sharpness": 3.788898
+      },
+      "tonal": {
+        "key": "E",
+        "scale": "minor",
+        "key_confidence": 0.759523,
+        "hpcp_mean": [
+          0.183401,
+          0.129092,
+          0.108922,
+          0.135562,
+          0.212638,
+          0.194619,
+          0.212024,
+          0.135053,
+          0.159096,
+          0.119797,
+          0.129112,
+          0.249224
+        ],
+        "tonal_stability": 0.4583
+      },
+      "spectral": {
+        "centroid_mean": 3350.862597,
+        "centroid_std": 2854.855877,
+        "centroid_energy_hz": 1417.484108,
+        "rolloff_mean": 5010.221849,
+        "rolloff_energy_hz": 2605.517578,
+        "brightness": 0.226389,
+        "band_energy_ratios": {
+          "low": 0.143205,
+          "low_mid": 0.682183,
+          "high_mid": 0.100098,
+          "high": 0.074514
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -26.621815,
+        "rms_mean": 0.010627,
+        "rms_std": 0.017018,
+        "crest_factor": 23.687527
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "processed/wide vocal",
+          "confidence": 0.215712,
+          "evidence": {
+            "band_energy_high": 0.074514,
+            "centroid_std": 2854.855877,
+            "min_band_energy_high": 0.04,
+            "min_centroid_std": 800.0
+          }
+        },
+        {
+          "label": "noisy",
+          "confidence": 0.154702,
+          "evidence": {
+            "centroid_mean": 3350.862597,
+            "chroma_entropy": 0.986424,
+            "min_centroid_hz": 2500.0,
+            "min_chroma_entropy": 0.93,
+            "key_confidence": 0.759523,
+            "tonal_stability": 0.4583
+          }
+        }
+      ],
+      "unavailable_features": []
+    },
+    "other": {
+      "schema_version": 4,
+      "source": "other",
+      "audio_path": "calibration/v5/roni-size-reprazent-brown-paper-bag/stems/other.wav",
+      "duration_seconds": 302.683719,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 84.677147,
+        "bpm_confidence": 0.057234,
+        "beat_count": 492,
+        "onset_count": 909,
+        "onset_density": 3.003135,
+        "transient_sharpness": 1.625468
+      },
+      "tonal": {
+        "key": "E",
+        "scale": "minor",
+        "key_confidence": 0.748155,
+        "hpcp_mean": [
+          0.094577,
+          0.097046,
+          0.158045,
+          0.166017,
+          0.229884,
+          0.154441,
+          0.178139,
+          0.305385,
+          0.121323,
+          0.17281,
+          0.153802,
+          0.206438
+        ],
+        "tonal_stability": 0.636779
+      },
+      "spectral": {
+        "centroid_mean": 2021.230042,
+        "centroid_std": 1367.738114,
+        "centroid_energy_hz": 961.629648,
+        "rolloff_mean": 2335.7521,
+        "rolloff_energy_hz": 1291.992188,
+        "brightness": 0.133984,
+        "band_energy_ratios": {
+          "low": 0.118066,
+          "low_mid": 0.793445,
+          "high_mid": 0.081852,
+          "high": 0.006637
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -30.158657,
+        "rms_mean": 0.011229,
+        "rms_std": 0.011079,
+        "crest_factor": 12.178023
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "percussive",
+          "confidence": 0.250784,
+          "evidence": {
+            "crest_factor": 12.178023,
+            "onset_density": 3.003135,
+            "min_crest_factor": 8.0,
+            "min_onset_density": 2.0
+          }
+        }
+      ],
+      "unavailable_features": []
+    }
+  }
+}

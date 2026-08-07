@@ -1,0 +1,480 @@
+{
+  "schema_version": 4,
+  "track_name": "brian-eno-1-1-remastered-2004",
+  "input_path": "examples/Brian-Eno-1-1_Remastered_2004.wav",
+  "duration_seconds": 1041.52,
+  "backend": "essentia",
+  "separation_model": "htdemucs_ft",
+  "separation_device": "mps",
+  "analysis_sample_rate": 44100,
+  "sources": {
+    "mix": {
+      "schema_version": 4,
+      "source": "mix",
+      "audio_path": "examples/Brian-Eno-1-1_Remastered_2004.wav",
+      "duration_seconds": 1041.52,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 83.455925,
+        "bpm_confidence": 0.159939,
+        "beat_count": 1466,
+        "onset_count": 723,
+        "onset_density": 0.694178,
+        "transient_sharpness": 1.719771
+      },
+      "tonal": {
+        "key": "D",
+        "scale": "major",
+        "key_confidence": 0.824863,
+        "hpcp_mean": [
+          0.022242,
+          0.008222,
+          0.750158,
+          0.00214,
+          0.029129,
+          0.000419,
+          0.193897,
+          0.174955,
+          0.033795,
+          0.298165,
+          0.000618,
+          0.014671
+        ],
+        "tonal_stability": 0.922364
+      },
+      "spectral": {
+        "centroid_mean": 307.508801,
+        "centroid_std": 223.273799,
+        "centroid_energy_hz": 322.032507,
+        "rolloff_mean": 361.138827,
+        "rolloff_energy_hz": 581.396484,
+        "brightness": 0.001032,
+        "band_energy_ratios": {
+          "low": 0.451999,
+          "low_mid": 0.547758,
+          "high_mid": 0.000232,
+          "high": 1.2e-05
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -21.075041,
+        "rms_mean": 0.037548,
+        "rms_std": 0.027116,
+        "crest_factor": 10.823261
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "tonally stable",
+          "confidence": 0.252086,
+          "evidence": {
+            "chroma_entropy": 0.598331,
+            "max_chroma_entropy": 0.8,
+            "key_confidence": 0.824863,
+            "tonal_stability": 0.922364
+          }
+        }
+      ],
+      "unavailable_features": []
+    },
+    "drums": {
+      "schema_version": 4,
+      "source": "drums",
+      "audio_path": "calibration/v5/brian-eno-1-1-remastered-2004/stems/drums.wav",
+      "duration_seconds": 1041.52,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": null,
+        "bpm_confidence": null,
+        "beat_count": 0,
+        "onset_count": 362,
+        "onset_density": 0.347569,
+        "transient_sharpness": 1.299709
+      },
+      "tonal": {
+        "key": "D",
+        "scale": "minor",
+        "key_confidence": 0.84088,
+        "hpcp_mean": [
+          0.073355,
+          0.207605,
+          0.358069,
+          0.093802,
+          0.061157,
+          0.139623,
+          0.11366,
+          0.192459,
+          0.114891,
+          0.297575,
+          0.12022,
+          0.056366
+        ],
+        "tonal_stability": 0.440629
+      },
+      "spectral": {
+        "centroid_mean": 4273.772554,
+        "centroid_std": 2249.440413,
+        "centroid_energy_hz": 1033.568864,
+        "rolloff_mean": 5785.176777,
+        "rolloff_energy_hz": 581.396484,
+        "brightness": 0.067144,
+        "band_energy_ratios": {
+          "low": 0.620426,
+          "low_mid": 0.316573,
+          "high_mid": 0.012631,
+          "high": 0.05037
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -66.960411,
+        "rms_mean": 4.8e-05,
+        "rms_std": 3.9e-05,
+        "crest_factor": 77.98055
+      },
+      "drum_decomposition": {
+        "status": "too_few_hits",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": [
+          "no hits looked for in these bands \u2014 they hold nothing, or nothing transient: kick, body, noise, air",
+          "no drum hits detected"
+        ]
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "silent/absent stem",
+          "confidence": 0.848021,
+          "evidence": {
+            "loudness_lufs": -66.960411,
+            "max_loudness_lufs": -50.0
+          }
+        }
+      ],
+      "unavailable_features": [
+        "drum_decomposition (status=too_few_hits)",
+        "rhythm.beat_times",
+        "rhythm.bpm",
+        "rhythm.bpm_confidence"
+      ]
+    },
+    "bass": {
+      "schema_version": 4,
+      "source": "bass",
+      "audio_path": "calibration/v5/brian-eno-1-1-remastered-2004/stems/bass.wav",
+      "duration_seconds": 1041.52,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": null,
+        "bpm_confidence": null,
+        "beat_count": 0,
+        "onset_count": 384,
+        "onset_density": 0.368692,
+        "transient_sharpness": 1.143327
+      },
+      "tonal": {
+        "key": "D",
+        "scale": "minor",
+        "key_confidence": 0.806734,
+        "hpcp_mean": [
+          0.010078,
+          0.05574,
+          0.727559,
+          0.016774,
+          0.01054,
+          0.02988,
+          0.025598,
+          0.041313,
+          0.039062,
+          0.303819,
+          0.009017,
+          0.012272
+        ],
+        "tonal_stability": 0.835728
+      },
+      "spectral": {
+        "centroid_mean": 473.577679,
+        "centroid_std": 996.67162,
+        "centroid_energy_hz": 68.662122,
+        "rolloff_mean": 311.507879,
+        "rolloff_energy_hz": 107.666016,
+        "brightness": 5e-06,
+        "band_energy_ratios": {
+          "low": 0.999753,
+          "low_mid": 0.000242,
+          "high_mid": 3e-06,
+          "high": 2e-06
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -35.253201,
+        "rms_mean": 0.009624,
+        "rms_std": 0.008795,
+        "crest_factor": 10.797932
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "ok",
+        "note_count": 155,
+        "median_midi_note": 38,
+        "median_cents_offset": 17.348421,
+        "voiced_fraction": 0.19769,
+        "octave_corrections": 12,
+        "caveats": [
+          "These notes cover 20% of the stem \u2014 the rest of it carried no trackable pitch. A bass that rests is silent for much of a track by design, so low coverage is not by itself a fault, but below 30% there is little material behind the line and quiet or short notes are more likely to be missing than resting."
+        ]
+      },
+      "labels": [
+        {
+          "label": "sparse bass",
+          "confidence": 0.631308,
+          "evidence": {
+            "onset_density": 0.368692,
+            "max_onset_density": 1.0
+          }
+        },
+        {
+          "label": "tonally stable",
+          "confidence": 0.29795,
+          "evidence": {
+            "chroma_entropy": 0.56164,
+            "max_chroma_entropy": 0.8,
+            "key_confidence": 0.806734,
+            "tonal_stability": 0.835728
+          }
+        }
+      ],
+      "unavailable_features": [
+        "rhythm.beat_times",
+        "rhythm.bpm",
+        "rhythm.bpm_confidence"
+      ]
+    },
+    "vocals": {
+      "schema_version": 4,
+      "source": "vocals",
+      "audio_path": "calibration/v5/brian-eno-1-1-remastered-2004/stems/vocals.wav",
+      "duration_seconds": 1041.52,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 143.249954,
+        "bpm_confidence": -0.187065,
+        "beat_count": 2117,
+        "onset_count": 2412,
+        "onset_density": 2.315846,
+        "transient_sharpness": 3.410128
+      },
+      "tonal": {
+        "key": "G",
+        "scale": "minor",
+        "key_confidence": 0.839796,
+        "hpcp_mean": [
+          0.115024,
+          0.085479,
+          0.306324,
+          0.061523,
+          0.073686,
+          0.221613,
+          0.108505,
+          0.217939,
+          0.070901,
+          0.202593,
+          0.060906,
+          0.084857
+        ],
+        "tonal_stability": 0.508647
+      },
+      "spectral": {
+        "centroid_mean": 4394.786212,
+        "centroid_std": 2866.523219,
+        "centroid_energy_hz": 1440.86548,
+        "rolloff_mean": 7017.092214,
+        "rolloff_energy_hz": 1291.992188,
+        "brightness": 0.141059,
+        "band_energy_ratios": {
+          "low": 0.549453,
+          "low_mid": 0.328801,
+          "high_mid": 0.036921,
+          "high": 0.084825
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -69.37162,
+        "rms_mean": 8e-06,
+        "rms_std": 1.1e-05,
+        "crest_factor": 35.657201
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "silent/absent stem",
+          "confidence": 0.968581,
+          "evidence": {
+            "loudness_lufs": -69.37162,
+            "max_loudness_lufs": -50.0
+          }
+        }
+      ],
+      "unavailable_features": []
+    },
+    "other": {
+      "schema_version": 4,
+      "source": "other",
+      "audio_path": "calibration/v5/brian-eno-1-1-remastered-2004/stems/other.wav",
+      "duration_seconds": 1041.52,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 83.46254,
+        "bpm_confidence": 0.22746,
+        "beat_count": 1502,
+        "onset_count": 845,
+        "onset_density": 0.811314,
+        "transient_sharpness": 1.727162
+      },
+      "tonal": {
+        "key": "D",
+        "scale": "major",
+        "key_confidence": 0.849179,
+        "hpcp_mean": [
+          0.02431,
+          0.017517,
+          0.704198,
+          0.003967,
+          0.043636,
+          0.002675,
+          0.26126,
+          0.205677,
+          0.029032,
+          0.335887,
+          0.001073,
+          0.035136
+        ],
+        "tonal_stability": 0.910651
+      },
+      "spectral": {
+        "centroid_mean": 364.808243,
+        "centroid_std": 360.191121,
+        "centroid_energy_hz": 354.44656,
+        "rolloff_mean": 421.639228,
+        "rolloff_energy_hz": 581.396484,
+        "brightness": 0.001165,
+        "band_energy_ratios": {
+          "low": 0.378687,
+          "low_mid": 0.621045,
+          "high_mid": 0.000263,
+          "high": 5e-06
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -21.147623,
+        "rms_mean": 0.033274,
+        "rms_std": 0.027988,
+        "crest_factor": 11.549625
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "tonally stable",
+          "confidence": 0.183759,
+          "evidence": {
+            "chroma_entropy": 0.652993,
+            "max_chroma_entropy": 0.8,
+            "key_confidence": 0.849179,
+            "tonal_stability": 0.910651
+          }
+        }
+      ],
+      "unavailable_features": []
+    }
+  }
+}

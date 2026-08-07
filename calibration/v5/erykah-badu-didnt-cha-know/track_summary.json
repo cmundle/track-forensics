@@ -1,0 +1,587 @@
+{
+  "schema_version": 4,
+  "track_name": "erykah-badu-didnt-cha-know",
+  "input_path": "examples/Erykah_Badu_-_Didnt_Cha_Know.wav",
+  "duration_seconds": 243.170998,
+  "backend": "essentia",
+  "separation_model": "htdemucs_ft",
+  "separation_device": "mps",
+  "analysis_sample_rate": 44100,
+  "sources": {
+    "mix": {
+      "schema_version": 4,
+      "source": "mix",
+      "audio_path": "examples/Erykah_Badu_-_Didnt_Cha_Know.wav",
+      "duration_seconds": 243.170998,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 135.273865,
+        "bpm_confidence": 2.823978,
+        "beat_count": 544,
+        "onset_count": 1069,
+        "onset_density": 4.396083,
+        "transient_sharpness": 3.285455
+      },
+      "tonal": {
+        "key": "Bb",
+        "scale": "minor",
+        "key_confidence": 0.819667,
+        "hpcp_mean": [
+          0.18029,
+          0.222884,
+          0.049234,
+          0.27932,
+          0.229014,
+          0.403945,
+          0.114619,
+          0.05317,
+          0.099084,
+          0.073271,
+          0.238525,
+          0.081869
+        ],
+        "tonal_stability": 0.593205
+      },
+      "spectral": {
+        "centroid_mean": 948.769907,
+        "centroid_std": 698.269769,
+        "centroid_energy_hz": 280.472594,
+        "rolloff_mean": 695.221159,
+        "rolloff_energy_hz": 344.53125,
+        "brightness": 0.025925,
+        "band_energy_ratios": {
+          "low": 0.786619,
+          "low_mid": 0.194559,
+          "high_mid": 0.013118,
+          "high": 0.005704
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -12.942988,
+        "rms_mean": 0.164818,
+        "rms_std": 0.111121,
+        "crest_factor": 4.797885
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [],
+      "unavailable_features": []
+    },
+    "drums": {
+      "schema_version": 4,
+      "source": "drums",
+      "audio_path": "calibration/v5/erykah-badu-didnt-cha-know/stems/drums.wav",
+      "duration_seconds": 243.170975,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 135.270782,
+        "bpm_confidence": 2.927886,
+        "beat_count": 547,
+        "onset_count": 1045,
+        "onset_density": 4.297388,
+        "transient_sharpness": 8.80502
+      },
+      "tonal": {
+        "key": "E",
+        "scale": "minor",
+        "key_confidence": 0.508423,
+        "hpcp_mean": [
+          0.141916,
+          0.068155,
+          0.2224,
+          0.262457,
+          0.408307,
+          0.176058,
+          0.200142,
+          0.134808,
+          0.078391,
+          0.075329,
+          0.06143,
+          0.112152
+        ],
+        "tonal_stability": 0.449616
+      },
+      "spectral": {
+        "centroid_mean": 2721.908679,
+        "centroid_std": 2967.9572,
+        "centroid_energy_hz": 187.190111,
+        "rolloff_mean": 3628.966687,
+        "rolloff_energy_hz": 129.199219,
+        "brightness": 0.016116,
+        "band_energy_ratios": {
+          "low": 0.959336,
+          "low_mid": 0.028216,
+          "high_mid": 0.006164,
+          "high": 0.006284
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -15.126602,
+        "rms_mean": 0.092505,
+        "rms_std": 0.119426,
+        "crest_factor": 6.533958
+      },
+      "drum_decomposition": {
+        "status": "ok",
+        "steps_per_cycle": 16,
+        "cycle_seconds": 1.774219,
+        "grid_anchor_seconds": 0.469408,
+        "grid_anchor_source": "beats",
+        "quantisation_error_steps": 0.114621,
+        "patterns": [
+          {
+            "drum": "kick",
+            "steps": [
+              0,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              15
+            ],
+            "step_occupancy": [
+              0.052632,
+              0.496241,
+              0.030075,
+              0.481203,
+              0.022556,
+              0.157895,
+              0.022556,
+              0.962406,
+              0.067669,
+              0.112782,
+              0.022556,
+              0.015038
+            ],
+            "hit_count": 328
+          },
+          {
+            "drum": "snare",
+            "steps": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              15
+            ],
+            "step_occupancy": [
+              0.028986,
+              0.057971,
+              0.304348,
+              0.115942,
+              0.188406,
+              0.202899,
+              0.144928,
+              0.028986,
+              0.521739,
+              0.014493,
+              0.028986
+            ],
+            "hit_count": 123
+          },
+          {
+            "drum": "hat",
+            "steps": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              10,
+              12,
+              13,
+              14,
+              15
+            ],
+            "step_occupancy": [
+              0.955224,
+              0.014925,
+              0.955224,
+              0.007463,
+              0.932836,
+              0.029851,
+              0.335821,
+              0.014925,
+              0.955224,
+              0.955224,
+              0.947761,
+              0.007463,
+              0.955224,
+              0.007463
+            ],
+            "hit_count": 1023
+          },
+          {
+            "drum": "unclassified",
+            "steps": [
+              2,
+              3,
+              4,
+              5,
+              6,
+              14
+            ],
+            "step_occupancy": [
+              0.2,
+              0.1,
+              0.1,
+              0.5,
+              0.1,
+              0.1
+            ],
+            "hit_count": 11
+          }
+        ],
+        "total_hit_count": 1485,
+        "unclassified_count": 11,
+        "caveats": [
+          "22 detections in the noise/air bands were the kick's own transient found a second time, not hits of their own \u2014 their windows are over 0.6 kick energy and their air/(air+noise) is under 0.5, which is a beater click rather than a hat",
+          "11 of 1485 hits are unclassified. Three classes cannot describe a full kit: toms, rides, crashes, claps and shakers all land here, and on percussive material that is correct rather than a failure.",
+          "the grid anchor was moved +0.36 steps onto the hits' own phase. A supplied downbeat fixes which step is step 0, not the sub-step phase, and this move cannot change any step number."
+        ]
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "kick-heavy",
+          "confidence": 1.0,
+          "evidence": {
+            "band_energy_low": 0.959336,
+            "min_band_energy_low": 0.5
+          }
+        },
+        {
+          "label": "noisy",
+          "confidence": 0.040347,
+          "evidence": {
+            "centroid_mean": 2721.908679,
+            "chroma_entropy": 0.934498,
+            "min_centroid_hz": 2500.0,
+            "min_chroma_entropy": 0.93,
+            "key_confidence": 0.508423,
+            "tonal_stability": 0.449616
+          }
+        }
+      ],
+      "unavailable_features": []
+    },
+    "bass": {
+      "schema_version": 4,
+      "source": "bass",
+      "audio_path": "calibration/v5/erykah-badu-didnt-cha-know/stems/bass.wav",
+      "duration_seconds": 243.170975,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 90.075836,
+        "bpm_confidence": 0.659901,
+        "beat_count": 363,
+        "onset_count": 827,
+        "onset_density": 3.400899,
+        "transient_sharpness": 1.455901
+      },
+      "tonal": {
+        "key": "Eb",
+        "scale": "major",
+        "key_confidence": 0.795913,
+        "hpcp_mean": [
+          0.134557,
+          0.057455,
+          0.044618,
+          0.328564,
+          0.056387,
+          0.295491,
+          0.082311,
+          0.026248,
+          0.037998,
+          0.056017,
+          0.219201,
+          0.017045
+        ],
+        "tonal_stability": 0.705473
+      },
+      "spectral": {
+        "centroid_mean": 371.656982,
+        "centroid_std": 889.591672,
+        "centroid_energy_hz": 159.852626,
+        "rolloff_mean": 418.431484,
+        "rolloff_energy_hz": 193.798828,
+        "brightness": 7e-06,
+        "band_energy_ratios": {
+          "low": 0.923566,
+          "low_mid": 0.076431,
+          "high_mid": 2e-06,
+          "high": 1e-06
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -21.342667,
+        "rms_mean": 0.062863,
+        "rms_std": 0.028151,
+        "crest_factor": 5.259944
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "ok",
+        "note_count": 705,
+        "median_midi_note": 46,
+        "median_cents_offset": 2.016615,
+        "voiced_fraction": 0.794901,
+        "octave_corrections": 53,
+        "caveats": []
+      },
+      "labels": [],
+      "unavailable_features": []
+    },
+    "vocals": {
+      "schema_version": 4,
+      "source": "vocals",
+      "audio_path": "calibration/v5/erykah-badu-didnt-cha-know/stems/vocals.wav",
+      "duration_seconds": 243.170975,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 135.725037,
+        "bpm_confidence": -0.043407,
+        "beat_count": 522,
+        "onset_count": 848,
+        "onset_density": 3.487258,
+        "transient_sharpness": 1.618603
+      },
+      "tonal": {
+        "key": "Bb",
+        "scale": "minor",
+        "key_confidence": 0.807958,
+        "hpcp_mean": [
+          0.157877,
+          0.219479,
+          0.116948,
+          0.23411,
+          0.134379,
+          0.207325,
+          0.072221,
+          0.056867,
+          0.138454,
+          0.108711,
+          0.246635,
+          0.098928
+        ],
+        "tonal_stability": 0.573279
+      },
+      "spectral": {
+        "centroid_mean": 1867.749584,
+        "centroid_std": 1864.305974,
+        "centroid_energy_hz": 846.432272,
+        "rolloff_mean": 2417.540507,
+        "rolloff_energy_hz": 1141.259766,
+        "brightness": 0.118217,
+        "band_energy_ratios": {
+          "low": 0.029372,
+          "low_mid": 0.890069,
+          "high_mid": 0.072634,
+          "high": 0.007926
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -19.657084,
+        "rms_mean": 0.053275,
+        "rms_std": 0.035957,
+        "crest_factor": 10.872633
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "speech/vocal dominant",
+          "confidence": 0.48083,
+          "evidence": {
+            "rms_mean": 0.053275,
+            "centroid_mean": 1867.749584,
+            "onset_density": 3.487258,
+            "min_rms_mean": 0.01,
+            "min_centroid_hz": 300.0,
+            "max_centroid_hz": 3000.0,
+            "min_onset_density": 1.0,
+            "max_onset_density": 5.0
+          }
+        },
+        {
+          "label": "percussive",
+          "confidence": 0.239386,
+          "evidence": {
+            "crest_factor": 10.872633,
+            "onset_density": 3.487258,
+            "min_crest_factor": 8.0,
+            "min_onset_density": 2.0
+          }
+        }
+      ],
+      "unavailable_features": []
+    },
+    "other": {
+      "schema_version": 4,
+      "source": "other",
+      "audio_path": "calibration/v5/erykah-badu-didnt-cha-know/stems/other.wav",
+      "duration_seconds": 243.170975,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 135.459274,
+        "bpm_confidence": -0.030119,
+        "beat_count": 547,
+        "onset_count": 709,
+        "onset_density": 2.915644,
+        "transient_sharpness": 1.376428
+      },
+      "tonal": {
+        "key": "C#",
+        "scale": "major",
+        "key_confidence": 0.753266,
+        "hpcp_mean": [
+          0.168424,
+          0.575105,
+          0.039083,
+          0.182691,
+          0.019025,
+          0.389567,
+          0.246525,
+          0.020908,
+          0.086829,
+          0.012288,
+          0.294749,
+          0.02703
+        ],
+        "tonal_stability": 0.829188
+      },
+      "spectral": {
+        "centroid_mean": 601.646728,
+        "centroid_std": 389.280059,
+        "centroid_energy_hz": 421.45527,
+        "rolloff_mean": 661.924455,
+        "rolloff_energy_hz": 538.330078,
+        "brightness": 0.006592,
+        "band_energy_ratios": {
+          "low": 0.040453,
+          "low_mid": 0.955075,
+          "high_mid": 0.004409,
+          "high": 6.3e-05
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -24.427879,
+        "rms_mean": 0.03371,
+        "rms_std": 0.026677,
+        "crest_factor": 10.149893
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "percussive",
+          "confidence": 0.179158,
+          "evidence": {
+            "crest_factor": 10.149893,
+            "onset_density": 2.915644,
+            "min_crest_factor": 8.0,
+            "min_onset_density": 2.0
+          }
+        }
+      ],
+      "unavailable_features": []
+    }
+  }
+}

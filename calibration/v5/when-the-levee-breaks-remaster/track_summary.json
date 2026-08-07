@@ -1,0 +1,476 @@
+{
+  "schema_version": 4,
+  "track_name": "when-the-levee-breaks-remaster",
+  "input_path": "examples/When_the_Levee_Breaks_Remaster.wav",
+  "duration_seconds": 430.32,
+  "backend": "essentia",
+  "separation_model": "htdemucs_ft",
+  "separation_device": "mps",
+  "analysis_sample_rate": 44100,
+  "sources": {
+    "mix": {
+      "schema_version": 4,
+      "source": "mix",
+      "audio_path": "examples/When_the_Levee_Breaks_Remaster.wav",
+      "duration_seconds": 430.32,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 143.252731,
+        "bpm_confidence": 2.122182,
+        "beat_count": 1027,
+        "onset_count": 1142,
+        "onset_density": 2.653839,
+        "transient_sharpness": 1.743358
+      },
+      "tonal": {
+        "key": "F",
+        "scale": "minor",
+        "key_confidence": 0.922489,
+        "hpcp_mean": [
+          0.366175,
+          0.03277,
+          0.113427,
+          0.158539,
+          0.157005,
+          0.559071,
+          0.086301,
+          0.354017,
+          0.180335,
+          0.141336,
+          0.170222,
+          0.084367
+        ],
+        "tonal_stability": 0.629013
+      },
+      "spectral": {
+        "centroid_mean": 1511.294996,
+        "centroid_std": 873.778682,
+        "centroid_energy_hz": 976.808807,
+        "rolloff_mean": 2037.115028,
+        "rolloff_energy_hz": 2088.720703,
+        "brightness": 0.261173,
+        "band_energy_ratios": {
+          "low": 0.418839,
+          "low_mid": 0.423193,
+          "high_mid": 0.150947,
+          "high": 0.007021
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -10.277346,
+        "rms_mean": 0.163679,
+        "rms_std": 0.045262,
+        "crest_factor": 5.314103
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [],
+      "unavailable_features": []
+    },
+    "drums": {
+      "schema_version": 4,
+      "source": "drums",
+      "audio_path": "calibration/v5/when-the-levee-breaks-remaster/stems/drums.wav",
+      "duration_seconds": 430.32,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 143.568008,
+        "bpm_confidence": 2.058831,
+        "beat_count": 1021,
+        "onset_count": 1113,
+        "onset_density": 2.586447,
+        "transient_sharpness": 3.262407
+      },
+      "tonal": {
+        "key": "F#",
+        "scale": "minor",
+        "key_confidence": 0.678585,
+        "hpcp_mean": [
+          0.141177,
+          0.186623,
+          0.083862,
+          0.178167,
+          0.133488,
+          0.113744,
+          0.222787,
+          0.20933,
+          0.278416,
+          0.219912,
+          0.182169,
+          0.204943
+        ],
+        "tonal_stability": 0.390389
+      },
+      "spectral": {
+        "centroid_mean": 2395.338046,
+        "centroid_std": 1866.145818,
+        "centroid_energy_hz": 1183.313801,
+        "rolloff_mean": 3037.232565,
+        "rolloff_energy_hz": 3380.712891,
+        "brightness": 0.239764,
+        "band_energy_ratios": {
+          "low": 0.626907,
+          "low_mid": 0.140807,
+          "high_mid": 0.203936,
+          "high": 0.02835
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -18.412867,
+        "rms_mean": 0.053223,
+        "rms_std": 0.038898,
+        "crest_factor": 10.496376
+      },
+      "drum_decomposition": {
+        "status": "no_grid",
+        "steps_per_cycle": null,
+        "cycle_seconds": 1.671682,
+        "grid_anchor_seconds": 0.393432,
+        "grid_anchor_source": "beats",
+        "quantisation_error_steps": 0.235929,
+        "patterns": [
+          {
+            "drum": "snare",
+            "steps": [],
+            "step_occupancy": [],
+            "hit_count": 274
+          },
+          {
+            "drum": "hat",
+            "steps": [],
+            "step_occupancy": [],
+            "hit_count": 842
+          },
+          {
+            "drum": "unclassified",
+            "steps": [],
+            "step_occupancy": [],
+            "hit_count": 48
+          }
+        ],
+        "total_hit_count": 1164,
+        "unclassified_count": 48,
+        "caveats": [
+          "no hits looked for in these bands \u2014 they hold nothing, or nothing transient: kick, body",
+          "48 of 1164 hits are unclassified. Three classes cannot describe a full kit: toms, rides, crashes, claps and shakers all land here, and on percussive material that is correct rather than a failure.",
+          "the grid anchor was moved +0.32 steps onto the hits' own phase. A supplied downbeat fixes which step is step 0, not the sub-step phase, and this move cannot change any step number.",
+          "no cycle grid: folding the band flux onto this cycle length puts only 0.33 of the profile on the grid, against 0.5 required and 0.25 expected by chance. The hits do not fit any grid at this period \u2014 this is not a near miss."
+        ]
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "kick-heavy",
+          "confidence": 0.362592,
+          "evidence": {
+            "band_energy_low": 0.626907,
+            "min_band_energy_low": 0.5
+          }
+        },
+        {
+          "label": "percussive",
+          "confidence": 0.146612,
+          "evidence": {
+            "crest_factor": 10.496376,
+            "onset_density": 2.586447,
+            "min_crest_factor": 8.0,
+            "min_onset_density": 2.0
+          }
+        }
+      ],
+      "unavailable_features": [
+        "drum_decomposition (status=no_grid)"
+      ]
+    },
+    "bass": {
+      "schema_version": 4,
+      "source": "bass",
+      "audio_path": "calibration/v5/when-the-levee-breaks-remaster/stems/bass.wav",
+      "duration_seconds": 430.32,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 143.375183,
+        "bpm_confidence": 1.179207,
+        "beat_count": 1028,
+        "onset_count": 1314,
+        "onset_density": 3.053541,
+        "transient_sharpness": 1.525046
+      },
+      "tonal": {
+        "key": "F",
+        "scale": "minor",
+        "key_confidence": 0.85858,
+        "hpcp_mean": [
+          0.157354,
+          0.031679,
+          0.04633,
+          0.075786,
+          0.097923,
+          0.523568,
+          0.034205,
+          0.065698,
+          0.114081,
+          0.036904,
+          0.097302,
+          0.029923
+        ],
+        "tonal_stability": 0.710463
+      },
+      "spectral": {
+        "centroid_mean": 334.031202,
+        "centroid_std": 1045.262372,
+        "centroid_energy_hz": 120.358758,
+        "rolloff_mean": 427.224304,
+        "rolloff_energy_hz": 172.265625,
+        "brightness": 0.000421,
+        "band_energy_ratios": {
+          "low": 0.977866,
+          "low_mid": 0.021877,
+          "high_mid": 0.000256,
+          "high": 1e-06
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -19.862091,
+        "rms_mean": 0.079367,
+        "rms_std": 0.027329,
+        "crest_factor": 3.690821
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "ok",
+        "note_count": 1055,
+        "median_midi_note": 41,
+        "median_cents_offset": -13.359702,
+        "voiced_fraction": 0.680327,
+        "octave_corrections": 300,
+        "caveats": []
+      },
+      "labels": [],
+      "unavailable_features": []
+    },
+    "vocals": {
+      "schema_version": 4,
+      "source": "vocals",
+      "audio_path": "calibration/v5/when-the-levee-breaks-remaster/stems/vocals.wav",
+      "duration_seconds": 430.32,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 143.223007,
+        "bpm_confidence": -0.003762,
+        "beat_count": 997,
+        "onset_count": 534,
+        "onset_density": 1.240937,
+        "transient_sharpness": 2.006731
+      },
+      "tonal": {
+        "key": "F",
+        "scale": "minor",
+        "key_confidence": 0.780539,
+        "hpcp_mean": [
+          0.267843,
+          0.076276,
+          0.12953,
+          0.15011,
+          0.171454,
+          0.342108,
+          0.134153,
+          0.201322,
+          0.146312,
+          0.137977,
+          0.153258,
+          0.124833
+        ],
+        "tonal_stability": 0.505961
+      },
+      "spectral": {
+        "centroid_mean": 3252.797112,
+        "centroid_std": 1916.823799,
+        "centroid_energy_hz": 1280.523459,
+        "rolloff_mean": 4135.593817,
+        "rolloff_energy_hz": 1830.322266,
+        "brightness": 0.259058,
+        "band_energy_ratios": {
+          "low": 0.016967,
+          "low_mid": 0.860954,
+          "high_mid": 0.107371,
+          "high": 0.014707
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -16.85251,
+        "rms_mean": 0.029228,
+        "rms_std": 0.04668,
+        "crest_factor": 10.67215
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "noisy",
+          "confidence": 0.136872,
+          "evidence": {
+            "centroid_mean": 3252.797112,
+            "chroma_entropy": 0.97047,
+            "min_centroid_hz": 2500.0,
+            "min_chroma_entropy": 0.93,
+            "key_confidence": 0.780539,
+            "tonal_stability": 0.505961
+          }
+        }
+      ],
+      "unavailable_features": []
+    },
+    "other": {
+      "schema_version": 4,
+      "source": "other",
+      "audio_path": "calibration/v5/when-the-levee-breaks-remaster/stems/other.wav",
+      "duration_seconds": 430.32,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 143.313644,
+        "bpm_confidence": 0.323588,
+        "beat_count": 1012,
+        "onset_count": 969,
+        "onset_density": 2.251812,
+        "transient_sharpness": 1.296421
+      },
+      "tonal": {
+        "key": "F",
+        "scale": "major",
+        "key_confidence": 0.900532,
+        "hpcp_mean": [
+          0.450307,
+          0.026358,
+          0.16603,
+          0.130467,
+          0.091738,
+          0.377702,
+          0.0588,
+          0.455241,
+          0.116762,
+          0.177799,
+          0.113685,
+          0.048913
+        ],
+        "tonal_stability": 0.724376
+      },
+      "spectral": {
+        "centroid_mean": 1602.538473,
+        "centroid_std": 541.355168,
+        "centroid_energy_hz": 1391.103498,
+        "rolloff_mean": 2178.933473,
+        "rolloff_energy_hz": 2325.585938,
+        "brightness": 0.466015,
+        "band_energy_ratios": {
+          "low": 0.049919,
+          "low_mid": 0.707196,
+          "high_mid": 0.242584,
+          "high": 0.000301
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -13.257402,
+        "rms_mean": 0.092215,
+        "rms_std": 0.030852,
+        "crest_factor": 8.144669
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "percussive",
+          "confidence": 0.012056,
+          "evidence": {
+            "crest_factor": 8.144669,
+            "onset_density": 2.251812,
+            "min_crest_factor": 8.0,
+            "min_onset_density": 2.0
+          }
+        }
+      ],
+      "unavailable_features": []
+    }
+  }
+}

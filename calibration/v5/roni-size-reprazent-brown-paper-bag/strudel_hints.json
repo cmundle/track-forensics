@@ -1,0 +1,141 @@
+{
+  "schema_version": 4,
+  "track_name": "roni-size-reprazent-brown-paper-bag",
+  "bpm": 84.93451690673828,
+  "suggested_cycle_seconds": 2.825706,
+  "subdivision_feel": null,
+  "drum_density": "busy",
+  "bass_activity": "moderate",
+  "tonal_centre": "G major",
+  "drum_grid": {
+    "status": "no_grid",
+    "steps_per_cycle": null,
+    "kick_steps": [],
+    "snare_steps": [],
+    "hat_steps": [],
+    "unclassified_count": 168,
+    "caveats": [
+      "47 detections in the noise/air bands were the kick's own transient found a second time, not hits of their own \u2014 their windows are over 0.6 kick energy and their air/(air+noise) is under 0.5, which is a beater click rather than a hat",
+      "168 of 2636 hits are unclassified. Three classes cannot describe a full kit: toms, rides, crashes, claps and shakers all land here, and on percussive material that is correct rather than a failure.",
+      "the grid anchor was moved +0.11 steps onto the hits' own phase. A supplied downbeat fixes which step is step 0, not the sub-step phase, and this move cannot change any step number.",
+      "no cycle grid: folding the band flux onto this cycle length puts only 0.31 of the profile on the grid, against 0.5 required and 0.25 expected by chance. The hits do not fit any grid at this period \u2014 this is not a near miss."
+    ]
+  },
+  "bass_line": {
+    "status": "ok",
+    "note_sequence": [
+      "e2",
+      "e2",
+      "a2",
+      "a#2",
+      "a2",
+      "e3",
+      "f3",
+      "e3",
+      "a2",
+      "a#2",
+      "a2",
+      "f3",
+      "e2",
+      "a2",
+      "a#2",
+      "a2",
+      "f2",
+      "e2",
+      "a2",
+      "a#2",
+      "a2",
+      "e2",
+      "f2",
+      "e2",
+      "a2",
+      "a#2",
+      "a2",
+      "e3",
+      "f3",
+      "e3",
+      "a2",
+      "a#2"
+    ],
+    "truncated_from": 631,
+    "median_midi_note": 35,
+    "caveats": []
+  },
+  "sound_suggestions": [
+    {
+      "role": "kick",
+      "match": "exact",
+      "sound": "bd",
+      "reason": "73 hit(s) classified as kick; 'bd' is Strudel's default kick/bass-drum sample.",
+      "alternatives": [],
+      "evidence": {
+        "hit_count": 73.0,
+        "mean_kick_ratio": 0.7562256707594545,
+        "mean_confidence": 0.4394195144141511
+      }
+    },
+    {
+      "role": "snare",
+      "match": "exact",
+      "sound": "sd",
+      "reason": "1015 hit(s) classified as snare; 'sd' is Strudel's default snare sample.",
+      "alternatives": [],
+      "evidence": {
+        "hit_count": 1015.0,
+        "mean_body_ratio": 0.5242060084514355,
+        "mean_confidence": 0.7017750627843504
+      }
+    },
+    {
+      "role": "hat",
+      "match": "exact",
+      "sound": "oh",
+      "reason": "1380 hit(s) classified as hat; median decay ratio 2.35 reads as open, so 'oh' is the closer default sample. Open versus closed is decided by decay length alone, which this pipeline measures directly.",
+      "alternatives": [],
+      "evidence": {
+        "hit_count": 1380.0,
+        "mean_confidence": 0.9438294889340064,
+        "median_decay_ratio": 2.350478514640134
+      }
+    },
+    {
+      "role": "unclassified",
+      "match": "none",
+      "sound": null,
+      "reason": "168 hit(s) did not clear the kick/snare/hat decision margin. This pipeline recognises only three drum classes; toms, rides, crashes, claps and shakers all land here on percussive material, correctly, not as a failure. Source by ear from Strudel's percussion set.",
+      "alternatives": [
+        "ht",
+        "mt",
+        "lt",
+        "cr",
+        "rd",
+        "perc",
+        "sh",
+        "cb",
+        "tb"
+      ],
+      "evidence": {
+        "hit_count": 168.0,
+        "mean_confidence": 0.05873738004752311
+      }
+    },
+    {
+      "role": "bass",
+      "match": "approximate",
+      "sound": "sine",
+      "reason": "Energy is concentrated at the fundamental (low-band ratio 0.99, brightness 0.00, median centroid 79 Hz) with little harmonic content: reads as sub bass. 'sine' is the closest default waveform.",
+      "alternatives": [],
+      "evidence": {
+        "low_band_ratio": 0.9889087211403539,
+        "brightness": 0.00011055676386780481,
+        "centroid_energy_hz": 79.01385076822218,
+        "centroid_mean_hz": 745.2066973785419
+      }
+    }
+  ],
+  "strudel_vocabulary_read": "2026-08-04",
+  "notes": [
+    "drum inter-onset intervals fit neither an even nor a swung grid, subdivision not inferred \u2014 verify by ear",
+    "drum grid status is 'no_grid', see analysis/drums.json for detail"
+  ]
+}

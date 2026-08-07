@@ -1,0 +1,84 @@
+{
+  "schema_version": 4,
+  "track_name": "brian-eno-1-1-remastered-2004",
+  "bpm": 83.45592498779297,
+  "suggested_cycle_seconds": 2.875769,
+  "subdivision_feel": null,
+  "drum_density": "sparse",
+  "bass_activity": "sparse",
+  "tonal_centre": "D major",
+  "drum_grid": {
+    "status": "too_few_hits",
+    "steps_per_cycle": null,
+    "kick_steps": [],
+    "snare_steps": [],
+    "hat_steps": [],
+    "unclassified_count": 0,
+    "caveats": [
+      "no hits looked for in these bands \u2014 they hold nothing, or nothing transient: kick, body, noise, air",
+      "no drum hits detected"
+    ]
+  },
+  "bass_line": {
+    "status": "ok",
+    "note_sequence": [
+      "d2",
+      "d2",
+      "d2",
+      "d2",
+      "d2",
+      "d2",
+      "c#4",
+      "e4",
+      "b3",
+      "d2",
+      "d2",
+      "d2",
+      "a2",
+      "d2",
+      "d2",
+      "d2",
+      "d4",
+      "d3",
+      "d2",
+      "a2",
+      "d2",
+      "d2",
+      "d2",
+      "d2",
+      "d2",
+      "d2",
+      "d2",
+      "d4",
+      "d4",
+      "d2",
+      "a2",
+      "a2"
+    ],
+    "truncated_from": 155,
+    "median_midi_note": 38,
+    "caveats": [
+      "These notes cover 20% of the stem \u2014 the rest of it carried no trackable pitch. A bass that rests is silent for much of a track by design, so low coverage is not by itself a fault, but below 30% there is little material behind the line and quiet or short notes are more likely to be missing than resting."
+    ]
+  },
+  "sound_suggestions": [
+    {
+      "role": "bass",
+      "match": "approximate",
+      "sound": "sine",
+      "reason": "Energy is concentrated at the fundamental (low-band ratio 1.00, brightness 0.00, median centroid 69 Hz) with little harmonic content: reads as sub bass. 'sine' is the closest default waveform.",
+      "alternatives": [],
+      "evidence": {
+        "low_band_ratio": 0.9997528527779094,
+        "brightness": 5.379063074714338e-06,
+        "centroid_energy_hz": 68.66212163073645,
+        "centroid_mean_hz": 473.577679051425
+      }
+    }
+  ],
+  "strudel_vocabulary_read": "2026-08-04",
+  "notes": [
+    "drum inter-onset intervals fit neither an even nor a swung grid, subdivision not inferred \u2014 verify by ear",
+    "drum grid status is 'too_few_hits', see analysis/drums.json for detail"
+  ]
+}

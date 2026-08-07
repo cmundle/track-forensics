@@ -393,3 +393,96 @@ were written from one track without re-derivation and did not survive.
 | F6 voiced-fraction caveat | **holds.** Fixed. |
 | F7 arrangement / harmony / bass placement | bass placement **confirmed** (103/103/103/103). Arrangement is W5A. |
 | F8 envelope folding beats onset picking | **half.** Both gates are needed; a fold can score higher at a wrong tempo. |
+
+---
+
+## Corpus (W8B step 4), pulled forward before Wave 5
+
+Run ahead of schedule, on the orchestrator's recommendation, because every threshold Wave 4 set was
+calibrated against one house record and W5A was about to add more of the same kind. Four tracks, run
+by the user via the CLI. Outputs in `calibration/v5/`.
+
+| row | track | verdict |
+|---|---|---|
+| 4 · ambient | Brian Eno — "1/1" | **pass** — refused the drum grid |
+| 5 · drum & bass | Roni Size — "Brown Paper Bag" | **fail** — half-time at the highest confidence in the corpus |
+| 2 · swung | Erykah Badu — "Didn't Cha Know" | **pass** — first non-null `subdivision_feel` in the project's history |
+| 3 · live band | Led Zeppelin — "When the Levee Breaks" | **pass** on tempo, **fail** on kick detection |
+
+It found two real bugs and validated three previously-guessed thresholds, in an afternoon, before
+anything was built on top of them. Running it last as the plan schedules would have meant
+recalibrating W5A and W6 afterwards.
+
+### Bug 1 — nothing detects an octave error in the coarse tempo
+
+Brown Paper Bag is ~170. Essentia reports **84.92**, exactly half, at `bpm_confidence` **1.788** — the
+highest confidence anywhere in the corpus, and wrong. `refine_bpm(84.918991)` returns **85.041**:
+it faithfully refines the wrong octave. Handed ~170 it returns **170.075** correctly, so the
+machinery is right and only the input is wrong.
+
+The evidence is already in the array `tempo.py` computes. On that stem's 20–110 Hz flux
+autocorrelation, N=16: **0.380 at 170 BPM against 0.106 at 85**. The true tempo correlates 3.6×
+better and nothing looks.
+
+W4A declined this deliberately and said so. That was defensible on one house track and is not
+defensible now. Reopened.
+
+**The negative case matters more than the positive one.** Didn't Cha Know reads 135.27 on the mix and
+90.08 on the bass — a clean 3:2 that looks exactly like a shuffle misread. `refine_bpm` returns
+**high** confidence for *both*. The arbitration is `decompose`: at 135.264 the grid resolves,
+`status="ok"`, error **0.112**, hats on all eight even steps at 0.95–0.97. At 90.176 it returns
+**`no_grid`** at 0.242. **135 is correct.** A naive "prefer the stronger or faster candidate" rule
+fixes Roni Size and breaks Badu. Both tracks were handed to W4A as its test set, with "correlation
+alone cannot separate these" named as an acceptable answer.
+
+### Bug 2 — kick detection fails on anything that is not a modern sharp transient
+
+| track | kick hits | |
+|---|---|---|
+| Madonna | 487 | house, sharp transient |
+| Roni Size | **73** | in 303 s of drum and bass — far too few |
+| Levee Breaks | **0** | in 430 s |
+
+**Not a band-activity problem.** On the Levee drums stem the `kick` band holds **0.3748 of total
+energy, the largest share of any band**, and all four bands clear `BAND_ACTIVITY_FLOOR`. W4B's own
+caveat names the real cause correctly — *"they hold nothing, or nothing transient"*. Bonham's kick is
+slow-attack, compressed, and recorded in a reverberant stairwell, so the energy rise is gradual and
+flux peak-picking has no sharp rise to pick. Reopened, with an explicit instruction that a documented
+limitation is preferable to a global sensitivity increase that manufactures kicks on the three tracks
+that work.
+
+### Validated: `MIN_AUTOCORRELATION_R = 0.15`
+
+Previously a single-track guess. Across the corpus it separates machine-timed from human cleanly:
+
+| track | autocorrelation r | outcome |
+|---|---|---|
+| Badu | 0.804 | refined |
+| Madonna | 0.735 | refined |
+| Roni Size | 0.476 | refined |
+| **Levee Breaks** | **0.108** | **`status="coarse"`, confidence 0.000, `low`** |
+
+Row 3's purpose was to catch a confidently wrong refined BPM on a floating tempo. It did the opposite
+of failing: `refine_bpm` declined, with the caveat *"no beat multiple produced a usable
+autocorrelation peak"*. Bonham drifts and the tool says so.
+
+### Confirmed for W6
+
+- **`bpm_confidence ≤ 0` occurs on every track**, on quiet stems: −0.187 (Eno vocals), −0.030 and
+  −0.043 (Badu other/vocals), −0.004 (Levee vocals). It is not a meaningful quantity and nothing
+  rejects it. Treat ≤ 0 as unusable.
+- **Tempo confidence never reaches the hints file.** On Levee Breaks essentia reports
+  `bpm_confidence` 2.12 and `tempo.py` reports r = 0.108 unusable; `strudel_hints.json` prints a bare
+  `bpm: 143.25`. The two measurements disagree completely and the hints file trusts the wrong one.
+- **Silence gating is confirmed necessary, not theoretical.** The Eno vocals stem at −69.4 LUFS got a
+  full analysis and produced a tempo with negative confidence.
+
+### What the corpus did not test
+
+Row 2 was chosen to exercise the swung branch of `infer_subdivision_feel` and did not. "Didn't Cha
+Know" has straight 8th hats (all eight even steps at 0.96) with loose micro-timing — quantisation
+error 0.112 against Madonna's 0.033, which is the tool measuring human feel rather than failing. That
+is a different thing from a shuffle, where onsets sit on triplet subdivisions. **The swung branch
+remains unexercised.** A genuine shuffle is still wanted.
+
+The orchestrator suspected a 3:2 tempo error here and was wrong; the grid test above rejected it.
