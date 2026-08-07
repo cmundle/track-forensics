@@ -67,6 +67,25 @@ computes into the fixture W5A asserts against would make the two agree by constr
 This is the *input* to note segmentation, not the v4 note list. W4C's job is to re-run segmentation
 and show the 32 ms onset lag is gone; a committed note list would already have the lag in it.
 
+### `<track>__stem_frame_rms.npz` — five tracks
+
+`rms_drums`, `rms_bass`, `rms_vocals`, `rms_other`, plus `kick_band_energy`, for **all five corpus
+tracks**: `madonna`, `roni`, `badu`, `levee`, `eno`. Written by `--rms-only`.
+
+Arrangement extraction thresholds a stem's energy against a percentile of its own distribution to
+decide "is this playing in this bar". That is exactly the shape of threshold this cycle spent an
+afternoon discovering had been calibrated against one house record. These exist so W5A cannot repeat
+it — the four non-Madonna tracks have no committed ground-truth section labels, but they constrain
+the threshold's *behaviour*:
+
+| track | what it should constrain |
+|---|---|
+| `eno` | 1042 s of ambient with no drums at all — presence detection must not manufacture sections |
+| `levee` | a famously long solo-drum intro before anything else enters |
+| `roni` | dense drum & bass where almost everything is playing almost all the time |
+| `badu` | mid-tempo hip-hop with a conventional arrangement |
+| `madonna` | the baseline: 147 bars, 16-bar breakdown with kick and bass out |
+
 ### `roni__tempo_band.npz` · `badu__tempo_band.npz`
 
 One 20–110 Hz envelope per named stem, same grid and same `hop_seconds`. Written by

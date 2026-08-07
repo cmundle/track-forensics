@@ -123,8 +123,36 @@ def main() -> None:
             "regressions, where one envelope per stem is the whole evidence."
         ),
     )
+    parser.add_argument(
+        "--rms-only",
+        action="store_true",
+        help=(
+            "Write ONLY <track>__stem_frame_rms.npz and skip the rest. Arrangement work needs "
+            "per-stem energy across many tracks; it does not need their F0 or band envelopes."
+        ),
+    )
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
+
+    parser_rms_only = getattr(args, "rms_only", False)
+    if parser_rms_only:
+        rms_only: dict[str, Any] = {}
+        for stem in STEM_NAMES:
+            stem_path = args.stems_dir / f"{stem}.wav"
+            if not stem_path.exists():
+                continue
+            audio, stem_rate = load_audio(stem_path, mono=True)
+            assert stem_rate == ANALYSIS_SAMPLE_RATE, f"expected {ANALYSIS_SAMPLE_RATE} Hz"
+            rms_only[f"rms_{stem}"] = frame_rms(to_mono(audio))
+        drums_audio, drums_rate = load_audio(args.stems_dir / "drums.wav", mono=True)
+        kick = band_envelopes(to_mono(drums_audio), drums_rate)["band_kick"]
+        path = args.out / f"{args.track}__stem_frame_rms.npz"
+        np.savez_compressed(
+            path, hop_seconds=np.float64(HOP_SECONDS), kick_band_energy=kick, **rms_only
+        )
+        frames = int(next(iter(rms_only.values())).size)
+        print(json.dumps({"track": args.track, "file": path.name, "frames": frames}, indent=2))
+        return
 
     if args.tempo_band_only:
         stems = [name.strip() for name in args.tempo_band_only.split(",") if name.strip()]
