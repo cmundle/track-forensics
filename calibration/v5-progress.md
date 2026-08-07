@@ -561,3 +561,81 @@ clean.
 2. Envelope-fold kick recovery for compressed/reverberant sources, where the fold sees a pattern the
    picker cannot place.
 3. The swung branch of `infer_subdivision_feel` is still unexercised; a genuine shuffle is wanted.
+
+---
+
+## Wave 5 — W5A complete and verified
+
+`arrangement.py`, pure numpy. 970 passed, ruff and mypy clean.
+
+Madonna, verified independently by the orchestrator from the committed fixture at 132.000 BPM /
+downbeat 0.2322 s: **147 bars**, 16 sections, and F7's structure recovered element by element —
+17-bar intro on drums+kick with no bass, a kick-and-bass section at 19, **49 bars of full band at
+27**, **a 13-bar breakdown at bar 76 with kick and bass absent in every bar**, a **drop at 91**, and
+**three bars of silence at 144**. Every label carries the presence pattern that produced it
+(`"neither kick nor bass, away from the ends: drums"`).
+
+### The plan is missing the load-bearing half of `presence()`
+
+The plan says "threshold each stem against a percentile of its own distribution". That test alone is
+**scale-free**: run it on a stem holding only separation bleed and it faithfully reports an
+arrangement. W5A added a second test — each stem measured against the loudest stem *in the same
+record* — and it is what makes the ambient track behave:
+
+| track | drums | bass | vocals | other |
+|---|---|---|---|---|
+| madonna | 0.911 | 1.000 | 0.781 | 0.617 |
+| roni | 0.514 | 1.000 | 0.412 | 0.270 |
+| **eno** | **0.00138** | 0.299 | **0.00033** | 1.000 |
+
+18 genuinely-present stems bottom out at 0.270; Eno's two residue stems top out at 0.00138. A **195×
+gap**, and `STEM_ACTIVITY_FLOOR = 0.02` is its geometric midpoint. It is a within-record ratio, so a
+quiet master moves every stem together and the gate does not fire.
+
+`PRESENCE_FRACTION` was swept 0.03–0.50 and produced a **plateau, not a peak** — everything from 0.08
+to 0.50 recovers the breakdown, because the quantity is bimodal by three orders of magnitude. Kept at
+the plan's 0.15. Note 0.18 reproduces F7's hand-measured 75–90 exactly and was **not** adopted, on
+the grounds that matching a hand-derived number is not evidence.
+
+**The kick track earns its place.** Inside the breakdown the drums stem clears its own threshold in 3
+of 15 bars (percussion, reverb tail) while the kick band clears in 0 of 15. Drums-stem RMS alone
+reports a breakdown with holes in it.
+
+### Corpus outcomes
+
+| track | bars | sections | |
+|---|---|---|---|
+| madonna | 147 | 16 | F7's structure |
+| badu | 137 | 6 | conventional |
+| roni | 214 | **44** | correct and not useful — see below |
+| levee | 257 | 21 | solo-drum intro isolated at bars 0–3 |
+| **eno** | — | **0** | `status="no_grid"` — refused |
+
+**Roni's 44 sections are a real limitation, reported rather than tuned away.** That bassline runs a
+four-bar cycle alternating by a factor of 1000, so "which stems play in this bar" genuinely changes
+every two bars. At 170 BPM a bar is 1.4 s and a riff with rests is not an arrangement. Raising
+`MIN_SECTION_BARS` to 4 takes Roni 44→14 and takes Badu 6→2, deleting a real intro and a real outro.
+Repetition analysis would answer it — the same tool verse/chorus needs, equally out of scope.
+
+### Contradicts V2-PLAN
+
+1. 147 bars, not 146. Confirmed independently.
+2. The breakdown is 15 bars at 76, not 16 at 75. Bar 75's kick sits 3% over the line.
+3. `presence()` needs the second, absolute test (above). Not in the task list, and the most important
+   thing in the module.
+4. `breakdown` and `drop` must require a kick to exist in the record, or ambient material returns as
+   alternating breakdowns and drops.
+5. `outro` cannot be "the last section" — records end by degrees. It is "any section after the last
+   full-band one", deliberately asymmetric with `intro`.
+6. Added a `silence` label; F7 names two bars of total silence and calling that `outro` would be wrong.
+
+### For W6
+
+`absent_tracks` is worth surfacing in `strudel_hints.json`, and `grid_confidence` wants wiring to
+`TempoFit.status` / `confidence_label` — `low`, `coarse` and `unavailable` all trigger the
+approximate-boundaries caveat.
+
+Orchestrator note: `arrangement_from_frames` takes `kick_band_energy` as a keyword-only argument, and
+an unrecognised key in the `levels` mapping is silently dropped. Passing the kick as a mapping entry
+produces a plausible arrangement with no kick track and no `breakdown`/`drop` labels anywhere. W6
+should not repeat that; a caveat on unknown keys would be cheap insurance.
