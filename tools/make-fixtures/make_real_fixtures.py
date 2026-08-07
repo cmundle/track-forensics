@@ -114,8 +114,37 @@ def main() -> None:
     parser.add_argument("stems_dir", type=Path, help="Directory holding <stem>.wav")
     parser.add_argument("--track", required=True, help="Track slug, used in filenames")
     parser.add_argument("--out", type=Path, default=Path("tests/fixtures/real"))
+    parser.add_argument(
+        "--tempo-band-only",
+        default="",
+        help=(
+            "Comma-separated stems. Write ONLY <track>__tempo_band.npz holding each named "
+            "stem's 20-110 Hz envelope, and skip the full fixture set. For octave-ambiguity "
+            "regressions, where one envelope per stem is the whole evidence."
+        ),
+    )
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
+
+    if args.tempo_band_only:
+        stems = [name.strip() for name in args.tempo_band_only.split(",") if name.strip()]
+        envelopes: dict[str, Any] = {}
+        for stem in stems:
+            audio, stem_rate = load_audio(args.stems_dir / f"{stem}.wav", mono=True)
+            assert stem_rate == ANALYSIS_SAMPLE_RATE, f"expected {ANALYSIS_SAMPLE_RATE} Hz"
+            magnitude, freqs = _stft_magnitude(to_mono(audio), stem_rate)
+            envelopes[f"tempo_{stem}"] = _band_envelope(magnitude, freqs, *TEMPO_BAND_HZ).astype(
+                np.float32
+            )
+        path = args.out / f"{args.track}__tempo_band.npz"
+        np.savez_compressed(
+            path,
+            hop_seconds=np.float64(HOP_SECONDS),
+            tempo_band_hz=np.asarray(TEMPO_BAND_HZ, dtype=np.float64),
+            **envelopes,
+        )
+        print(json.dumps({"track": args.track, "file": path.name, "stems": stems}, indent=2))
+        return
 
     manifest: dict[str, Any] = {"track": args.track, "hop_seconds": HOP_SECONDS, "files": {}}
 

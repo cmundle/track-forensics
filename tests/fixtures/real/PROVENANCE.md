@@ -67,6 +67,25 @@ computes into the fixture W5A asserts against would make the two agree by constr
 This is the *input* to note segmentation, not the v4 note list. W4C's job is to re-run segmentation
 and show the 32 ms onset lag is gone; a committed note list would already have the lag in it.
 
+### `roni__tempo_band.npz` · `badu__tempo_band.npz`
+
+One 20–110 Hz envelope per named stem, same grid and same `hop_seconds`. Written by
+`--tempo-band-only`, which skips the full fixture set: for an octave-ambiguity regression a single
+band envelope per stem is the whole evidence.
+
+| key | from | what it proves |
+|---|---|---|
+| `roni__tempo_band.npz` → `tempo_drums` | Roni Size — "Brown Paper Bag" | the coarse estimate is an octave low. r at ×1 is 0.476, at ×2 **0.575** — the true 170 BPM is the stronger peak and nothing acts on it |
+| `badu__tempo_band.npz` → `tempo_bass` | Erykah Badu — "Didn't Cha Know" | **the case that catches a naive corrector.** Coarse 90.08, and r at ×2 collapses to **0.018** — 8 beats at 90 is not a whole number of beats at 135, so a 3:2 misread leaves nothing at the doubled lag |
+| `badu__tempo_band.npz` → `tempo_drums` | same track | coarse 135.27, r at ×1 0.856 and at ×2 0.857 — indistinguishable, which is why correlation alone cannot decide |
+
+These three exist because the octave measurement in `test_tempo.py` was otherwise a transcribed
+table: numbers copied from a run against gitignored stems. A transcribed table can only fail when
+someone edits the table. With these committed, the measurement itself is re-derived on every run.
+
+The Badu bass row is the valuable one. Every "prefer the faster candidate" rule ever written passes
+Roni and fails here.
+
 ## Verified ground truth
 
 Measured by the orchestrator from these fixtures before dispatch, independently of the numbers in

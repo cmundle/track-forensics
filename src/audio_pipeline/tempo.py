@@ -140,6 +140,68 @@ the module wandering off the octave its caller asked about. Fixing an octave
 error in the coarse estimate is a different job and is not this one.
 
 
+Why the octave is reported and not corrected
+---------------------------------------------
+
+That last paragraph was challenged by corpus material and it survived, so the
+evidence is recorded here rather than in a commit message.
+
+Essentia reports **84.92 BPM** for Roni Size' "Brown Paper Bag", exactly half
+the true ~170, at the highest `bpm_confidence` of any track in the corpus.
+`refine_bpm` faithfully refines the wrong octave to 85.04. The obvious fix is
+to score the x0.5, x1 and x2 candidates by correlation and take the winner.
+**Measured, that does not work**, and it fails in the direction that breaks
+working tracks.
+
+Two independent statistics were tried. Both separate the two tracks the fix was
+designed against, and both invert on the controls.
+
+*Correlation ratio at fixed N* — r at the doubled candidate over r at the base,
+both at N=16, which is the only comparison where the two octaves are distinct
+lags (r at x2/N=16 and r at x1/N=32 are the **same lag** and the same number):
+
+============================ ====== =========
+case                         r*2/r  required
+============================ ====== =========
+roni/drums                    1.21  double
+badu/bass                     0.03  stay
+badu/drums                    1.00  stay
+madonna drums                 1.12  stay
+synthetic click 132           1.23  stay
+synthetic 4-on-the-floor 132  1.24  stay
+badu/other                    1.81  stay
+eno/other                     1.76  stay
+============================ ====== =========
+
+There is no threshold. Every value that must stay put brackets the one value
+that must move. The cause is that autocorrelation decays with lag, so the
+doubled candidate — a shorter lag — is favoured on nearly all material
+regardless of what the beat is doing, and that bias is the same size as the
+harmonic structure the rule would need to read.
+
+*Half-beat fold occupancy* — whether the midpoint between two assumed beats
+carries as much onset energy as the beats themselves, which autocorrelation
+cannot see at all. It inverts outright: roni/drums, which must double, measures
+**0.267**, while madonna drums, which must not, measures **0.760**. The
+statistic turns out to measure whether the material subdivides, not whether the
+estimate is halved — and a drum-and-bass break is syncopated where a house
+track puts a hat on every offbeat.
+
+So this module **reports the octave and refuses to pick one**. `TempoFit`
+carries an `octave_candidates` list with each candidate's own correlation, and
+`octave_status` says whether a neighbouring octave survives at all. `bpm` never
+moves. The information a caller needs to arbitrate is genuinely here — on the
+badu bass stem the doubled candidate scores 0.018 and is ruled out outright,
+which is exactly the move that would have broken that track — but the
+arbitration itself needs evidence this module does not have.
+
+**What does resolve it** is grid quality, measured on the drums stem:
+`drum_elements.decompose` fits Didn't Cha Know at 135.264 with a quantisation
+error of 0.112 and `status="ok"`, and at 90.176 with 0.242 and `no_grid`. That
+is a decisive separation and it belongs in W6, which holds both the stems and
+the grid fitter. This module supplies the candidates; it does not choose.
+
+
 Finding the downbeat is two problems, and the second one is hard
 ----------------------------------------------------------------
 
@@ -233,6 +295,7 @@ __all__ = [
     "HOP_SECONDS",
     "MIN_AUTOCORRELATION_R",
     "MULTIPLE_AGREEMENT_BPM",
+    "OCTAVE_RATIOS",
     "PEAK_CENTROID_HALF_FRAMES",
     "PEAK_WINDOW_BEATS",
     "STABILITY_HIGH_BPM",
@@ -241,6 +304,7 @@ __all__ = [
     "THRESHOLDS",
     "DownbeatFit",
     "MultipleFit",
+    "OctaveCandidate",
     "TempoFit",
     "TempoStability",
     "find_downbeat",
@@ -281,6 +345,15 @@ HOP_SECONDS: Final[float] = STFT_HOP_LENGTH / ANALYSIS_SAMPLE_RATE
 #: cross-check each other. **Not a tuning knob** — see the module docstring for
 #: the measurement showing N=64 returns a wrong peak on real material.
 BEAT_MULTIPLES: Final[tuple[int, ...]] = (16, 32)
+
+#: Octaves of the coarse estimate that are measured and reported alongside it.
+#: Half and double are the errors beat trackers actually make — Essentia halved
+#: a drum-and-bass track at its highest confidence in the corpus. The x1 entry
+#: is included so a reader can compare like with like without recomputing it.
+#:
+#: **These are reported, never applied.** The module docstring carries the
+#: measurement showing that correlation cannot pick between them.
+OCTAVE_RATIOS: Final[tuple[float, ...]] = (0.5, 1.0, 2.0)
 
 
 # ---------------------------------------------------------------------------
@@ -486,6 +559,28 @@ class MultipleFit:
 
 
 @dataclass(frozen=True)
+class OctaveCandidate:
+    """One octave of the coarse estimate, and how well the source supports it.
+
+    Evidence, not a decision. See the module docstring for why this module
+    reports octaves rather than choosing between them.
+    """
+
+    #: Multiplier against the coarse estimate. One of `OCTAVE_RATIOS`.
+    ratio: float
+    #: BPM this octave implies — the refined value when its own peak search
+    #: succeeded, otherwise `coarse_bpm * ratio`.
+    bpm: float
+    #: Autocorrelation r at this octave, measured at `BEAT_MULTIPLES[0]`.
+    #: Fixed N is the only comparison in which the octaves are distinct lags:
+    #: r at x2/N=16 and r at x1/N=32 are the same lag and the same number.
+    r: float
+    #: `live` if r clears `MIN_AUTOCORRELATION_R`, `ruled_out` if it does not,
+    #: `unmeasurable` if the lag did not fit in half the source.
+    status: Literal["live", "ruled_out", "unmeasurable"]
+
+
+@dataclass(frozen=True)
 class TempoStability:
     """Whether the tempo is the same at the end of the source as at the start.
 
@@ -524,6 +619,15 @@ class TempoFit:
     #: Per-multiple evidence, including rejected readings and their reasons.
     multiples: tuple[MultipleFit, ...]
     stability: TempoStability
+    #: The x0.5, x1 and x2 readings of the coarse estimate, in `OCTAVE_RATIOS`
+    #: order. **`bpm` is never taken from here** — this module reports the
+    #: octave and does not correct it. See the module docstring.
+    octave_candidates: tuple[OctaveCandidate, ...] = ()
+    #: `single` when no neighbouring octave survives, so the reported octave is
+    #: the only one the source supports; `ambiguous` when one does and a caller
+    #: with more evidence should arbitrate; `unavailable` when nothing was
+    #: measured.
+    octave_status: Literal["single", "ambiguous", "unavailable"] = "unavailable"
     caveats: tuple[str, ...] = ()
 
 
@@ -716,6 +820,42 @@ def _fit_multiple(
     return MultipleFit(beats=beats, bpm=bpm, lag_frames=lag, r=peak_r, accepted=True)
 
 
+def _octave_candidates(
+    correlation: npt.NDArray[np.float64], hop_seconds: float, coarse_bpm: float
+) -> tuple[tuple[OctaveCandidate, ...], Literal["single", "ambiguous", "unavailable"]]:
+    """Score each octave of the coarse estimate. Reports; never decides.
+
+    Reuses `_fit_multiple` unchanged, so an octave candidate is measured by
+    exactly the machinery that measures the reported tempo — including the
+    beat-sized window and the centroid interpolator.
+    """
+    candidates: list[OctaveCandidate] = []
+    for ratio in OCTAVE_RATIOS:
+        fit = _fit_multiple(correlation, hop_seconds, coarse_bpm * ratio, BEAT_MULTIPLES[0])
+        if fit.reason == "too_short":
+            status: Literal["live", "ruled_out", "unmeasurable"] = "unmeasurable"
+        elif fit.r >= MIN_AUTOCORRELATION_R:
+            status = "live"
+        else:
+            status = "ruled_out"
+        candidates.append(
+            OctaveCandidate(
+                ratio=ratio,
+                bpm=fit.bpm if fit.bpm is not None else coarse_bpm * ratio,
+                r=fit.r,
+                status=status,
+            )
+        )
+
+    base = next((item for item in candidates if item.ratio == 1.0), None)
+    if base is None or base.status == "unmeasurable":
+        return tuple(candidates), "unavailable"
+    neighbours_live = any(
+        item.ratio != 1.0 and item.status == "live" for item in candidates
+    )
+    return tuple(candidates), "ambiguous" if neighbours_live else "single"
+
+
 def _confidence_label(r: float) -> Confidence:
     """Bucket an autocorrelation r. Thresholds documented in `THRESHOLDS`."""
     if r >= CONFIDENCE_HIGH_R:
@@ -816,6 +956,19 @@ def refine_bpm_from_envelope(
     refined, weakest_r, combine_caveats = _combine(fits)
     caveats.extend(combine_caveats)
 
+    octaves, octave_status = _octave_candidates(correlation, hop_seconds, coarse_bpm)
+    if octave_status == "ambiguous":
+        alternatives = ", ".join(
+            f"{item.bpm:.2f} BPM (r={item.r:.2f})"
+            for item in octaves
+            if item.ratio != 1.0 and item.status == "live"
+        )
+        caveats.append(
+            "the octave is not settled by correlation alone: the reported tempo "
+            f"was not shifted, but {alternatives} also fits this source. Arbitrate "
+            "on grid quality, not on r — see the module docstring"
+        )
+
     fit_stability = _stability_from_flux(flux, hop_seconds, coarse_bpm)
 
     if refined is None:
@@ -828,6 +981,8 @@ def refine_bpm_from_envelope(
             status="coarse",
             multiples=tuple(fits),
             stability=fit_stability,
+            octave_candidates=octaves,
+            octave_status=octave_status,
             caveats=tuple(caveats),
         )
     return TempoFit(
@@ -839,6 +994,8 @@ def refine_bpm_from_envelope(
         status="refined",
         multiples=tuple(fits),
         stability=fit_stability,
+        octave_candidates=octaves,
+        octave_status=octave_status,
         caveats=tuple(caveats),
     )
 
@@ -894,6 +1051,8 @@ def refine_bpm(
                 status=fit.status,
                 multiples=fit.multiples,
                 stability=fit.stability,
+                octave_candidates=fit.octave_candidates,
+                octave_status=fit.octave_status,
                 caveats=(*envelopes.caveats, *fit.caveats),
             )
         return fit

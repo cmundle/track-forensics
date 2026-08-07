@@ -42,6 +42,7 @@ from audio_pipeline.tempo import (
     HOP_SECONDS,
     MIN_AUTOCORRELATION_R,
     MULTIPLE_AGREEMENT_BPM,
+    OCTAVE_RATIOS,
     STABILITY_HIGH_BPM,
     THRESHOLDS,
     DownbeatFit,
@@ -580,6 +581,152 @@ def test_the_multiples_stop_at_thirty_two_beats(
     assert readings[64].r < readings[32].r, (
         "the honest cost of a longer lag is fewer repetitions to average"
     )
+
+
+# --------------------------------------------------------------------------- #
+# Octave: reported, never corrected
+# --------------------------------------------------------------------------- #
+
+#: Correlation ratio r(x2)/r(x1), both at N=16, measured on every case
+#: available: three corpus stems, the committed fixture, and two synthetics.
+#: `True` means the case requires the tempo to be doubled.
+#:
+#: Recorded as data because the conclusion it supports is a negative one, and a
+#: negative result that lives only in a docstring gets re-litigated. Corpus
+#: numbers come from `calibration/v5/`; the stems are local-only and gitignored,
+#: so they are transcribed here rather than recomputed.
+MEASURED_OCTAVE_RATIOS: tuple[tuple[str, float, bool], ...] = (
+    ("roni/drums", 1.21, True),
+    ("badu/bass", 0.03, False),
+    ("badu/drums", 1.00, False),
+    ("madonna/drums", 1.12, False),
+    ("synthetic click 132", 1.23, False),
+    ("synthetic 4-on-the-floor 132", 1.24, False),
+    ("badu/other", 1.81, False),
+    ("eno/other", 1.76, False),
+)
+
+
+def test_correlation_cannot_separate_a_halved_estimate_from_a_subdivision() -> None:
+    """The measured negative result, kept executable so it is not re-litigated.
+
+    The natural fix for a halved coarse estimate is to score the octaves by
+    correlation and take the winner. It does not work: **no threshold on
+    r(x2)/r(x1) separates the one case that must double from the seven that
+    must not**, because every must-stay value brackets the must-move one.
+
+    The cause is structural rather than bad luck. Autocorrelation decays with
+    lag, so the doubled candidate is a shorter lag and is favoured on nearly
+    all material regardless of what the beat is doing — and that bias is the
+    same size as the harmonic structure such a rule would have to read.
+
+    If a later change makes a threshold viable, this test fails and the module
+    docstring's claim needs rewriting. That is the intended behaviour.
+    """
+    must_move = [ratio for _, ratio, doubles in MEASURED_OCTAVE_RATIOS if doubles]
+    must_stay = [ratio for _, ratio, doubles in MEASURED_OCTAVE_RATIOS if not doubles]
+
+    assert must_move, "the table must contain the case the fix was designed for"
+    assert min(must_stay) < min(must_move), "a lower bound would separate them"
+    assert max(must_stay) > max(must_move), "an upper bound would separate them"
+
+
+def test_refine_bpm_never_moves_octave_and_says_the_alternatives(
+    madonna: dict[str, npt.NDArray[np.float64]],
+) -> None:
+    """`bpm` is never taken from `octave_candidates`. The committed result stands.
+
+    Madonna is the non-regression anchor: adding octave reporting must not move
+    131.99996 by a digit. Both neighbouring octaves genuinely correlate here —
+    66 at r=0.735 and 264 at r=0.834, the latter *stronger* than the reported
+    132 at 0.747 — which is precisely why correlation is reported and not acted
+    on.
+    """
+    fit = refine_bpm_from_envelope(
+        madonna["band_tempo"], float(madonna["hop_seconds"]), 131.854843
+    )
+
+    assert fit.bpm is not None
+    assert abs(fit.bpm - MADONNA_BPM) <= BPM_TOLERANCE_BPM
+    assert fit.octave_status == "ambiguous"
+    assert [candidate.ratio for candidate in fit.octave_candidates] == list(OCTAVE_RATIOS)
+
+    doubled = next(c for c in fit.octave_candidates if c.ratio == 2.0)
+    base = next(c for c in fit.octave_candidates if c.ratio == 1.0)
+    assert doubled.r > base.r, "the wrong octave correlates better; bpm must ignore that"
+    assert abs(fit.bpm - doubled.bpm) > 1.0, "bpm must not have been taken from the winner"
+    assert any("octave is not settled" in caveat for caveat in fit.caveats), fit.caveats
+
+
+def test_an_octave_with_no_periodicity_is_ruled_out() -> None:
+    """The one octave judgement correlation *can* make, and it is the load-bearing one.
+
+    Erykah Badu's bass stem reads 90.08 against a true 135.27 — a 3:2
+    relationship, not an octave. Measured, its doubled candidate scores
+    **r=0.018** while the base scores 0.594, because 8 beats at 90 is not a
+    whole number of beats at 135 and so nothing lines up. A naive "prefer the
+    faster candidate" rule would have moved that stem to 180 and broken it;
+    ruling the octave out is what stops that.
+
+    Driven through `_octave_candidates` on a hand-built correlation rather than
+    audio, so the classification is pinned exactly.
+    """
+    correlation = np.zeros(4096)
+    correlation[0] = 1.0
+    base_lag = int(round(BEAT_MULTIPLES[0] * 60.0 / 120.0 / HOP_SECONDS))
+    for lag in (base_lag, base_lag // 2 * 4):  # the base lag and its own multiples
+        if lag < correlation.size:
+            correlation[lag - 1 : lag + 2] = 0.6
+
+    candidates, status = tempo._octave_candidates(correlation, HOP_SECONDS, 120.0)
+
+    by_ratio = {candidate.ratio: candidate for candidate in candidates}
+    assert by_ratio[1.0].status == "live"
+    assert by_ratio[2.0].status == "ruled_out", "a bare half-lag must not read as a beat"
+    assert status in {"single", "ambiguous"}
+
+
+def test_a_source_with_no_periodicity_reports_a_single_octave() -> None:
+    """Nothing correlates, so no neighbouring octave is a live alternative.
+
+    The ambient corpus track behaves this way: every octave of Brian Eno's
+    `1/1` scores 0.056-0.145, all under the correlation floor, and
+    `octave_status` is `single`. A tool that reported four live tempo
+    candidates for a rubato ambient piece would be worse than one that says
+    nothing.
+    """
+    fit = refine_bpm(white_noise(60.0), ANALYSIS_SAMPLE_RATE, 120.0)
+
+    assert fit.octave_status == "single"
+    assert all(c.status != "live" for c in fit.octave_candidates if c.ratio != 1.0)
+    assert not any("octave is not settled" in caveat for caveat in fit.caveats)
+
+
+def test_octave_candidates_are_measured_by_the_same_machinery() -> None:
+    """An octave candidate must be scored exactly as the reported tempo is.
+
+    Reusing `_fit_multiple` is what makes the candidates comparable at all —
+    same beat-sized window, same centroid interpolator, same guards. A separate
+    scoring path would make `octave_candidates` a different measurement wearing
+    the same units.
+    """
+    samples = click_train(132.0, 70.0)
+
+    fit = refine_bpm(samples, ANALYSIS_SAMPLE_RATE, 131.85)
+
+    base = next(c for c in fit.octave_candidates if c.ratio == 1.0)
+    assert fit.bpm is not None
+    assert base.bpm == pytest.approx(fit.bpm, abs=0.05), (
+        "the x1 candidate and the reported tempo are the same measurement"
+    )
+
+
+def test_octave_reporting_is_absent_rather_than_wrong_when_nothing_was_measured() -> None:
+    """No coarse estimate means no octaves to report, not three empty ones."""
+    fit = refine_bpm(click_train(132.0, 40.0), ANALYSIS_SAMPLE_RATE, None)
+
+    assert fit.octave_status == "unavailable"
+    assert fit.octave_candidates == ()
 
 
 # --------------------------------------------------------------------------- #
