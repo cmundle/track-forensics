@@ -55,10 +55,12 @@ from conftest import (
     DRUM_PATTERN_SNARE_STEPS,
     DRUM_PATTERN_STEP_SECONDS,
     DRUM_PATTERN_STEPS_PER_CYCLE,
+    KICK_PEAK,
     PATTERN_FIXTURE_DURATION_SECONDS,
     _band_limited_noise,
     _click,
     _decay,
+    _drum_pattern,
     _hat_closed,
     _hat_open,
     _hit_train,
@@ -1818,3 +1820,85 @@ def test_a_supplied_anchor_needs_a_vocabulary_entry_w6_has_not_added_yet(
         "W6 has added `supplied` to GRID_ANCHOR_SOURCES — drop SUPPLIED_ANCHOR_SOURCE "
         "and assert against the frozenset directly"
     )
+
+
+# ---------------------------------------------------------------------------
+# The limit: a kick this module cannot find, and says so
+# ---------------------------------------------------------------------------
+
+
+def _reverberant_kit(decay_seconds: float = 0.5, drive: float = 6.0) -> np.ndarray:
+    """`drum_pattern_120bpm`'s kit through a long room and a compressor.
+
+    Reproduces the signature of "When the Levee Breaks", where this module
+    reports no kick at all: measured kick-band sparsity 0.697 against that
+    stem's 0.654 and a `FLUX_SPARSITY_MIN` of 0.72, with `q90 / peak` 0.089
+    against 0.114. The two ingredients are both necessary — the room stops the
+    band falling back between hits and the compressor lifts what is left of the
+    gaps — and neither alone gets under the gate.
+    """
+    dry = _drum_pattern(
+        kick_steps=(0, 8), snare_steps=(4, 12), hat_steps=DRUM_PATTERN_HAT_STEPS
+    ).astype(np.float64)
+    length = int(2.0 * ANALYSIS_SAMPLE_RATE)
+    impulse = np.exp(-np.arange(length) / ANALYSIS_SAMPLE_RATE / decay_seconds)
+    impulse = impulse * np.random.default_rng(31).standard_normal(length)
+    impulse[0] += 6.0
+    wet = np.convolve(dry, impulse)[: dry.size]
+    return _normalised(np.tanh(wet / np.abs(wet).max() * drive), KICK_PEAK)
+
+
+def test_a_reverberant_compressed_kit_is_refused_rather_than_invented() -> None:
+    """No hits, and a caveat that names the loud band it could not read.
+
+    The honest limit, pinned. Flux peak-picking needs a gap between one rise and
+    the next; a stairwell and a compressor remove it. Opening the band anyway —
+    measured on the real stem — yields 702 "kicks" that fold onto 13 of 16 steps
+    at a quantisation error of 0.247, which is what uniformly random hits score
+    by construction. Reporting nothing is the correct answer and this test
+    exists so that a future sensitivity increase has to break it deliberately.
+    """
+    audio = _reverberant_kit()
+    magnitude, freqs = drum_elements._stft_magnitude(audio, ANALYSIS_SAMPLE_RATE)
+    envelopes = drum_elements._band_envelopes(magnitude, freqs)
+    flux = drum_elements._spectral_flux(envelopes["kick"])
+
+    # Loud, and full of transients — it fails neither of the cheap tests.
+    assert float(np.sum(envelopes["kick"])) / sum(
+        float(np.sum(value)) for value in envelopes.values()
+    ) > THRESHOLDS["band_activity_floor"] * 100
+    assert float(flux.max()) > THRESHOLDS["flux_peak_floor"]
+    # It fails on density, and the reason is reported as its own value.
+    assert drum_elements._is_percussive(flux) == "not_sparse"
+
+    result = _run(audio)
+    assert result.hits == []
+    assert result.status == "too_few_hits"
+    caveat = next(c for c in result.caveats if "never separate" in c)
+    assert "kick" in caveat
+    assert "missing from the counts" in caveat
+
+
+def test_the_three_reasons_a_band_is_skipped_are_reported_separately(
+    drum_pattern_kick_only: np.ndarray,
+) -> None:
+    """"Holds nothing" and "holds more than I can read" are different findings.
+
+    v5 first shipped one sentence for both. On the Levee stem the unsearched
+    kick band carries **37% of the source's energy**, and a reader told it held
+    "nothing, or nothing transient" would go looking for a silent band and find
+    the loudest one there is.
+    """
+    assert set(drum_elements._DORMANT_CAVEATS) == {"empty", "no_transient", "not_sparse"}
+
+    # `drum_pattern_kick_only`: the bright bands are float residue under a sine.
+    quiet = _run(drum_pattern_kick_only)
+    assert any("residue rather than content" in caveat for caveat in quiet.caveats)
+    assert not any("never separate" in caveat for caveat in quiet.caveats)
+
+    # One caveat per distinct reason, never one per band, and it names its bands.
+    pair = drum_elements._dormant_caveats({"noise": "empty", "air": "empty"})
+    assert len(pair) == 1
+    assert pair[0].endswith("noise, air")
+    both = drum_elements._dormant_caveats({"kick": "not_sparse", "air": "empty"})
+    assert len(both) == 2

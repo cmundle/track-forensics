@@ -486,3 +486,78 @@ is a different thing from a shuffle, where onsets sit on triplet subdivisions. *
 remains unexercised.** A genuine shuffle is still wanted.
 
 The orchestrator suspected a 3:2 tempo error here and was wrong; the grid test above rejected it.
+
+---
+
+## Corpus follow-ups — both closed as measured refusals
+
+Both reopened packages came back with negative results, and both built the thing first and measured
+it before refusing. That is the standard this cycle has converged on.
+
+### W4A — no octave corrector exists on this statistic
+
+`r(×2)/r(×1)` at 16 beats, verified independently by the orchestrator:
+
+| case | ratio | required |
+|---|---|---|
+| badu/bass | 0.03 | stay |
+| badu/drums | 1.00 | stay |
+| madonna/drums | 1.12 | stay |
+| **roni/drums** | **1.21** | **double** |
+| eno/other | 1.76 | stay |
+
+The one must-move value sits **inside** the must-stay range, bracketed by Madonna and by the ambient
+track whose whole job is to be refused. Structural, not bad luck: autocorrelation decays with lag, so
+the doubled candidate is always a shorter lag and is favoured on nearly all material — by about the
+magnitude of the harmonic structure such a rule would need to read. A second, independent statistic
+(half-beat fold occupancy) inverts outright: 0.267 on the track that must double against 0.760 on the
+one that must not, because it measures whether material *subdivides*, not whether the estimate is
+halved.
+
+The orchestrator's instruction that a 132 track handed a coarse 66 should now correct **does not
+survive**: that case measures 0.96, which says do not double.
+
+Shipped instead: `octave_candidates` as evidence, `bpm` never moves. Roni's 170.069 is surfaced
+`live` at the highest r; Badu's 180 is `ruled_out` at r=0.018 — the exact move a naive
+prefer-the-faster rule makes. `ruled_out` is a fingerprint rather than a threshold: 8 beats at 90 is
+not a whole number of beats at 135, so a 3:2 misread leaves nothing at the doubled lag. Choosing
+between *live* candidates needs grid quality, not correlation, and belongs in W6.
+
+`roni__tempo_band.npz` and `badu__tempo_band.npz` are committed so the table is re-derived every run
+rather than transcribed from gitignored stems.
+
+### W4B — the fold can see Bonham's kick; per-hit detection cannot
+
+**The orchestrator's diagnosis was wrong, and so was the caveat it quoted.** Levee's kick band is not
+slow-attack-with-no-transient: it carries 37% of the stem's energy and peaks at 6.48 flux. It is
+gated off by the *sparsity* clause — 0.654 against a 0.72 floor — because the energy never falls back
+*between* hits. The band is full of transients that never separate.
+
+**Roni Size is a different bug entirely.** Its kick band is active (sparsity 0.730) and yields 1121
+candidates; they die in *classification*, `kick_ratio` median 0.248 against a 0.60 threshold, because
+the 250 ms feature window in dense drum & bass catches the whole break so no window is kick-dominated.
+That is `feature_window_seconds`, with real Madonna regression risk. **Untouched — open follow-up.**
+
+W4B found a statistic that does separate where sparsity cannot — `q90/peak`, percussive 0.000–0.205
+including Levee at 0.057–0.114, stationary 0.369–0.459, a 1.8× gap, and swapping it in changes no
+band on any track that currently works. **It built that, measured the result, and reverted it:** with
+the band open the picker returns 702 kicks occupying 13 of 16 steps at 0.18–0.53 occupancy and a
+quantisation error of **0.247**, where 0.25 is what uniformly random hits score by construction. 702
+unplaceable hits is worse than none. The longer-differencing suggestion helps the envelope (fold
+contrast 0.560 → 0.645 at n=4, showing a real pattern) and not the picker.
+
+Shipped: a three-way split of why a band was skipped, and a caveat that says the bands are full of
+transients that never separate, that this is a compressed or reverberant source, that **any drum
+living there is missing from the counts however loud it is**, and that an envelope fold can still see
+what per-hit detection cannot. The whole rejected investigation with its numbers is in the docstring
+so nobody re-runs it.
+
+All four corpus tracks and Madonna are byte-identical before and after. 881 passed, ruff and mypy
+clean.
+
+### Open follow-ups
+
+1. `feature_window_seconds` (250 ms) on dense material — the Roni Size kick classification failure.
+2. Envelope-fold kick recovery for compressed/reverberant sources, where the fold sees a pattern the
+   picker cannot place.
+3. The swung branch of `infer_subdivision_feel` is still unexercised; a genuine shuffle is wanted.

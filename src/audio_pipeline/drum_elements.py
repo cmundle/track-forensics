@@ -372,8 +372,8 @@ __all__ = [
     "FLATNESS_FLOOR",
     "FLATNESS_RANGE_HZ",
     "FLUX_MEDIAN_HALF_SECONDS",
-    "FLUX_NEAR_ZERO_FRACTION",
     "FLUX_PEAK_FLOOR",
+    "FLUX_NEAR_ZERO_FRACTION",
     "FLUX_SPARSITY_MIN",
     "GRID_IMPROVEMENT_FRACTION",
     "GRID_ON_GRID_SHARE_MIN",
@@ -494,12 +494,19 @@ THRESHOLDS: Final[dict[str, float]] = {
     # roughly half its frames carry appreciable flux, while a percussive band is
     # quiet between hits. Measured: `bass_unvoiced` 0.520-0.520 and white noise
     # 0.520-0.600, against 0.847-0.950 across all four drum fixtures. 0.72 is
-    # the midpoint of that gap.
+    # the midpoint of that gap. Corpus material sits with the fixtures: Madonna
+    # 0.794-0.806, Erykah Badu 0.791-0.885, Roni Size 0.730-0.799.
     #
     # The cost is real and worth stating: a band this dense *is* gated off, so a
     # 32nd-note hat roll with no gaps would be missed. Estimated crossover is
     # around 16 hits per second at 44.1 kHz, which is a 32nd-note roll at 120
     # BPM; 16ths measure about 0.81 and still pass.
+    #
+    # **A reverberant room is the other way to be dense, and it is the reason
+    # this module reports no kick at all on "When the Levee Breaks".** That
+    # stem's kick band scores 0.654 — under the gate, and *between* white noise
+    # at 0.538 and every other drum stem at 0.79 and up. See
+    # `_is_percussive` for what was tried instead and why the gate stayed.
     "flux_sparsity_min": 0.72,
     "flux_near_zero_fraction": 0.02,
     # -- Per-hit features --------------------------------------------------
@@ -950,8 +957,8 @@ def _pick_peaks(flux: npt.NDArray[np.float64], sample_rate: int) -> npt.NDArray[
     return np.asarray(kept, dtype=np.intp)
 
 
-def _is_percussive(flux: npt.NDArray[np.float64]) -> bool:
-    """Whether a band's flux looks like hits rather than a level or a rumble.
+def _is_percussive(flux: npt.NDArray[np.float64]) -> str | None:
+    """Why a band's flux is not worth searching, or `None` if it is.
 
     Two tests, each aimed at a different way a peak picker invents a pattern out
     of nothing, and both needed because neither catches the other's case:
@@ -968,39 +975,92 @@ def _is_percussive(flux: npt.NDArray[np.float64]) -> bool:
       hits. Measured: band-limited noise 0.520, white noise 0.520-0.600, drum
       fixtures 0.847-0.950. Without this, `bass_unvoiced` — a 20-200 Hz rumble
       — reports 128 hits, 119 of them kicks.
+
+    A compressed, reverberant source is dense in the same way a roll is, and
+    this is where the module gives up honestly (WP-CAL v5, corpus). On "When
+    the Levee Breaks" the kick band carries 37% of the stem's energy and peaks
+    at 6.48 flux, so it fails neither for want of energy nor for want of
+    transients — it scores 0.654 sparsity because the stairwell tail never lets
+    the band fall back to its floor, and the whole band is switched off. The
+    track reports no kick at all.
+
+    **The obvious replacement was measured and rejected**, and the measurement
+    is worth keeping because it looks like a clean win right up to the point
+    where you check the output. `q90 / peak` separates the two populations far
+    better than frame-counting sparsity does — percussive 0.000-0.205 across
+    every fixture and every corpus track, stationary 0.369-0.459 — where
+    sparsity puts this stem *between* white noise and every other drum stem, so
+    no threshold on it can ever admit Bonham without also admitting noise.
+    Swapping the test in changes no band on any track that currently works and
+    turns this one on.
+
+    It was still wrong, because what it admits cannot be resolved into hits.
+    With the band open the picker returns 702 kicks over 430 s, and folded at
+    the best tempo and phase available they occupy **13 of 16 steps** at
+    0.18-0.53 occupancy with a quantisation error of 0.247 — 0.25 is what
+    uniformly random hits score by construction. The between-hit floor in that
+    band is a quarter of its peak; on Madonna it is a fiftieth. A longer
+    differencing interval does help the *envelope*: at 4 frames instead of 1 the
+    folded kick profile at 71 BPM sharpens from 0.560 to 0.645 contrast and
+    shows a real pattern on steps 1/8/11. It does not help the *picker*, because
+    the problem is not that the rise is missed, it is that there is no gap to
+    separate one rise from the next.
+
+    So: the fold can see this kick and per-hit detection cannot, and reporting
+    702 unplaceable hits is worse than reporting none. The gate stays, and the
+    caveat now says which of the two tests refused the band so a reader is not
+    sent looking for silence.
+
+    Returns:
+        `None` when the band is worth searching, else which test refused it —
+        `"no_transient"` or `"not_sparse"`. The two are different findings and
+        `_decompose` reports them as different caveats: a band that holds no
+        transient holds nothing, while a band that holds transients it cannot
+        separate holds something this module cannot read. Saying "or nothing
+        transient" for both, as v5 first shipped, sends a reader looking for
+        silence in a band carrying 37% of the source's energy.
     """
     if flux.size == 0:
-        return False
+        return "no_transient"
     peak = float(flux.max())
     if not math.isfinite(peak) or peak < FLUX_PEAK_FLOOR:
-        return False
+        return "no_transient"
     near_zero = float(np.mean(flux <= FLUX_NEAR_ZERO_FRACTION * peak))
-    return near_zero >= FLUX_SPARSITY_MIN
+    return None if near_zero >= FLUX_SPARSITY_MIN else "not_sparse"
 
 
 def _active_bands(
     envelopes: dict[str, npt.NDArray[np.float64]], fluxes: dict[str, npt.NDArray[np.float64]]
-) -> tuple[list[str], list[str]]:
+) -> tuple[list[str], dict[str, str]]:
     """Split the detection bands into those worth searching and those that are not.
 
     A band is searched when it holds at least `BAND_ACTIVITY_FLOOR` of the
     source's in-band energy **and** its flux passes `_is_percussive`. The first
     test rejects numerical residue (a band that is not really there); the second
-    rejects a band that is there but holds no hits.
+    rejects a band that is there but holds no hits it can separate.
 
     Returns:
-        `(active, dormant)`, both in `DETECTION_BANDS` order.
+        `(active, dormant)`, where `dormant` maps each rejected band to *why* —
+        `"empty"`, `"no_transient"` or `"not_sparse"`. Three different facts
+        about a source, and a reader chasing a missing kick needs to know which
+        one they are looking at.
     """
     totals = {name: float(envelope.sum()) for name, envelope in envelopes.items()}
     grand = sum(totals.values())
     if not math.isfinite(grand) or grand <= 0.0:
-        return [], list(DETECTION_BANDS)
-    active = [
-        name
-        for name in DETECTION_BANDS
-        if totals[name] / grand >= BAND_ACTIVITY_FLOOR and _is_percussive(fluxes[name])
-    ]
-    dormant = [name for name in DETECTION_BANDS if name not in active]
+        return [], dict.fromkeys(DETECTION_BANDS, "empty")
+
+    active: list[str] = []
+    dormant: dict[str, str] = {}
+    for name in DETECTION_BANDS:
+        if totals[name] / grand < BAND_ACTIVITY_FLOOR:
+            dormant[name] = "empty"
+            continue
+        refusal = _is_percussive(fluxes[name])
+        if refusal is None:
+            active.append(name)
+        else:
+            dormant[name] = refusal
     return active, dormant
 
 
@@ -1883,6 +1943,47 @@ def _pattern_order(hits: list[DrumHit]) -> list[str]:
     return [drum for drum in (*_SCORED_CLASSES, "unclassified") if drum in present]
 
 
+#: Why a band was not searched, keyed by the reason `_active_bands` gives.
+#:
+#: v5 first shipped one sentence for all three — "they hold nothing, or nothing
+#: transient" — and the corpus showed why that is not good enough. On "When the
+#: Levee Breaks" the kick band holds **37% of the stem's energy** and peaks at
+#: 6.48 flux, and the tool reported no kick at all; a reader told the band held
+#: "nothing, or nothing transient" would go looking for a silent band and find
+#: the loudest one in the source. The third message is the one that finding
+#: bought, and it names what a reader can actually do about it.
+_DORMANT_CAVEATS: Final[dict[str, str]] = {
+    "empty": (
+        "no hits looked for in these bands — they hold under "
+        f"{BAND_ACTIVITY_FLOOR:g} of this source's energy, which is residue "
+        "rather than content: {bands}"
+    ),
+    "no_transient": (
+        "no hits looked for in these bands — they hold energy but no transient, "
+        "so there is a level or a tone in them and nothing that starts: {bands}"
+    ),
+    "not_sparse": (
+        "no hits looked for in these bands — they are full of transients that "
+        "never separate. The energy does not fall back between hits, which is a "
+        "compressed or reverberant source (or a roll), and this module cannot "
+        "tell one hit from the next in it. **Any drum living in these bands is "
+        "missing from the counts below, however loud it is.** An envelope fold "
+        "can still see the pattern where per-hit detection cannot: {bands}"
+    ),
+}
+
+
+def _dormant_caveats(dormant: dict[str, str]) -> list[str]:
+    """One caveat per distinct reason, naming the bands it applies to."""
+    return [
+        _DORMANT_CAVEATS[reason].format(
+            bands=", ".join(name for name in DETECTION_BANDS if dormant.get(name) == reason)
+        )
+        for reason in _DORMANT_CAVEATS
+        if reason in dormant.values()
+    ]
+
+
 #: Why a grid was not reported, keyed by `_Grid.failure`. `BLOCK_STATUSES` is
 #: frozen and has one `no_grid` for all of these, so the distinction lives here
 #: — and it is a real distinction: "your tempo is 0.04 BPM out" and "this
@@ -2107,11 +2208,7 @@ def _decompose_bands(
     caveats = [] if caveats is None else caveats
     fluxes = {name: _spectral_flux(envelope) for name, envelope in envelopes.items()}
     active, dormant = _active_bands(envelopes, fluxes)
-    if dormant:
-        caveats.append(
-            "no hits looked for in these bands — they hold nothing, or nothing "
-            f"transient: {', '.join(dormant)}"
-        )
+    caveats.extend(_dormant_caveats(dormant))
 
     candidates: list[_Candidate] = []
     for band in active:
