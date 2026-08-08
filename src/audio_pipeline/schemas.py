@@ -829,9 +829,11 @@ class SourceAnalysis(BaseModel):
 #: `analysis/<source>.json`, so nothing is lost — the summary just stops being
 #: thousands of floats of duplicated data across five sources.
 #:
-#: This one table drives both directions: `TrackSummary.summary_payload()`
-#: strips, `rehydrate_stripped_lists()` puts back. They cannot drift apart
-#: because neither of them names a field itself.
+#: Read in one direction only, by `TrackSummary.summary_payload()`. Nothing
+#: puts these lists back field by field: a caller that needs them reloads each
+#: source's own `analysis/<source>.json` wholesale instead, so there is no
+#: second table here to fall out of step with this one. See
+#: `cli._load_full_track_summary`.
 #:
 #: **`DrumDecomposition.patterns` is deliberately absent.** It is cycle-folded
 #: and tiny (at most `steps_per_cycle` ints per class), and that compact one-bar
@@ -847,29 +849,6 @@ _SUMMARY_LIST_FIELDS: dict[str, dict[str, str]] = {
     "drum_decomposition": {"hits": "total_hit_count"},
     "bass_line": {"notes": "note_count"},
 }
-
-
-def rehydrate_stripped_lists(target: SourceAnalysis, full: SourceAnalysis) -> None:
-    """Copy every list `summary_payload()` strips from `full` onto `target`.
-
-    `track_summary.json` carries counts where the event lists were, so a
-    `TrackSummary` loaded back off disk cannot answer questions that need the
-    times themselves. This restores them from a source's own
-    `analysis/<source>.json`, in place.
-
-    Driven by `_SUMMARY_LIST_FIELDS`, the same table the stripping reads, so
-    adding a list to one side automatically adds it to the other. Blocks or
-    fields a model does not have are skipped rather than raising, so a summary
-    written by an older schema version still loads.
-    """
-    for block_name, list_fields in _SUMMARY_LIST_FIELDS.items():
-        target_block = getattr(target, block_name, None)
-        full_block = getattr(full, block_name, None)
-        if target_block is None or full_block is None:
-            continue
-        for field_name in list_fields:
-            if hasattr(target_block, field_name) and hasattr(full_block, field_name):
-                setattr(target_block, field_name, getattr(full_block, field_name))
 
 
 class TrackSummary(BaseModel):

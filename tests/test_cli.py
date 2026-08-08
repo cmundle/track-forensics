@@ -447,13 +447,13 @@ def test_export_hints_schema_version_mismatch_warns_but_proceeds(
     assert "schema_version" in result.output
 
 
-def test_export_hints_rehydrates_onset_times_from_analysis_files(
+def test_export_hints_reads_onset_times_from_the_analysis_files(
     input_wav: Path, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """`summary_payload()` strips onset_times/beat_times to counts; this command
     must read them back from the per-source analysis files so
     `infer_subdivision_feel` (which reads onset_times) is not silently
-    weakened when run standalone. See `cli._load_track_summary_with_timing`.
+    weakened when run standalone. See `cli._load_full_track_summary`.
     """
     output_root = tmp_path / "out"
     track_name = cli_module.separate_module.slugify(input_wav.stem)
@@ -468,7 +468,7 @@ def test_export_hints_rehydrates_onset_times_from_analysis_files(
 
     # track_summary.json only listed "mix", not "drums" -- add drums to the
     # in-memory summary by patching build() to inspect what it is handed and
-    # verifying the mix source itself was rehydrated (it has no onset_times in
+    # verifying the mix source itself was reloaded (it has no onset_times in
     # this test, but the mechanism under test is generic: whatever is present
     # in analysis/<source>.json is copied onto the reloaded summary).
     captured: dict[str, Any] = {}
@@ -477,7 +477,7 @@ def test_export_hints_rehydrates_onset_times_from_analysis_files(
         captured["summary"] = summary
         return StrudelHints(track_name=track_name)
 
-    # Make the summary also carry a "drums" source so rehydration has
+    # Make the summary also carry a "drums" source so the reload has
     # something to act on.
     summary_path = output_root / track_name / "track_summary.json"
     payload = json.loads(summary_path.read_text())
@@ -500,9 +500,9 @@ def test_export_hints_rehydrates_onset_times_from_analysis_files(
         cli_module.app, ["export-strudel-hints", str(input_wav), "--output", str(output_root)]
     )
     assert result.exit_code == 0
-    rehydrated_drums = captured["summary"].sources["drums"]
-    assert rehydrated_drums.rhythm.onset_times == [0.1, 0.2, 0.3]
-    assert rehydrated_drums.rhythm.beat_times == [0.0, 0.5, 1.0]
+    reloaded_drums = captured["summary"].sources["drums"]
+    assert reloaded_drums.rhythm.onset_times == [0.1, 0.2, 0.3]
+    assert reloaded_drums.rhythm.beat_times == [0.0, 0.5, 1.0]
 
 
 def _populated_drum_decomposition() -> DrumDecomposition:
@@ -510,7 +510,7 @@ def _populated_drum_decomposition() -> DrumDecomposition:
 
     `strudel_vocab.suggest_drum_sounds()` reads `hits` (specifically
     `decay_ratio`, to tell `hh` from `oh`), not the folded `patterns` list --
-    see the Task 3 trap in `cli._load_track_summary_with_timing`'s docstring.
+    see the Task 3 trap in `cli._load_full_track_summary`'s docstring.
     """
     hits = [
         DrumHit(
@@ -582,7 +582,7 @@ def _full_wave4_summary(track_name: str) -> TrackSummary:
 
     Deliberately built with populated `drum_decomposition.hits` and
     `bass_line.notes` -- the fields `track_summary.json` strips -- so a test
-    reading from the written, stripped file must rehydrate to recover the
+    reading from the written, stripped file must reload the sources to recover the
     same `sound_suggestions`/`drum_grid` this in-memory summary would give
     `strudel_hints.build()` directly.
     """
@@ -628,8 +628,8 @@ def test_export_hints_standalone_matches_all_for_sound_suggestions_and_drum_grid
     `analyze_track` produced, with `drum_decomposition.hits` and
     `bass_line.notes` intact. `export-strudel-hints` run standalone instead
     reloads `track_summary.json`, which has both stripped to counts -- if
-    `cli._load_track_summary_with_timing` did not rehydrate them via
-    `schemas.rehydrate_stripped_lists`, `suggest_drum_sounds()` would
+    `cli._load_full_track_summary` did not replace each source with its own
+    `analysis/<source>.json`, `suggest_drum_sounds()` would
     silently return `[]` instead of raising, and `drum_grid`/
     `sound_suggestions` would quietly come back weaker than the `all` run
     that produced the exact same underlying data. Real `write_analysis_outputs`
@@ -662,6 +662,46 @@ def test_export_hints_standalone_matches_all_for_sound_suggestions_and_drum_grid
     assert standalone_payload["sound_suggestions"] == all_payload["sound_suggestions"]
     assert standalone_payload["drum_grid"] == all_payload["drum_grid"]
     assert standalone_payload["bass_line"] == all_payload["bass_line"]
+
+
+def test_export_hints_degrades_and_warns_when_an_analysis_file_is_missing(
+    input_wav: Path, tmp_path: Path
+) -> None:
+    """A partial output tree must still produce hints, and must say what it lost.
+
+    `_load_full_track_summary` replaces each source with its own
+    `analysis/<source>.json`. When one of those files is absent -- a run that
+    died partway, or a file deleted by hand -- that source keeps the stripped
+    shape from `track_summary.json` rather than the command raising. The
+    stripped shape is silently weaker (empty `hits`, empty `notes`), so the
+    warning naming the missing source is the only thing standing between the
+    user and a quietly worse result they cannot tell apart from a real one.
+    """
+    output_root = tmp_path / "out"
+    track_name = cli_module.separate_module.slugify(input_wav.stem)
+    summary = _full_wave4_summary(track_name)
+    cli_module.analyze_module.write_analysis_outputs(summary, output_root)
+
+    (output_root / track_name / "analysis" / "drums.json").unlink()
+
+    result = runner.invoke(
+        cli_module.app, ["export-strudel-hints", str(input_wav), "--output", str(output_root)]
+    )
+
+    assert result.exit_code == 0
+    assert "drums" in result.output
+    assert "missing" in result.output.lower()
+
+    # Bass survived, so its notes are still there. Drums fell back to the
+    # stripped shape, which keeps `patterns` (never stripped, so the grid
+    # steps live) but loses `hits` -- and per-hit `decay_ratio` is what names
+    # a sound, so the suggestions built from it are what actually go missing.
+    payload = json.loads((output_root / track_name / "strudel_hints.json").read_text())
+    assert payload["bass_line"]["note_sequence"] != []
+    assert payload["drum_grid"]["kick_steps"] != []
+    roles = {s["role"] for s in payload["sound_suggestions"]}
+    assert "bass" in roles  # bass reads spectral shape, not hits -- unaffected
+    assert roles & {"kick", "snare", "hat"} == set()
 
 
 # --- all -----------------------------------------------------------------

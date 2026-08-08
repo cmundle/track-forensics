@@ -132,7 +132,7 @@ THRESHOLDS: dict[str, float] = {
     #
     # W8B migrated three clauses to `centroid_energy_hz` and deliberately left
     # one on `centroid_mean`. Each migration was made and measured on its own
-    # across the eight-track corpus in `calibration/v5/`; the per-clause notes
+    # across W8B's eight-track corpus; the per-clause notes
     # below record what each one did to the labels. No threshold was rescaled —
     # every one was re-derived, per W4D's warning.
     #
@@ -171,11 +171,11 @@ THRESHOLDS: dict[str, float] = {
     #    would make the clause veto the exact material the label describes.
     #    That is F1's shape, not a fix.
     #
-    # Corpus check either way: across all eight tracks only one stem clears the
-    # high-band gate at all (showers-of-gold drums, high 0.5417), and it passes
-    # both readings comfortably (`centroid_mean` 7792, `centroid_energy_hz`
-    # 7336). Migrating would have changed no label on 40 stems while adding the
-    # failure mode above. Left alone.
+    # Corpus check either way: across all eight of W8B's tracks only one stem
+    # clears the high-band gate at all (showers-of-gold drums, high 0.5417),
+    # and it passes both readings comfortably (`centroid_mean` 7792,
+    # `centroid_energy_hz` 7336). Migrating would have changed no label on 40
+    # stems while adding the failure mode above. Left alone.
     "transient_bright_centroid_hz": 1000.0,
     # [guess] Sustained cymbal territory, where the tails keep the mean up.
     "transient_bright_centroid_saturation": 6000.0,
@@ -186,7 +186,7 @@ THRESHOLDS: dict[str, float] = {
     #
     # **W8B: the number is unchanged; the descriptor is not.** `label_bass`
     # migrated this clause to `centroid_energy_hz`, and that is what made the
-    # label reachable at all. Measured across the eight-track corpus, NO bass
+    # label reachable at all. Measured across W8B's eight-track corpus, NO bass
     # stem's `centroid_mean` fell below 250 Hz — the minimum was 334 Hz (Levee
     # Breaks) and Madonna's read 1005 Hz — so a threshold grounded in the low
     # band could never be met by a statistic that does not live on that scale.
@@ -216,7 +216,7 @@ THRESHOLDS: dict[str, float] = {
     # **W8B: the number is unchanged; `_noisy` migrated to
     # `centroid_energy_hz`.** This is the migration with the largest effect on
     # the labels, and all of it is false positives removed. Against
-    # `centroid_mean` the clause fired on 13 of the corpus's 40 stems, of which
+    # `centroid_mean` the clause fired on 13 of W8B's 40 stems, of which
     # nine were kick-dominated drum stems or ordinary vocals:
     #
     #     stem                     centroid_mean   centroid_energy_hz   low band
@@ -854,7 +854,7 @@ def label_bass(analysis: SourceAnalysis) -> list[HeuristicLabel]:
 
     `sustained sub` reads `centroid_energy_hz` (W8B). Against `centroid_mean`
     it had never fired on any real material in the project's history — no bass
-    stem in the eight-track corpus had a frame-mean centroid below the 250 Hz
+    stem in W8B's eight-track corpus had a frame-mean centroid below the 250 Hz
     low-band edge. See `dark_centroid_hz` in `THRESHOLDS`.
     """
     onsets = analysis.rhythm.onset_density

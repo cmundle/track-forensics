@@ -805,11 +805,11 @@ def test_strudel_vocabulary_read_is_always_populated() -> None:
 def test_drum_grid_and_sound_suggestions_use_hits_not_the_stripped_summary_shape() -> None:
     """The Task 3 trap: `summary_payload()` strips `drum_decomposition.hits`
     to `total_hit_count`, and `suggest_drum_sounds()` reads `hits`. Calling
-    `build()` on the stripped, un-rehydrated shape must not silently produce
+    `build()` on the stripped shape must not silently produce
     fewer suggestions than the same decomposition would with `hits` intact --
     this pins that `build()` itself does the right thing when handed a
     populated summary; `test_cli.py` pins that `export-strudel-hints`
-    actually rehydrates before calling `build()`.
+    actually reloads the full sources before calling `build()`.
     """
     decomposition = make_drum_decomposition()
     full_hints = build(
@@ -992,7 +992,7 @@ def test_hints_emit_descriptions_not_strudel_code() -> None:
 # of kick, snare and hat, with the kick and snare landing on beats that the
 # shuffled hats already occupy and every hit carrying its own jitter.
 #
-# Measured on the eight-track corpus, folding each drums stem's real onsets:
+# Measured on W8B's eight-track corpus, folding each drums stem's real onsets:
 #
 #   track       n IOIs   long/short   alternation   verdict
 #   badu          1039        1.191         0.748   straight 8ths
@@ -1194,7 +1194,7 @@ def test_a_settled_octave_says_nothing_at_all() -> None:
 
 
 def test_a_silent_stem_gets_no_density() -> None:
-    """F5's shape, found again in W8B. Three of the eight corpus tracks printed
+    """F5's shape, found again in W8B. Three of W8B's eight corpus tracks printed
     a density for separation residue: donjon and showers-of-gold both reported
     `bass_activity: moderate` for bass stems at rms 8.2e-05 and 6.4e-05, and
     Brian Eno's empty drums stem reported `drum_density: sparse`."""

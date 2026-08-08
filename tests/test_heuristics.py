@@ -1464,7 +1464,7 @@ def test_labels_are_serialisable_with_their_evidence() -> None:
 
 
 # ---------------------------------------------------------------------------
-# W8B: the centroid migration, pinned against the eight-track corpus
+# W8B: the centroid migration, pinned against its eight-track corpus
 # ---------------------------------------------------------------------------
 # Transcribed from `calibration/v5/*/analysis/*.json` (essentia, the default
 # backend). Real music rather than synthesis, and it is the evidence behind

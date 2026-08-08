@@ -1,4 +1,4 @@
-"""Tests for `TrackSummary.summary_payload()` and `rehydrate_stripped_lists()`.
+"""Tests for `TrackSummary.summary_payload()` and the strip it performs.
 
 Beat and onset times, drum hits and bass notes stay complete in
 `analysis/<source>.json`; the summary carries only counts, so the one file you
@@ -41,7 +41,6 @@ from audio_pipeline.schemas import (
     StrudelHints,
     StrudelSoundSuggestion,
     TrackSummary,
-    rehydrate_stripped_lists,
 )
 
 STRIPPED_LIST_FIELDS = ("beat_times", "onset_times")
@@ -277,8 +276,8 @@ def test_empty_summary_payload_does_not_raise() -> None:
 def test_summary_list_fields_all_name_real_fields() -> None:
     """Meta-test: every key in the table must name a real field on a real model.
 
-    The table drives stripping *and* rehydration, so a typo in it would silently
-    stop doing both rather than failing.
+    The table drives the strip, so a typo in it would silently stop stripping
+    that field rather than failing.
     """
     for block_name, list_fields in _SUMMARY_LIST_FIELDS.items():
         assert block_name in SourceAnalysis.model_fields, block_name
@@ -426,53 +425,6 @@ def test_pitch_track_floats_are_unbounded() -> None:
         method="pyin",
     )
     assert track.voiced_probability == [1.06, -0.02]
-
-
-def test_rehydrate_restores_every_stripped_list() -> None:
-    """The strip and the rehydrate read the same table, so they cannot drift."""
-    full = _source("drums", [0.0, 0.5, 1.0])
-    reloaded = TrackSummary.model_validate(
-        json.loads(json.dumps(_summary().summary_payload()))
-    ).sources["drums"]
-
-    # Loaded from the summary, the lists are gone and the counts are not fields.
-    assert reloaded.rhythm.beat_times == []
-    assert reloaded.drum_decomposition.hits == []
-    assert reloaded.bass_line.notes == []
-
-    rehydrate_stripped_lists(reloaded, full)
-
-    assert reloaded.rhythm.beat_times == full.rhythm.beat_times
-    assert reloaded.rhythm.onset_times == full.rhythm.onset_times
-    assert reloaded.drum_decomposition.hits == full.drum_decomposition.hits
-    assert reloaded.bass_line.notes == full.bass_line.notes
-
-
-def test_rehydrate_touches_nothing_else() -> None:
-    target = _source("drums", [])
-    target.drum_decomposition.status = "no_grid"
-    target.bass_line.median_midi_note = 99
-
-    rehydrate_stripped_lists(target, _source("drums", [0.0, 0.5]))
-
-    assert target.drum_decomposition.status == "no_grid"
-    assert target.bass_line.median_midi_note == 99
-    assert target.rhythm.beat_times == [0.0, 0.5]
-
-
-def test_rehydrate_from_an_empty_source_is_a_no_op_not_a_crash() -> None:
-    """A missing `analysis/<source>.json` must not take the hints path down."""
-    target = _source("drums", [1.0, 2.0])
-    empty = SourceAnalysis(
-        source="drums",
-        audio_path="missing.wav",
-        duration_seconds=0.0,
-        sample_rate=44100,
-        backend="librosa",
-    )
-    rehydrate_stripped_lists(target, empty)
-    assert target.rhythm.beat_times == []
-    assert target.drum_decomposition.hits == []
 
 
 # --- schema v4: the closed vocabularies --------------------------------------

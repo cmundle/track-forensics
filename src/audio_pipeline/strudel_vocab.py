@@ -359,7 +359,7 @@ SUB_BASS_LOW_RATIO_MIN: Final[float] = 0.75
 #: sweep shows is inert.
 SUB_BASS_BRIGHTNESS_MAX: Final[float] = 0.005
 
-#: [measured, v5 + eight-track corpus] **Raised from 120.0 to the top of the
+#: [measured, v5 + W8B's eight-track corpus] **Raised from 120.0 to the top of the
 #: `low` band, and demoted to a sanity bound.** It is no longer a discriminator
 #: and it is no longer allowed to decide anything on its own.
 #:
@@ -371,7 +371,7 @@ SUB_BASS_BRIGHTNESS_MAX: Final[float] = 0.005
 #: fitted to any stem.
 #:
 #: **Why it cannot be a discriminator.** All six audible bass stems in the
-#: eight-track corpus are sub basses, and their centroids span a 2.3:1 range:
+#: W8B eight-track corpus are sub basses, and their centroids span a 2.3:1 range:
 #:
 #:     track       centroid_energy_hz   brightness   low ratio
 #:     eno                       68.7     0.000005       1.000
@@ -706,7 +706,7 @@ def _harmonic_bass_match(
 def _silent_bass_suggestion(spectral: SpectralFeatures) -> StrudelSoundSuggestion:
     """The verdict for a stem `analyze.py` has already called silent.
 
-    Separation residue, not a bass. Measured on the eight-track corpus: the two
+    Separation residue, not a bass. Measured on W8B's eight-track corpus: the two
     stems in this state read `rms_mean` 8.2e-05 and 6.4e-05 against a
     `SILENCE_RMS_FLOOR` of 1e-3, and both metered at exactly -70.0 LUFS, which
     is the meter's own floor rather than a level.

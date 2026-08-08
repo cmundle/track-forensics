@@ -279,7 +279,7 @@ def test_sub_bass_threshold_is_not_quietly_loosened() -> None:
     assert suggest_bass_sound(BassLine(status="ok"), midrange)[0].match == "none"
 
 
-#: Every audible bass stem in the eight-track v5 corpus, read from the
+#: Every audible bass stem in W8B's eight-track v5 corpus, read from the
 #: committed `calibration/v5/*/analysis/bass.json`. The stems themselves are
 #: gitignored; these are the numbers, which is all the verdict reads.
 #: All six are sub basses, spanning a 2.3:1 centroid range.

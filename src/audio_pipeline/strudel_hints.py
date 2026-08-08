@@ -35,12 +35,11 @@ and the drum-grid reporting both read `DrumDecomposition.hits`/`.patterns` --
 complete only in `analysis/<source>.json`, since `track_summary.json` strips
 `hits` (though not `patterns`) to a count. **Call `build()` on a summary where
 those lists survive**: the in-memory one `analyze_track` produces, or one
-rehydrated with `schemas.rehydrate_stripped_lists()`
-(`cli._load_track_summary_with_timing` does this for `export-strudel-hints`
-run standalone). A summary reloaded from disk without rehydration still
-produces a valid `StrudelHints` -- it is simply a weaker one, with an empty
-`bass_line.note_sequence` and no drum-class steps, exactly the failure mode
-rehydration exists to avoid.
+rebuilt from the per-source files by `cli._load_full_track_summary`, which is
+what `export-strudel-hints` uses when run standalone. A summary read straight
+from `track_summary.json` still produces a valid `StrudelHints` -- it is simply
+a weaker one, with an empty `bass_line.note_sequence` and no drum-class steps,
+exactly the failure mode that loader exists to avoid.
 """
 
 from __future__ import annotations
@@ -560,7 +559,7 @@ def _density_with_note(
 
     **A silent stem gets no density** (W8B, and the same F5 shape as
     `_tonal_centre`). The silence gate stopped the pitch track, the tonal centre
-    and the note segmentation, but not this: three of the eight corpus tracks
+    and the note segmentation, but not this: three of W8B's eight corpus tracks
     printed a density for a stem that is separation residue — a bass stem at
     rms 8.2e-05 read `moderate` off 3.03 onsets/sec, and an ambient record's
     empty drums stem read `sparse` off 0.35. An onset detector pointed at a
@@ -633,11 +632,11 @@ def _bass_line_hint(summary: TrackSummary) -> tuple[BassLineHint, str | None]:
     `analysis/bass.json` (`track_summary.json` strips it to `note_count`, see
     `schemas._SUMMARY_LIST_FIELDS`) -- so this must be called on a summary
     where that list survives: the in-memory summary `analyze_track` produces,
-    or one rehydrated via `schemas.rehydrate_stripped_lists`. A summary
-    reloaded from disk without rehydration has an empty `notes` list here,
-    which reads as (and is reported as) a genuinely empty bass line rather
-    than raising -- the caller is responsible for rehydrating first if that
-    distinction matters (see `cli._load_track_summary_with_timing`).
+    or one rebuilt from the per-source files by `cli._load_full_track_summary`.
+    A summary read straight from `track_summary.json` has an empty `notes` list
+    here, which reads as (and is reported as) a genuinely empty bass line
+    rather than raising -- the caller is responsible for loading the full
+    sources first if that distinction matters.
 
     Capped at `BASS_LINE_NOTE_SEQUENCE_CAP` entries with `truncated_from`
     recording the real count when the cap bites, since `strudel_hints.json`
@@ -839,7 +838,7 @@ def _sound_suggestions(summary: TrackSummary) -> list[StrudelSoundSuggestion]:
 
     Reads `drums.drum_decomposition.hits`, not the stripped `track_summary.
     json` shape -- see `_drum_grid_hint` and `_bass_line_hint` for the same
-    rehydration requirement.
+    full-sources requirement.
     """
     drums = _source(summary, "drums")
     decomposition = drums.drum_decomposition if drums is not None else DrumDecomposition()
