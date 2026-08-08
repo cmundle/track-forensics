@@ -1,22 +1,23 @@
 {
-  "schema_version": 4,
+  "schema_version": 5,
   "track_name": "brian-eno-1-1-remastered-2004",
   "bpm": 83.45592498779297,
+  "tempo_status": "coarse",
+  "tempo_confidence": "low",
   "suggested_cycle_seconds": 2.875769,
   "subdivision_feel": null,
   "drum_density": "sparse",
   "bass_activity": "sparse",
   "tonal_centre": "D major",
   "drum_grid": {
-    "status": "too_few_hits",
+    "status": "silent",
     "steps_per_cycle": null,
     "kick_steps": [],
     "snare_steps": [],
     "hat_steps": [],
     "unclassified_count": 0,
     "caveats": [
-      "no hits looked for in these bands \u2014 they hold nothing, or nothing transient: kick, body, noise, air",
-      "no drum hits detected"
+      "source is below the silence floor and was not analysed: at this level a stem is separation residue, and a pitch tracker or onset detector pointed at a noise floor returns confident nonsense"
     ]
   },
   "bass_line": {
@@ -57,8 +58,56 @@
     ],
     "truncated_from": 155,
     "median_midi_note": 38,
+    "steps": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15
+    ],
+    "step_share": [
+      0.0774,
+      0.0452,
+      0.0581,
+      0.0968,
+      0.0581,
+      0.0516,
+      0.0516,
+      0.0387,
+      0.0645,
+      0.0968,
+      0.0516,
+      0.0194,
+      0.0839,
+      0.0645,
+      0.0968,
+      0.0452
+    ],
     "caveats": [
       "These notes cover 20% of the stem \u2014 the rest of it carried no trackable pitch. A bass that rests is silent for much of a track by design, so low coverage is not by itself a fault, but below 30% there is little material behind the line and quiet or short notes are more likely to be missing than resting."
+    ]
+  },
+  "arrangement": {
+    "status": "no_grid",
+    "bar_count": 0,
+    "bar_seconds": null,
+    "sections": [],
+    "truncated_from": null,
+    "absent_tracks": [],
+    "caveats": [
+      "no beat period was supplied, so there is no bar to fold onto",
+      "the supplied bar grid is coarse, so section boundaries are approximate: an entry or an exit is a step of orders of magnitude in a stem's level and survives a drifting grid, but the bar it is reported at does not"
     ]
   },
   "sound_suggestions": [
@@ -78,7 +127,9 @@
   ],
   "strudel_vocabulary_read": "2026-08-04",
   "notes": [
+    "tempo refinement was refused: no beat multiple produced a usable autocorrelation peak, so bpm is the backend's raw estimate and the grid is not bar-exact. On material that genuinely drifts, or has no pulse, this is the correct answer rather than a failure \u2014 verify by ear",
     "drum inter-onset intervals fit neither an even nor a swung grid, subdivision not inferred \u2014 verify by ear",
-    "drum grid status is 'too_few_hits', see analysis/drums.json for detail"
+    "drum grid status is 'silent', see analysis/drums.json for detail",
+    "arrangement status is 'no_grid', see track_summary.json for detail"
   ]
 }

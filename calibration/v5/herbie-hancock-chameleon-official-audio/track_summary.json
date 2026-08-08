@@ -1,0 +1,798 @@
+{
+  "schema_version": 5,
+  "track_name": "herbie-hancock-chameleon-official-audio",
+  "input_path": "examples/Herbie_Hancock_-_Chameleon_Official_Audio.wav",
+  "duration_seconds": 947.281293,
+  "backend": "essentia",
+  "separation_model": "htdemucs_ft",
+  "separation_device": "mps",
+  "analysis_sample_rate": 44100,
+  "tempo": {
+    "bpm": 117.284225,
+    "period_seconds": 0.511578,
+    "coarse_bpm": 117.284225,
+    "confidence": 0.0,
+    "confidence_label": "low",
+    "status": "coarse",
+    "multiples": [
+      {
+        "beats": 16,
+        "bpm": null,
+        "lag_frames": 707.0,
+        "r": 0.023711,
+        "accepted": false,
+        "reason": "below_correlation_floor"
+      },
+      {
+        "beats": 32,
+        "bpm": null,
+        "lag_frames": 1394.0,
+        "r": 0.017913,
+        "accepted": false,
+        "reason": "below_correlation_floor"
+      }
+    ],
+    "stability": {
+      "first_half_bpm": null,
+      "second_half_bpm": null,
+      "delta_bpm": null,
+      "label": "unknown"
+    },
+    "octave_candidates": [
+      {
+        "ratio": 0.5,
+        "bpm": 58.642113,
+        "r": 0.017913,
+        "status": "ruled_out"
+      },
+      {
+        "ratio": 1.0,
+        "bpm": 117.284225,
+        "r": 0.023711,
+        "status": "ruled_out"
+      },
+      {
+        "ratio": 2.0,
+        "bpm": 234.568451,
+        "r": 0.02594,
+        "status": "ruled_out"
+      }
+    ],
+    "octave_status": "single",
+    "octave_arbitration": [],
+    "caveats": [
+      "no beat multiple produced a usable autocorrelation peak (below_correlation_floor)"
+    ]
+  },
+  "downbeat": {
+    "offset_seconds": 1.441115,
+    "confidence": 0.115596,
+    "confidence_label": "low",
+    "beat_offset_seconds": 0.417959,
+    "beat_confidence": 0.115596,
+    "phase_confidence": 0.497317,
+    "bar_phase": 2,
+    "candidate_offsets": [
+      0.417959,
+      0.929537,
+      1.441115,
+      1.952692
+    ],
+    "candidate_scores": [
+      -0.022251,
+      -0.040269,
+      0.036002,
+      0.026519
+    ],
+    "unresolved_offsets": [
+      1.952692
+    ],
+    "resolved_by": "spectral",
+    "status": "ambiguous",
+    "caveats": [
+      "bar phase is degenerate: 1 other beat(s) scored within 25% of the winner"
+    ]
+  },
+  "arrangement": {
+    "sections": [
+      {
+        "start_bar": 0,
+        "length_bars": 6,
+        "start_seconds": 1.441115,
+        "active": [
+          "bass"
+        ],
+        "label": "intro",
+        "label_reason": "first section, thinner than the full band (bass, drums, kick, other): bass"
+      },
+      {
+        "start_bar": 6,
+        "length_bars": 12,
+        "start_seconds": 13.718981,
+        "active": [
+          "drums",
+          "bass",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, kick"
+      },
+      {
+        "start_bar": 18,
+        "length_bars": 84,
+        "start_seconds": 38.274713,
+        "active": [
+          "drums",
+          "bass",
+          "other",
+          "kick"
+        ],
+        "label": "full",
+        "label_reason": "every track that is in this record is playing: drums, bass, other, kick"
+      },
+      {
+        "start_bar": 102,
+        "length_bars": 5,
+        "start_seconds": 210.164836,
+        "active": [
+          "drums",
+          "bass",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, kick"
+      },
+      {
+        "start_bar": 107,
+        "length_bars": 102,
+        "start_seconds": 220.396391,
+        "active": [
+          "drums",
+          "bass",
+          "other",
+          "kick"
+        ],
+        "label": "full",
+        "label_reason": "every track that is in this record is playing: drums, bass, other, kick"
+      },
+      {
+        "start_bar": 209,
+        "length_bars": 17,
+        "start_seconds": 429.120112,
+        "active": [
+          "drums",
+          "other",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, other, kick"
+      },
+      {
+        "start_bar": 226,
+        "length_bars": 6,
+        "start_seconds": 463.907399,
+        "active": [
+          "drums",
+          "bass",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, kick"
+      },
+      {
+        "start_bar": 232,
+        "length_bars": 3,
+        "start_seconds": 476.185265,
+        "active": [
+          "drums",
+          "bass"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass"
+      },
+      {
+        "start_bar": 235,
+        "length_bars": 154,
+        "start_seconds": 482.324198,
+        "active": [
+          "drums",
+          "bass",
+          "other",
+          "kick"
+        ],
+        "label": "full",
+        "label_reason": "every track that is in this record is playing: drums, bass, other, kick"
+      },
+      {
+        "start_bar": 389,
+        "length_bars": 2,
+        "start_seconds": 797.456091,
+        "active": [
+          "drums",
+          "other",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, other, kick"
+      },
+      {
+        "start_bar": 391,
+        "length_bars": 5,
+        "start_seconds": 801.548713,
+        "active": [
+          "drums",
+          "bass",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, kick"
+      },
+      {
+        "start_bar": 396,
+        "length_bars": 53,
+        "start_seconds": 811.780268,
+        "active": [
+          "drums",
+          "bass",
+          "other",
+          "kick"
+        ],
+        "label": "full",
+        "label_reason": "every track that is in this record is playing: drums, bass, other, kick"
+      },
+      {
+        "start_bar": 449,
+        "length_bars": 2,
+        "start_seconds": 920.234751,
+        "active": [
+          "drums",
+          "kick"
+        ],
+        "label": "outro",
+        "label_reason": "after the last full-band section (bass, drums, kick, other): drums, kick"
+      },
+      {
+        "start_bar": 451,
+        "length_bars": 11,
+        "start_seconds": 924.327373,
+        "active": [],
+        "label": "silence",
+        "label_reason": "no track is playing"
+      }
+    ],
+    "bar_count": 462,
+    "bar_seconds": 2.046311,
+    "downbeat_seconds": 1.441115,
+    "absent_tracks": [
+      "vocals"
+    ],
+    "status": "ok",
+    "caveats": [
+      "the supplied bar grid is coarse, so section boundaries are approximate: an entry or an exit is a step of orders of magnitude in a stem's level and survives a drifting grid, but the bar it is reported at does not",
+      "treated as not present in this record at all: vocals (0.00060 of the loudest stem). Below 0.02 of the loudest stem a separated stem is bleed, and thresholding bleed against itself invents an arrangement"
+    ]
+  },
+  "sources": {
+    "mix": {
+      "schema_version": 5,
+      "source": "mix",
+      "audio_path": "examples/Herbie_Hancock_-_Chameleon_Official_Audio.wav",
+      "duration_seconds": 947.281293,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 117.284225,
+        "bpm_confidence": 1.407428,
+        "beat_count": 1772,
+        "onset_count": 5175,
+        "onset_density": 5.463003,
+        "transient_sharpness": 3.834179
+      },
+      "tonal": {
+        "key": "Ab",
+        "scale": "major",
+        "key_confidence": 0.833835,
+        "hpcp_mean": [
+          0.167197,
+          0.218251,
+          0.14998,
+          0.223883,
+          0.097618,
+          0.191563,
+          0.10829,
+          0.115457,
+          0.275123,
+          0.16072,
+          0.25298,
+          0.11744
+        ],
+        "tonal_stability": 0.546582
+      },
+      "spectral": {
+        "centroid_mean": 1287.587448,
+        "centroid_std": 1027.434812,
+        "centroid_energy_hz": 704.170112,
+        "rolloff_mean": 1422.562402,
+        "rolloff_energy_hz": 1442.724609,
+        "brightness": 0.147645,
+        "band_energy_ratios": {
+          "low": 0.575075,
+          "low_mid": 0.317882,
+          "high_mid": 0.098452,
+          "high": 0.008591
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -12.134687,
+        "rms_mean": 0.149707,
+        "rms_std": 0.080063,
+        "crest_factor": 5.825643
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [],
+      "unavailable_features": []
+    },
+    "drums": {
+      "schema_version": 5,
+      "source": "drums",
+      "audio_path": "calibration/v5/herbie-hancock-chameleon-official-audio/stems/drums.wav",
+      "duration_seconds": 947.28127,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 117.296822,
+        "bpm_confidence": 1.782035,
+        "beat_count": 1772,
+        "onset_count": 5101,
+        "onset_density": 5.384884,
+        "transient_sharpness": 8.301419
+      },
+      "tonal": {
+        "key": "C",
+        "scale": "major",
+        "key_confidence": 0.613399,
+        "hpcp_mean": [
+          0.184073,
+          0.188171,
+          0.177827,
+          0.166848,
+          0.148643,
+          0.197917,
+          0.19583,
+          0.135943,
+          0.126406,
+          0.194695,
+          0.095325,
+          0.130833
+        ],
+        "tonal_stability": 0.311786
+      },
+      "spectral": {
+        "centroid_mean": 2754.014896,
+        "centroid_std": 2333.391391,
+        "centroid_energy_hz": 501.948722,
+        "rolloff_mean": 3600.975815,
+        "rolloff_energy_hz": 430.664062,
+        "brightness": 0.054224,
+        "band_energy_ratios": {
+          "low": 0.778626,
+          "low_mid": 0.173152,
+          "high_mid": 0.027313,
+          "high": 0.020909
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -18.039158,
+        "rms_mean": 0.059691,
+        "rms_std": 0.072711,
+        "crest_factor": 10.404892
+      },
+      "drum_decomposition": {
+        "status": "no_grid",
+        "steps_per_cycle": null,
+        "cycle_seconds": 2.046311,
+        "grid_anchor_seconds": 1.420377,
+        "grid_anchor_source": "supplied",
+        "quantisation_error_steps": 0.241723,
+        "patterns": [
+          {
+            "drum": "kick",
+            "steps": [],
+            "step_occupancy": [],
+            "hit_count": 695
+          },
+          {
+            "drum": "snare",
+            "steps": [],
+            "step_occupancy": [],
+            "hit_count": 3588
+          },
+          {
+            "drum": "hat",
+            "steps": [],
+            "step_occupancy": [],
+            "hit_count": 3647
+          },
+          {
+            "drum": "unclassified",
+            "steps": [],
+            "step_occupancy": [],
+            "hit_count": 97
+          }
+        ],
+        "total_hit_count": 8027,
+        "unclassified_count": 97,
+        "caveats": [
+          "610 detections in the noise/air bands were the kick's own transient found a second time, not hits of their own \u2014 their windows are over 0.6 kick energy and their air/(air+noise) is under 0.5, which is a beater click rather than a hat",
+          "97 of 8027 hits are unclassified. Three classes cannot describe a full kit: toms, rides, crashes, claps and shakers all land here, and on percussive material that is correct rather than a failure.",
+          "the grid anchor was moved -0.16 steps onto the hits' own phase. A supplied downbeat fixes which step is step 0, not the sub-step phase, and this move cannot change any step number.",
+          "no cycle grid: folding the band flux onto this cycle length puts only 0.50 of the profile on the grid, against 0.5 required and 0.25 expected by chance. The hits do not fit any grid at this period \u2014 this is not a near miss."
+        ]
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "kick-heavy",
+          "confidence": 0.796073,
+          "evidence": {
+            "band_energy_low": 0.778626,
+            "min_band_energy_low": 0.5
+          }
+        },
+        {
+          "label": "percussive",
+          "confidence": 0.200408,
+          "evidence": {
+            "crest_factor": 10.404892,
+            "onset_density": 5.384884,
+            "min_crest_factor": 8.0,
+            "min_onset_density": 2.0
+          }
+        },
+        {
+          "label": "busy drums",
+          "confidence": 0.054983,
+          "evidence": {
+            "onset_density": 5.384884,
+            "min_onset_density": 5.0
+          }
+        },
+        {
+          "label": "noisy",
+          "confidence": 0.046185,
+          "evidence": {
+            "centroid_mean": 2754.014896,
+            "chroma_entropy": 0.991559,
+            "min_centroid_hz": 2500.0,
+            "min_chroma_entropy": 0.93,
+            "key_confidence": 0.613399,
+            "tonal_stability": 0.311786
+          }
+        }
+      ],
+      "unavailable_features": [
+        "drum_decomposition (status=no_grid)"
+      ]
+    },
+    "bass": {
+      "schema_version": 5,
+      "source": "bass",
+      "audio_path": "calibration/v5/herbie-hancock-chameleon-official-audio/stems/bass.wav",
+      "duration_seconds": 947.28127,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 108.416695,
+        "bpm_confidence": 0.927299,
+        "beat_count": 1769,
+        "onset_count": 2691,
+        "onset_density": 2.840761,
+        "transient_sharpness": 7.899778
+      },
+      "tonal": {
+        "key": "Ab",
+        "scale": "major",
+        "key_confidence": 0.564604,
+        "hpcp_mean": [
+          0.151549,
+          0.176118,
+          0.138484,
+          0.107003,
+          0.080983,
+          0.127301,
+          0.070903,
+          0.101906,
+          0.181493,
+          0.138325,
+          0.212661,
+          0.092469
+        ],
+        "tonal_stability": 0.575852
+      },
+      "spectral": {
+        "centroid_mean": 416.111678,
+        "centroid_std": 609.2286,
+        "centroid_energy_hz": 161.391024,
+        "rolloff_mean": 358.567828,
+        "rolloff_energy_hz": 215.332031,
+        "brightness": 0.000539,
+        "band_energy_ratios": {
+          "low": 0.864159,
+          "low_mid": 0.135716,
+          "high_mid": 0.000123,
+          "high": 1e-06
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -19.568678,
+        "rms_mean": 0.063879,
+        "rms_std": 0.055537,
+        "crest_factor": 8.684647
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "ok",
+        "note_count": 2246,
+        "median_midi_note": 37,
+        "median_cents_offset": -0.806751,
+        "voiced_fraction": 0.446889,
+        "octave_corrections": 302,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "plucked bass",
+          "confidence": 0.979956,
+          "evidence": {
+            "transient_sharpness": 7.899778,
+            "min_transient_sharpness": 3.0
+          }
+        },
+        {
+          "label": "percussive",
+          "confidence": 0.057054,
+          "evidence": {
+            "crest_factor": 8.684647,
+            "onset_density": 2.840761,
+            "min_crest_factor": 8.0,
+            "min_onset_density": 2.0
+          }
+        }
+      ],
+      "unavailable_features": []
+    },
+    "vocals": {
+      "schema_version": 5,
+      "source": "vocals",
+      "audio_path": "calibration/v5/herbie-hancock-chameleon-official-audio/stems/vocals.wav",
+      "duration_seconds": 947.28127,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": null,
+        "bpm_confidence": null,
+        "beat_count": 0,
+        "onset_count": 114,
+        "onset_density": 0.120344,
+        "transient_sharpness": 8.56733
+      },
+      "tonal": {
+        "key": "Eb",
+        "scale": "minor",
+        "key_confidence": 0.460211,
+        "hpcp_mean": [
+          0.172924,
+          0.155385,
+          0.118172,
+          0.195093,
+          0.145846,
+          0.276805,
+          0.130775,
+          0.130712,
+          0.225199,
+          0.151961,
+          0.206315,
+          0.108363
+        ],
+        "tonal_stability": 0.447167
+      },
+      "spectral": {
+        "centroid_mean": 4154.641828,
+        "centroid_std": 1639.327249,
+        "centroid_energy_hz": 2506.848223,
+        "rolloff_mean": 4908.766971,
+        "rolloff_energy_hz": 3251.513672,
+        "brightness": 0.922095,
+        "band_energy_ratios": {
+          "low": 0.000893,
+          "low_mid": 0.212224,
+          "high_mid": 0.785808,
+          "high": 0.001075
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -15.732353,
+        "rms_mean": 0.001678,
+        "rms_std": 0.012582,
+        "crest_factor": 41.26497
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "sparse vocal",
+          "confidence": 0.879656,
+          "evidence": {
+            "onset_density": 0.120344,
+            "max_onset_density": 1.0
+          }
+        },
+        {
+          "label": "noisy",
+          "confidence": 0.300844,
+          "evidence": {
+            "centroid_mean": 4154.641828,
+            "chroma_entropy": 0.98473,
+            "min_centroid_hz": 2500.0,
+            "min_chroma_entropy": 0.93,
+            "key_confidence": 0.460211,
+            "tonal_stability": 0.447167
+          }
+        }
+      ],
+      "unavailable_features": [
+        "rhythm.beat_times",
+        "rhythm.bpm",
+        "rhythm.bpm_confidence"
+      ]
+    },
+    "other": {
+      "schema_version": 5,
+      "source": "other",
+      "audio_path": "calibration/v5/herbie-hancock-chameleon-official-audio/stems/other.wav",
+      "duration_seconds": 947.28127,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 147.469254,
+        "bpm_confidence": 0.082217,
+        "beat_count": 2003,
+        "onset_count": 3503,
+        "onset_density": 3.697951,
+        "transient_sharpness": 2.226925
+      },
+      "tonal": {
+        "key": "Ab",
+        "scale": "major",
+        "key_confidence": 0.856665,
+        "hpcp_mean": [
+          0.123858,
+          0.1807,
+          0.108392,
+          0.285003,
+          0.065703,
+          0.225425,
+          0.127338,
+          0.100397,
+          0.331249,
+          0.105704,
+          0.304306,
+          0.08859
+        ],
+        "tonal_stability": 0.667545
+      },
+      "spectral": {
+        "centroid_mean": 1459.055706,
+        "centroid_std": 1177.525662,
+        "centroid_energy_hz": 1468.515453,
+        "rolloff_mean": 1803.049285,
+        "rolloff_energy_hz": 2691.650391,
+        "brightness": 0.410648,
+        "band_energy_ratios": {
+          "low": 0.079478,
+          "low_mid": 0.635628,
+          "high_mid": 0.284075,
+          "high": 0.00082
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -14.92786,
+        "rms_mean": 0.067296,
+        "rms_std": 0.056023,
+        "crest_factor": 9.455802
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "percussive",
+          "confidence": 0.121317,
+          "evidence": {
+            "crest_factor": 9.455802,
+            "onset_density": 3.697951,
+            "min_crest_factor": 8.0,
+            "min_onset_density": 2.0
+          }
+        }
+      ],
+      "unavailable_features": []
+    }
+  }
+}

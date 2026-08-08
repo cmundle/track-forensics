@@ -1,0 +1,950 @@
+{
+  "schema_version": 5,
+  "track_name": "madonna-i-feel-so-free-peggy-gou-energy-mix-official",
+  "input_path": "examples/Madonna_-_I_Feel_So_Free_Peggy_Gou_Energy_Mix_Official.wav",
+  "duration_seconds": 267.498685,
+  "backend": "essentia",
+  "separation_model": "htdemucs_ft",
+  "separation_device": "mps",
+  "analysis_sample_rate": 44100,
+  "tempo": {
+    "bpm": 131.999691,
+    "period_seconds": 0.454547,
+    "coarse_bpm": 131.854843,
+    "confidence": 0.732924,
+    "confidence_label": "high",
+    "status": "refined",
+    "multiples": [
+      {
+        "beats": 16,
+        "bpm": 131.998229,
+        "lag_frames": 626.428857,
+        "r": 0.746143,
+        "accepted": true,
+        "reason": null
+      },
+      {
+        "beats": 32,
+        "bpm": 132.001152,
+        "lag_frames": 1252.829971,
+        "r": 0.732924,
+        "accepted": true,
+        "reason": null
+      }
+    ],
+    "stability": {
+      "first_half_bpm": 131.998355,
+      "second_half_bpm": 132.001681,
+      "delta_bpm": 0.003326,
+      "label": "high"
+    },
+    "octave_candidates": [
+      {
+        "ratio": 0.5,
+        "bpm": 66.000576,
+        "r": 0.732924,
+        "status": "live"
+      },
+      {
+        "ratio": 1.0,
+        "bpm": 131.998229,
+        "r": 0.746143,
+        "status": "live"
+      },
+      {
+        "ratio": 2.0,
+        "bpm": 263.99051,
+        "r": 0.831877,
+        "status": "live"
+      }
+    ],
+    "octave_status": "ambiguous",
+    "octave_arbitration": [
+      {
+        "ratio": 0.5,
+        "bpm": 66.000576,
+        "grid_status": "ok",
+        "quantisation_error_steps": 0.14194,
+        "quantisation_error_seconds": 0.032259,
+        "chosen": false
+      },
+      {
+        "ratio": 1.0,
+        "bpm": 131.998229,
+        "grid_status": "ok",
+        "quantisation_error_steps": 0.034147,
+        "quantisation_error_seconds": 0.00388,
+        "chosen": true
+      },
+      {
+        "ratio": 2.0,
+        "bpm": 263.99051,
+        "grid_status": "ok",
+        "quantisation_error_steps": 0.074597,
+        "quantisation_error_seconds": 0.004239,
+        "chosen": false
+      }
+    ],
+    "caveats": [
+      "the octave is not settled by correlation alone: the reported tempo was not shifted, but 66.00 BPM (r=0.73), 263.99 BPM (r=0.83) also fits this source. Arbitrate on grid quality, not on r \u2014 see the module docstring",
+      "the octave was arbitrated against the drum grid and the backend's own octave won; the alternatives are in octave_arbitration (3 fitted)"
+    ]
+  },
+  "downbeat": {
+    "offset_seconds": 0.2322,
+    "confidence": 0.110762,
+    "confidence_label": "low",
+    "beat_offset_seconds": 0.2322,
+    "beat_confidence": 0.921804,
+    "phase_confidence": 0.110762,
+    "bar_phase": 0,
+    "candidate_offsets": [
+      0.2322,
+      0.686746,
+      1.141293,
+      1.595839
+    ],
+    "candidate_scores": [
+      0.222638,
+      -0.22757,
+      0.235546,
+      -0.230614
+    ],
+    "unresolved_offsets": [
+      1.141293
+    ],
+    "resolved_by": "onset",
+    "status": "ambiguous",
+    "caveats": [
+      "bar phase is degenerate: 1 other beat(s) scored within 25% of the winner",
+      "tie broken by convention, not measurement: the source's first significant onset lands on this beat, and music generally starts on a downbeat"
+    ]
+  },
+  "arrangement": {
+    "sections": [
+      {
+        "start_bar": 0,
+        "length_bars": 17,
+        "start_seconds": 0.2322,
+        "active": [
+          "drums",
+          "other",
+          "kick"
+        ],
+        "label": "intro",
+        "label_reason": "first section, thinner than the full band (bass, drums, kick, other, vocals): drums, other, kick"
+      },
+      {
+        "start_bar": 17,
+        "length_bars": 2,
+        "start_seconds": 31.141363,
+        "active": [
+          "drums"
+        ],
+        "label": "breakdown",
+        "label_reason": "neither kick nor bass, away from the ends: drums"
+      },
+      {
+        "start_bar": 19,
+        "length_bars": 6,
+        "start_seconds": 34.777735,
+        "active": [
+          "drums",
+          "bass",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, kick"
+      },
+      {
+        "start_bar": 25,
+        "length_bars": 2,
+        "start_seconds": 45.686851,
+        "active": [
+          "drums",
+          "bass",
+          "other",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, other, kick"
+      },
+      {
+        "start_bar": 27,
+        "length_bars": 48,
+        "start_seconds": 49.323224,
+        "active": [
+          "drums",
+          "bass",
+          "vocals",
+          "other",
+          "kick"
+        ],
+        "label": "full",
+        "label_reason": "every track that is in this record is playing: drums, bass, vocals, other, kick"
+      },
+      {
+        "start_bar": 75,
+        "length_bars": 14,
+        "start_seconds": 136.596155,
+        "active": [
+          "vocals",
+          "other"
+        ],
+        "label": "breakdown",
+        "label_reason": "neither kick nor bass, away from the ends: vocals, other"
+      },
+      {
+        "start_bar": 89,
+        "length_bars": 2,
+        "start_seconds": 162.05076,
+        "active": [
+          "drums",
+          "vocals",
+          "other"
+        ],
+        "label": "breakdown",
+        "label_reason": "neither kick nor bass, away from the ends: drums, vocals, other"
+      },
+      {
+        "start_bar": 91,
+        "length_bars": 9,
+        "start_seconds": 165.687132,
+        "active": [
+          "drums",
+          "bass",
+          "vocals",
+          "other",
+          "kick"
+        ],
+        "label": "drop",
+        "label_reason": "the whole band (bass, drums, kick, other, vocals) is back, straight out of a breakdown"
+      },
+      {
+        "start_bar": 100,
+        "length_bars": 2,
+        "start_seconds": 182.050807,
+        "active": [
+          "drums"
+        ],
+        "label": "breakdown",
+        "label_reason": "neither kick nor bass, away from the ends: drums"
+      },
+      {
+        "start_bar": 102,
+        "length_bars": 10,
+        "start_seconds": 185.687179,
+        "active": [
+          "drums",
+          "bass",
+          "other",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, other, kick"
+      },
+      {
+        "start_bar": 112,
+        "length_bars": 6,
+        "start_seconds": 203.86904,
+        "active": [
+          "drums",
+          "bass",
+          "vocals",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, vocals, kick"
+      },
+      {
+        "start_bar": 118,
+        "length_bars": 4,
+        "start_seconds": 214.778157,
+        "active": [
+          "drums",
+          "bass",
+          "vocals",
+          "other",
+          "kick"
+        ],
+        "label": "full",
+        "label_reason": "every track that is in this record is playing: drums, bass, vocals, other, kick"
+      },
+      {
+        "start_bar": 122,
+        "length_bars": 14,
+        "start_seconds": 222.050901,
+        "active": [
+          "drums",
+          "bass",
+          "other",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, other, kick"
+      },
+      {
+        "start_bar": 136,
+        "length_bars": 6,
+        "start_seconds": 247.505506,
+        "active": [
+          "drums",
+          "bass",
+          "vocals",
+          "other",
+          "kick"
+        ],
+        "label": "full",
+        "label_reason": "every track that is in this record is playing: drums, bass, vocals, other, kick"
+      },
+      {
+        "start_bar": 142,
+        "length_bars": 2,
+        "start_seconds": 258.414622,
+        "active": [
+          "other"
+        ],
+        "label": "outro",
+        "label_reason": "after the last full-band section (bass, drums, kick, other, vocals): other"
+      },
+      {
+        "start_bar": 144,
+        "length_bars": 3,
+        "start_seconds": 262.050994,
+        "active": [],
+        "label": "silence",
+        "label_reason": "no track is playing"
+      }
+    ],
+    "bar_count": 147,
+    "bar_seconds": 1.818186,
+    "downbeat_seconds": 0.2322,
+    "absent_tracks": [],
+    "status": "ok",
+    "caveats": []
+  },
+  "sources": {
+    "mix": {
+      "schema_version": 5,
+      "source": "mix",
+      "audio_path": "examples/Madonna_-_I_Feel_So_Free_Peggy_Gou_Energy_Mix_Official.wav",
+      "duration_seconds": 267.498685,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 131.854843,
+        "bpm_confidence": 2.710265,
+        "beat_count": 584,
+        "onset_count": 1330,
+        "onset_density": 4.971987,
+        "transient_sharpness": 2.286096
+      },
+      "tonal": {
+        "key": "A",
+        "scale": "minor",
+        "key_confidence": 0.957312,
+        "hpcp_mean": [
+          0.168918,
+          0.058877,
+          0.142426,
+          0.052233,
+          0.279549,
+          0.15083,
+          0.089424,
+          0.169587,
+          0.065655,
+          0.533507,
+          0.065369,
+          0.098413
+        ],
+        "tonal_stability": 0.602176
+      },
+      "spectral": {
+        "centroid_mean": 1308.63919,
+        "centroid_std": 847.367625,
+        "centroid_energy_hz": 438.349856,
+        "rolloff_mean": 1043.75011,
+        "rolloff_energy_hz": 452.197266,
+        "brightness": 0.059027,
+        "band_energy_ratios": {
+          "low": 0.725198,
+          "low_mid": 0.227842,
+          "high_mid": 0.036692,
+          "high": 0.010268
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -9.723317,
+        "rms_mean": 0.214241,
+        "rms_std": 0.121759,
+        "crest_factor": 4.131595
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [],
+      "unavailable_features": []
+    },
+    "drums": {
+      "schema_version": 5,
+      "source": "drums",
+      "audio_path": "calibration/v5/madonna-i-feel-so-free-peggy-gou-energy-mix-official/stems/drums.wav",
+      "duration_seconds": 267.498662,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 132.015411,
+        "bpm_confidence": 2.82432,
+        "beat_count": 589,
+        "onset_count": 1422,
+        "onset_density": 5.315915,
+        "transient_sharpness": 3.120116
+      },
+      "tonal": {
+        "key": "F#",
+        "scale": "major",
+        "key_confidence": 0.513552,
+        "hpcp_mean": [
+          0.252822,
+          0.133566,
+          0.209033,
+          0.251272,
+          0.1541,
+          0.15293,
+          0.228845,
+          0.09753,
+          0.152261,
+          0.112322,
+          0.223026,
+          0.160056
+        ],
+        "tonal_stability": 0.373809
+      },
+      "spectral": {
+        "centroid_mean": 4389.982379,
+        "centroid_std": 2888.176801,
+        "centroid_energy_hz": 411.793353,
+        "rolloff_mean": 6285.672077,
+        "rolloff_energy_hz": 172.265625,
+        "brightness": 0.062798,
+        "band_energy_ratios": {
+          "low": 0.890089,
+          "low_mid": 0.056397,
+          "high_mid": 0.039051,
+          "high": 0.014463
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -15.669995,
+        "rms_mean": 0.067463,
+        "rms_std": 0.104292,
+        "crest_factor": 7.608849
+      },
+      "drum_decomposition": {
+        "status": "ok",
+        "steps_per_cycle": 16,
+        "cycle_seconds": 1.818186,
+        "grid_anchor_seconds": 0.233943,
+        "grid_anchor_source": "supplied",
+        "quantisation_error_steps": 0.033797,
+        "patterns": [
+          {
+            "drum": "kick",
+            "steps": [
+              0,
+              1,
+              4,
+              6,
+              7,
+              8,
+              11,
+              12,
+              15
+            ],
+            "step_occupancy": [
+              0.960317,
+              0.007937,
+              0.936508,
+              0.007937,
+              0.007937,
+              0.960317,
+              0.015873,
+              0.904762,
+              0.031746
+            ],
+            "hit_count": 483
+          },
+          {
+            "drum": "snare",
+            "steps": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15
+            ],
+            "step_occupancy": [
+              0.032258,
+              0.064516,
+              0.225806,
+              0.064516,
+              0.096774,
+              0.064516,
+              0.451613,
+              0.451613,
+              0.064516,
+              0.483871,
+              0.193548,
+              0.129032,
+              0.064516,
+              0.064516,
+              0.322581,
+              0.032258
+            ],
+            "hit_count": 87
+          },
+          {
+            "drum": "hat",
+            "steps": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15
+            ],
+            "step_occupancy": [
+              0.087302,
+              0.531746,
+              0.761905,
+              0.190476,
+              0.087302,
+              0.071429,
+              0.84127,
+              0.365079,
+              0.095238,
+              0.746032,
+              0.928571,
+              0.253968,
+              0.095238,
+              0.079365,
+              0.936508,
+              0.142857
+            ],
+            "hit_count": 783
+          },
+          {
+            "drum": "unclassified",
+            "steps": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15
+            ],
+            "step_occupancy": [
+              0.037037,
+              0.037037,
+              0.111111,
+              0.296296,
+              0.111111,
+              0.037037,
+              0.185185,
+              0.333333,
+              0.111111,
+              0.222222,
+              0.148148,
+              0.148148,
+              0.259259,
+              0.111111,
+              0.074074,
+              0.185185
+            ],
+            "hit_count": 65
+          }
+        ],
+        "total_hit_count": 1418,
+        "unclassified_count": 65,
+        "caveats": [
+          "877 detections in the noise/air bands were the kick's own transient found a second time, not hits of their own \u2014 their windows are over 0.6 kick energy and their air/(air+noise) is under 0.5, which is a beater click rather than a hat",
+          "65 of 1418 hits are unclassified. Three classes cannot describe a full kit: toms, rides, crashes, claps and shakers all land here, and on percussive material that is correct rather than a failure."
+        ]
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "kick-heavy",
+          "confidence": 1.0,
+          "evidence": {
+            "band_energy_low": 0.890089,
+            "min_band_energy_low": 0.5
+          }
+        },
+        {
+          "label": "noisy",
+          "confidence": 0.343633,
+          "evidence": {
+            "centroid_mean": 4389.982379,
+            "chroma_entropy": 0.982982,
+            "min_centroid_hz": 2500.0,
+            "min_chroma_entropy": 0.93,
+            "key_confidence": 0.513552,
+            "tonal_stability": 0.373809
+          }
+        },
+        {
+          "label": "busy drums",
+          "confidence": 0.045131,
+          "evidence": {
+            "onset_density": 5.315915,
+            "min_onset_density": 5.0
+          }
+        }
+      ],
+      "unavailable_features": []
+    },
+    "bass": {
+      "schema_version": 5,
+      "source": "bass",
+      "audio_path": "calibration/v5/madonna-i-feel-so-free-peggy-gou-energy-mix-official/stems/bass.wav",
+      "duration_seconds": 267.498662,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 130.445724,
+        "bpm_confidence": 2.319405,
+        "beat_count": 580,
+        "onset_count": 872,
+        "onset_density": 3.25983,
+        "transient_sharpness": 2.293768
+      },
+      "tonal": {
+        "key": "A",
+        "scale": "minor",
+        "key_confidence": 0.91392,
+        "hpcp_mean": [
+          0.076758,
+          0.144138,
+          0.133109,
+          0.037849,
+          0.178773,
+          0.161623,
+          0.050911,
+          0.139164,
+          0.074447,
+          0.445091,
+          0.064267,
+          0.051123
+        ],
+        "tonal_stability": 0.629903
+      },
+      "spectral": {
+        "centroid_mean": 1004.751763,
+        "centroid_std": 1596.330739,
+        "centroid_energy_hz": 138.759392,
+        "rolloff_mean": 1098.481191,
+        "rolloff_energy_hz": 215.332031,
+        "brightness": 0.002052,
+        "band_energy_ratios": {
+          "low": 0.917462,
+          "low_mid": 0.081829,
+          "high_mid": 0.000707,
+          "high": 2e-06
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -15.605715,
+        "rms_mean": 0.104034,
+        "rms_std": 0.071371,
+        "crest_factor": 5.192648
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "ok",
+        "note_count": 709,
+        "median_midi_note": 41,
+        "median_cents_offset": -5.719251,
+        "voiced_fraction": 0.453259,
+        "octave_corrections": 43,
+        "caveats": []
+      },
+      "labels": [],
+      "unavailable_features": []
+    },
+    "vocals": {
+      "schema_version": 5,
+      "source": "vocals",
+      "audio_path": "calibration/v5/madonna-i-feel-so-free-peggy-gou-energy-mix-official/stems/vocals.wav",
+      "duration_seconds": 267.498662,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 129.60553,
+        "bpm_confidence": 0.137353,
+        "beat_count": 571,
+        "onset_count": 586,
+        "onset_density": 2.190665,
+        "transient_sharpness": 2.395201
+      },
+      "tonal": {
+        "key": "A",
+        "scale": "minor",
+        "key_confidence": 0.905782,
+        "hpcp_mean": [
+          0.141847,
+          0.101538,
+          0.098268,
+          0.06912,
+          0.276994,
+          0.158227,
+          0.140838,
+          0.1719,
+          0.114767,
+          0.445843,
+          0.101002,
+          0.128489
+        ],
+        "tonal_stability": 0.574
+      },
+      "spectral": {
+        "centroid_mean": 2712.510508,
+        "centroid_std": 1963.122633,
+        "centroid_energy_hz": 762.700926,
+        "rolloff_mean": 3142.774828,
+        "rolloff_energy_hz": 861.328125,
+        "brightness": 0.101282,
+        "band_energy_ratios": {
+          "low": 0.332399,
+          "low_mid": 0.584894,
+          "high_mid": 0.062401,
+          "high": 0.020305
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -15.448692,
+        "rms_mean": 0.049997,
+        "rms_std": 0.059827,
+        "crest_factor": 12.112899
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "speech/vocal dominant",
+          "confidence": 0.444408,
+          "evidence": {
+            "rms_mean": 0.049997,
+            "centroid_mean": 2712.510508,
+            "onset_density": 2.190665,
+            "min_rms_mean": 0.01,
+            "min_centroid_hz": 300.0,
+            "max_centroid_hz": 3000.0,
+            "min_onset_density": 1.0,
+            "max_onset_density": 5.0
+          }
+        },
+        {
+          "label": "percussive",
+          "confidence": 0.047666,
+          "evidence": {
+            "crest_factor": 12.112899,
+            "onset_density": 2.190665,
+            "min_crest_factor": 8.0,
+            "min_onset_density": 2.0
+          }
+        },
+        {
+          "label": "noisy",
+          "confidence": 0.038638,
+          "evidence": {
+            "centroid_mean": 2712.510508,
+            "chroma_entropy": 0.940008,
+            "min_centroid_hz": 2500.0,
+            "min_chroma_entropy": 0.93,
+            "key_confidence": 0.905782,
+            "tonal_stability": 0.574
+          }
+        }
+      ],
+      "unavailable_features": []
+    },
+    "other": {
+      "schema_version": 5,
+      "source": "other",
+      "audio_path": "calibration/v5/madonna-i-feel-so-free-peggy-gou-energy-mix-official/stems/other.wav",
+      "duration_seconds": 267.498662,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 131.860657,
+        "bpm_confidence": 1.463013,
+        "beat_count": 577,
+        "onset_count": 1036,
+        "onset_density": 3.872917,
+        "transient_sharpness": 1.821103
+      },
+      "tonal": {
+        "key": "A",
+        "scale": "minor",
+        "key_confidence": 0.962422,
+        "hpcp_mean": [
+          0.263265,
+          0.07415,
+          0.171107,
+          0.032413,
+          0.386511,
+          0.13138,
+          0.051976,
+          0.214407,
+          0.081985,
+          0.506827,
+          0.066219,
+          0.175995
+        ],
+        "tonal_stability": 0.704589
+      },
+      "spectral": {
+        "centroid_mean": 1116.270259,
+        "centroid_std": 937.427138,
+        "centroid_energy_hz": 616.253815,
+        "rolloff_mean": 1233.388457,
+        "rolloff_energy_hz": 1033.59375,
+        "brightness": 0.063417,
+        "band_energy_ratios": {
+          "low": 0.242644,
+          "low_mid": 0.717731,
+          "high_mid": 0.038734,
+          "high": 0.000891
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -18.48563,
+        "rms_mean": 0.048646,
+        "rms_std": 0.041809,
+        "crest_factor": 13.470064
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "percussive",
+          "confidence": 0.455839,
+          "evidence": {
+            "crest_factor": 13.470064,
+            "onset_density": 3.872917,
+            "min_crest_factor": 8.0,
+            "min_onset_density": 2.0
+          }
+        }
+      ],
+      "unavailable_features": []
+    }
+  }
+}

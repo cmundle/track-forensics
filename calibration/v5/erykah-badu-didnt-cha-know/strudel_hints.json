@@ -1,8 +1,10 @@
 {
-  "schema_version": 4,
+  "schema_version": 5,
   "track_name": "erykah-badu-didnt-cha-know",
-  "bpm": 135.27386474609375,
-  "suggested_cycle_seconds": 1.774179,
+  "bpm": 135.2638602085745,
+  "tempo_status": "refined",
+  "tempo_confidence": "high",
+  "suggested_cycle_seconds": 1.77431,
   "subdivision_feel": "straight 8ths",
   "drum_density": "moderate",
   "bass_activity": "moderate",
@@ -12,7 +14,20 @@
     "steps_per_cycle": 16,
     "kick_steps": [
       0,
-      4,
+      1,
+      2,
+      3,
+      5,
+      6,
+      7,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15
+    ],
+    "snare_steps": [
       5,
       6,
       7,
@@ -22,24 +37,11 @@
       11,
       12,
       13,
-      15
-    ],
-    "snare_steps": [
-      0,
-      1,
-      2,
-      3,
-      4,
-      5,
-      6,
-      7,
-      8,
-      9,
+      14,
       15
     ],
     "hat_steps": [
       0,
-      1,
       2,
       3,
       4,
@@ -48,16 +50,15 @@
       7,
       8,
       10,
+      11,
       12,
       13,
-      14,
-      15
+      14
     ],
     "unclassified_count": 11,
     "caveats": [
       "22 detections in the noise/air bands were the kick's own transient found a second time, not hits of their own \u2014 their windows are over 0.6 kick energy and their air/(air+noise) is under 0.5, which is a beater click rather than a hat",
-      "11 of 1485 hits are unclassified. Three classes cannot describe a full kit: toms, rides, crashes, claps and shakers all land here, and on percussive material that is correct rather than a failure.",
-      "the grid anchor was moved +0.36 steps onto the hits' own phase. A supplied downbeat fixes which step is step 0, not the sub-step phase, and this move cannot change any step number."
+      "11 of 1485 hits are unclassified. Three classes cannot describe a full kit: toms, rides, crashes, claps and shakers all land here, and on percussive material that is correct rather than a failure."
     ]
   },
   "bass_line": {
@@ -98,6 +99,58 @@
     ],
     "truncated_from": 705,
     "median_midi_note": 46,
+    "steps": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15
+    ],
+    "step_share": [
+      0.078,
+      0.0043,
+      0.1574,
+      0.0241,
+      0.1475,
+      0.017,
+      0.105,
+      0.0113,
+      0.0965,
+      0.034,
+      0.0965,
+      0.0851,
+      0.0851,
+      0.027,
+      0.0227,
+      0.0085
+    ],
+    "caveats": []
+  },
+  "arrangement": {
+    "status": "ok",
+    "bar_count": 136,
+    "bar_seconds": 1.774309853570083,
+    "sections": [
+      "bar 0 x2 intro: other",
+      "bar 2 x11 groove: drums, bass, other, kick",
+      "bar 13 x104 full: drums, bass, vocals, other, kick",
+      "bar 117 x2 groove: drums, bass, vocals, kick",
+      "bar 119 x14 full: drums, bass, vocals, other, kick",
+      "bar 133 x3 outro: other"
+    ],
+    "truncated_from": null,
+    "absent_tracks": [],
     "caveats": []
   },
   "sound_suggestions": [

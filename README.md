@@ -141,8 +141,9 @@ What is new:
 | `track_summary.json` | `arrangement` | Sections, each with the presence pattern that labelled it. |
 | `strudel_hints.json` | `tempo_status`, `tempo_confidence` | So a printed BPM can be told apart from a measured one. |
 | `strudel_hints.json` | `arrangement` | One line per section. |
-| `strudel_hints.json` | `bass_line.steps` | Which grid steps the bass lands on. |
-| `analysis/*.json` | — | Unchanged in shape. |
+| `strudel_hints.json` | `bass_line.steps`, `bass_line.step_share` | Which grid steps the bass lands on, and what share of its notes each holds. A measured share rather than a thresholded list. |
+| `analysis/*.json` | `spectral.centroid_energy_hz`, `spectral.rolloff_energy_hz` | Energy-weighted, and immune to the silent-frame contamination `centroid_mean`/`rolloff_mean` suffer. Both old fields are still there and still populated. |
+| `analysis/*.json` | — | Otherwise unchanged in shape. |
 
 The three new blocks are at **track level**, not per source. In v4 each of the
 five sources refined its own tempo and they disagreed; whichever a downstream
@@ -160,138 +161,219 @@ worked. v5 runs write to `calibration/v5/`.
 
 ### Real sample output
 
-From `track-forensics all synth_mix_100bpm.wav --fast` against a 12-second synthetic mix (kick, snare, hats on 8ths, a moving bass line, a sustained A-minor pad, and deliberately no vocals). `strudel_hints.json` in full:
+From `track-forensics all Madonna_-_I_Feel_So_Free_Peggy_Gou_Energy_Mix_Official.wav` — the 4:27
+house record this tool was calibrated against, and the source of most of the v4 → v5 findings. The
+full files are committed under `calibration/v5/`; this is `strudel_hints.json`, abridged only where
+a list repeats.
 
-```json
+```jsonc
 {
-  "schema_version": 4,
-  "track_name": "synth-mix-100bpm",
-  "bpm": 100.0336,
-  "suggested_cycle_seconds": 2.399194,
-  "subdivision_feel": "straight 8ths",
-  "drum_density": "moderate",
+  "schema_version": 5,
+  "track_name": "madonna-i-feel-so-free-peggy-gou-energy-mix-official",
+  "bpm": 131.99969088787668,
+  "tempo_status": "refined",
+  "tempo_confidence": "high",
+  "suggested_cycle_seconds": 1.818186,
+  "subdivision_feel": null,
+  "drum_density": "busy",
   "bass_activity": "moderate",
   "tonal_centre": "A minor",
   "drum_grid": {
     "status": "ok",
     "steps_per_cycle": 16,
-    "kick_steps": [4, 12],
-    "snare_steps": [],
-    "hat_steps": [0, 8],
-    "unclassified_count": 20,
+    "kick_steps": [0, 1, 4, 6, 7, 8, 11, 12, 15],
+    "snare_steps": [0, 1, 2, /* ... */ 14, 15],
+    "hat_steps":   [0, 1, 2, /* ... */ 14, 15],
+    "unclassified_count": 65,
     "caveats": [
-      "20 of 39 hits are unclassified. Three classes cannot describe a full kit: toms, rides, crashes, claps and shakers all land here, and on percussive material that is correct rather than a failure.",
-      "most hits are unclassified, so read the kick/snare/hat pattern as a partial transcription of this source rather than a complete one"
+      "877 detections in the noise/air bands were the kick's own transient found a second time, not hits of their own — their windows are over 0.6 kick energy and their air/(air+noise) is under 0.5, which is a beater click rather than a hat",
+      "65 of 1418 hits are unclassified. Three classes cannot describe a full kit: toms, rides, crashes, claps and shakers all land here, and on percussive material that is correct rather than a failure."
     ]
   },
   "bass_line": {
     "status": "ok",
-    "note_sequence": ["a2", "f2", "g2", "a2"],
+    "note_sequence": ["a1", "a2", "a1", "a2", "a1", "a2", "a1", "a2", "g2", /* ... 32 of */],
+    "truncated_from": 709,
+    "median_midi_note": 41,
+    "steps":      [0,      1,      2,      4,      5,      6,      8,      9,      10,     12,     13,     14,     15],
+    "step_share": [0.0959, 0.0028, 0.1453, 0.0959, 0.0028, 0.1453, 0.0790, 0.0042, 0.1453, 0.0564, 0.0085, 0.1453, 0.0733],
+    "caveats": []
+  },
+  "arrangement": {
+    "status": "ok",
+    "bar_count": 147,
+    "bar_seconds": 1.8181860759345343,
+    "sections": [
+      "bar 0 x17 intro: drums, other, kick",
+      "bar 17 x2 breakdown: drums",
+      "bar 19 x6 groove: drums, bass, kick",
+      "bar 25 x2 groove: drums, bass, other, kick",
+      "bar 27 x48 full: drums, bass, vocals, other, kick",
+      "bar 75 x14 breakdown: vocals, other",
+      "bar 89 x2 breakdown: drums, vocals, other",
+      "bar 91 x9 drop: drums, bass, vocals, other, kick",
+      "bar 100 x2 breakdown: drums",
+      "bar 102 x10 groove: drums, bass, other, kick",
+      "bar 112 x6 groove: drums, bass, vocals, kick",
+      "bar 118 x4 full: drums, bass, vocals, other, kick",
+      "bar 122 x14 groove: drums, bass, other, kick",
+      "bar 136 x6 full: drums, bass, vocals, other, kick",
+      "bar 142 x2 outro: other",
+      "bar 144 x3 silence: nothing playing"
+    ],
     "truncated_from": null,
-    "median_midi_note": 45,
+    "absent_tracks": [],
     "caveats": []
   },
   "sound_suggestions": [
     {
       "role": "kick", "match": "exact", "sound": "bd",
-      "reason": "9 hit(s) classified as kick; 'bd' is Strudel's default kick/bass-drum sample.",
+      "reason": "483 hit(s) classified as kick; 'bd' is Strudel's default kick/bass-drum sample.",
       "alternatives": [],
-      "evidence": { "hit_count": 9.0, "mean_kick_ratio": 0.996146, "mean_confidence": 1.0 }
+      "evidence": { "hit_count": 483.0, "mean_kick_ratio": 0.842356, "mean_confidence": 0.763809 }
+    },
+    {
+      "role": "snare", "match": "exact", "sound": "sd",
+      "reason": "87 hit(s) classified as snare; 'sd' is Strudel's default snare sample.",
+      "alternatives": [],
+      "evidence": { "hit_count": 87.0, "mean_body_ratio": 0.673968, "mean_confidence": 0.777226 }
     },
     {
       "role": "hat", "match": "exact", "sound": "oh",
-      "reason": "10 hit(s) classified as hat; median decay ratio 3.99 reads as open, so 'oh' is the closer default sample. Open versus closed is decided by decay length alone, which this pipeline measures directly.",
+      "reason": "783 hit(s) classified as hat; median decay ratio 2.20 reads as open, so 'oh' is the closer default sample. Open versus closed is decided by decay length alone, which this pipeline measures directly.",
       "alternatives": [],
-      "evidence": { "hit_count": 10.0, "mean_confidence": 0.929763, "median_decay_ratio": 3.991593 }
+      "evidence": { "hit_count": 783.0, "mean_confidence": 0.952919, "median_decay_ratio": 2.195861 }
     },
     {
       "role": "unclassified", "match": "none", "sound": null,
-      "reason": "20 hit(s) did not clear the kick/snare/hat decision margin. This pipeline recognises only three drum classes; toms, rides, crashes, claps and shakers all land here on percussive material, correctly, not as a failure. Source by ear from Strudel's percussion set.",
+      "reason": "65 hit(s) did not clear the kick/snare/hat decision margin. This pipeline recognises only three drum classes; toms, rides, crashes, claps and shakers all land here on percussive material, correctly, not as a failure. Source by ear from Strudel's percussion set.",
       "alternatives": ["ht", "mt", "lt", "cr", "rd", "perc", "sh", "cb", "tb"],
-      "evidence": { "hit_count": 20.0, "mean_confidence": 0.001084 }
+      "evidence": { "hit_count": 65.0, "mean_confidence": 0.099924 }
     },
     {
       "role": "bass", "match": "approximate", "sound": "sine",
-      "reason": "Energy is concentrated at the fundamental (low-band ratio 1.00, brightness 0.00, centroid 107 Hz) with little harmonic content: reads as sub bass. 'sine' is the closest default waveform.",
+      "reason": "Energy is concentrated at the fundamental (low-band ratio 0.92, brightness 0.00, median centroid 139 Hz) with little harmonic content: reads as sub bass. 'sine' is the closest default waveform.",
       "alternatives": [],
-      "evidence": { "low_band_ratio": 0.998611, "brightness": 0.000002, "centroid_mean_hz": 106.730525 }
+      "evidence": { "low_band_ratio": 0.917462, "brightness": 0.002052, "centroid_energy_hz": 138.759392, "centroid_mean_hz": 1004.751763 }
     }
   ],
   "strudel_vocabulary_read": "2026-08-04",
-  "notes": []
+  "notes": [
+    "tempo octave: correlation could not settle it, so the drum grid was fitted at each candidate and the backend's own octave won (other live candidates: 66.00, 263.99 BPM). bpm above is the right one",
+    "drum inter-onset intervals fit neither an even nor a swung grid, subdivision not inferred — verify by ear"
+  ]
 }
 ```
 
-An excerpt of `track_summary.json` for the `drums` source shows the shape every source follows — rhythm/tonal/spectral/dynamics blocks plus auditable labels:
+Four things in there are worth pointing at, because each is a specific thing the tool was getting
+wrong a version ago.
+
+**`bpm` is 131.99969, not 131.855.** v4 printed the mix stem's backend estimate. The record is
+132.000. That 0.145 BPM difference — and the 0.040 BPM difference against the *drums* stem's own
+estimate, which is what the grid was actually built from — accumulated 82 ms of drift over 147 bars
+and made the tool report `no_grid` for a textbook four-on-the-floor pattern. `rhythm.bpm` on every
+source still carries its own backend estimate, untouched.
+
+**`subdivision_feel` is `null`, and the note says so.** The tool will not name a grid it cannot
+read. Across eight corpus tracks it has named one (`straight 8ths`, on Erykah Badu). That is the
+intended hit rate: a wrong grid sends you down the wrong path for a bar of patterns before you
+notice.
+
+**`step_share`, not a list of "the steps the bass plays".** 0.1453 on steps 2, 6, 10 and 14 against
+0.003–0.096 elsewhere — offbeat 16ths, and the same four steps the hats land on, from a completely
+independent code path. It is a measured share rather than a thresholded list because the threshold
+that returns exactly those four steps would have exactly one record behind it.
+
+**The arrangement is the structure, not a guess at it.** 17-bar intro, a 48-bar full-band section
+from bar 27, a 14-bar breakdown at 75 with kick and bass absent in every bar, a drop at 91, and
+three bars of silence at the end. Each section carries the presence pattern that labelled it in
+`track_summary.json`.
+
+An excerpt of `analysis/drums.json` shows the shape every source follows — rhythm/tonal/spectral/
+dynamics blocks plus auditable labels:
 
 ```json
-"drums": {
-  "schema_version": 4,
-  "source": "drums",
-  "rhythm": {
-    "bpm": 100.0336,
-    "bpm_confidence": 3.976937,
-    "beat_count": 19,
-    "onset_count": 40,
-    "onset_density": 3.333333,
-    "transient_sharpness": 100.0
-  },
-  "spectral": {
-    "centroid_mean": 3544.332726,
-    "band_energy_ratios": { "low": 0.9034, "low_mid": 0.007091, "high_mid": 0.016505, "high": 0.073004 }
-  },
-  "labels": [
-    { "label": "kick-heavy", "confidence": 1.0,
-      "evidence": { "band_energy_low": 0.9034, "min_band_energy_low": 0.5 } },
-    { "label": "percussive", "confidence": 0.222814,
-      "evidence": { "crest_factor": 10.673765, "onset_density": 3.333333, "min_crest_factor": 8.0, "min_onset_density": 2.0 } }
-  ],
-  "unavailable_features": []
-}
+"source": "drums",
+"rhythm": {
+  "bpm": 132.015411,
+  "bpm_confidence": 2.82432,
+  "onset_density": 5.315915,
+  "transient_sharpness": 3.120116
+},
+"spectral": {
+  "centroid_mean": 4389.982379,
+  "centroid_energy_hz": 411.793353,
+  "rolloff_mean": 6285.672077,
+  "rolloff_energy_hz": 172.265625,
+  "brightness": 0.062798,
+  "band_energy_ratios": { "low": 0.890089, "low_mid": 0.056397, "high_mid": 0.039051, "high": 0.014463 }
+},
+"dynamics": { "loudness_lufs": -15.669995, "rms_mean": 0.067463, "crest_factor": 7.608849 },
+"labels": [
+  { "label": "kick-heavy", "confidence": 1.0,
+    "evidence": { "band_energy_low": 0.890089, "min_band_energy_low": 0.5 } },
+  { "label": "busy drums", "confidence": 0.045131,
+    "evidence": { "onset_density": 5.315915, "min_onset_density": 5.0 } }
+],
+"unavailable_features": []
 ```
 
-`track_summary.json` strips `drum_decomposition.hits` down to a `total_hit_count`; the full per-hit list, and the cycle-folded pattern it's built from, live only in `analysis/drums.json`:
+`centroid_mean` 4390 Hz and `centroid_energy_hz` 412 Hz on the same stem, and **both are correct**:
+89% of its energy is the kick, so the energy-weighted centroid sits down there, while the mean of
+per-frame centroids is dragged up by every frame between kicks that holds a hat tail. They are
+different statistics, not two scales of one, which is why `centroid_energy_hz` was added beside
+`centroid_mean` rather than replacing it — and why the heuristic thresholds that read a centroid had
+to be re-derived one at a time rather than rescaled.
+
+`track_summary.json` strips `drum_decomposition.hits` down to a `total_hit_count`; the full per-hit
+list, and the cycle-folded pattern it is built from, live only in `analysis/drums.json`:
 
 ```json
 "drum_decomposition": {
   "status": "ok",
   "steps_per_cycle": 16,
+  "cycle_seconds": 1.818186,
+  "grid_anchor_source": "supplied",
+  "quantisation_error_steps": 0.033797,
   "patterns": [
-    { "drum": "kick", "steps": [4, 12], "step_occupancy": [0.833333, 0.666667], "hit_count": 9 },
-    { "drum": "hat", "steps": [0, 8], "step_occupancy": [0.833333, 0.833333], "hit_count": 10 },
-    { "drum": "unclassified", "steps": [2, 6, 10, 14], "step_occupancy": [0.833333, 0.833333, 0.833333, 0.833333], "hit_count": 20 }
+    { "drum": "kick",  "steps": [0, 1, 4, 6, 7, 8, 11, 12, 15],
+      "step_occupancy": [0.96, 0.01, 0.94, 0.01, 0.01, 0.96, 0.02, 0.90, 0.03], "hit_count": 483 }
   ],
   "hits": [
-    { "time_seconds": 0.290249, "drum": "unclassified", "confidence": 0.0, "step": 14,
-      "kick_ratio": 0.026058, "body_ratio": 0.005693, "noise_ratio": 0.013401, "air_ratio": 0.954848,
-      "decay_ratio": 24.57339, "flatness": 0.086486 }
+    { "time_seconds": 0.232200, "drum": "kick", "confidence": 0.94, "step": 0,
+      "kick_ratio": 0.87, "body_ratio": 0.07, "noise_ratio": 0.04, "air_ratio": 0.02,
+      "decay_ratio": 1.9, "flatness": 0.004 }
   ],
-  "unclassified_count": 20
+  "unclassified_count": 65
 }
 ```
 
-Note the real result: on this run the classifier found kick and hat cleanly but reported **zero snares** — see "Status" below on why that's expected right now, not a bug.
+`step_occupancy` is the useful column: 0.96 / 0.94 / 0.96 / 0.90 on steps 0, 4, 8 and 12, and ≤ 0.03
+on every other step the kick ever touched. That is what a four-on-the-floor kick looks like when the
+grid is right, and it is what v4 could not report at all.
 
-`analysis/bass.json` carries the full note sequence behind `bass_line` in `strudel_hints.json` (which caps at 32 entries), plus per-note diagnostics:
+`analysis/bass.json` carries the full note sequence behind `bass_line` in `strudel_hints.json`
+(which caps at 32 entries), plus per-note diagnostics:
 
 ```json
 "bass_line": {
   "status": "ok",
   "notes": [
-    { "start_seconds": 0.01161, "duration_seconds": 4.783311, "midi_note": 45, "note_name": "a2",
-      "median_f0_hz": 111.040894, "cents_offset": 16.305071, "confidence": 0.937927, "step": 12 },
-    { "start_seconds": 4.794921, "duration_seconds": 2.380045, "midi_note": 41, "note_name": "f2",
-      "median_f0_hz": 88.951698, "cents_offset": 32.308638, "confidence": 0.906406, "step": 12 }
+    { "start_seconds": 0.243810, "duration_seconds": 0.208798, "midi_note": 33, "note_name": "a1",
+      "median_f0_hz": 55.31, "cents_offset": 9.7, "confidence": 0.89, "step": 2 }
   ],
-  "median_midi_note": 45,
-  "median_cents_offset": 21.740231,
-  "voiced_fraction": 0.994203,
-  "octave_corrections": 0,
+  "median_midi_note": 41,
+  "voiced_fraction": 0.4533,
+  "octave_corrections": 43,
   "caveats": []
 }
 ```
 
-Worth knowing before you look at real output from an instrumental track: this test mix had no vocals, so Demucs still produces a `vocals` stem (separation always writes all four), but it's silence plus separation artifacts. Its analysis comes back at `loudness_lufs: -68.23` and picks up a single `"silent/absent stem"` label at high confidence — that's the intended behaviour, not a bug, and is exactly what you should expect to see on any track that genuinely has no vocal content.
+On a source with no bass in it at all, that block reads `"status": "silent"` with a caveat rather
+than a note list — a pitch tracker pointed at a noise floor returns confident nonsense, and v4
+returned it. On one of the short test clips a −70 LUFS bass stem reported two notes and a key of E
+minor, and that key then beat the mix's own reading into `strudel_hints.json`. See
+`calibration/v5-vs-v4.md`.
 
 ## What gets analyzed
 
@@ -348,6 +430,15 @@ mypy src
 
 Implemented and working end to end: `track-forensics all input.wav` runs separation, per-source analysis, heuristic labelling, tempo and downbeat resolution, drum decomposition, bass note extraction, arrangement extraction, Strudel sound mapping, and hints export, and produces the full output tree described above. Schema is at `schema_version` 5 — see the migration note above; v4 readers keep working. `pytest`, `ruff check .`, and `mypy src` are all clean.
 
-Drum decomposition and bass note extraction are new in this schema version and honest about where they stand: numerically verified against synthetic fixtures (including a fixture specifically constructed so a naive single-onset-list classifier cannot pass it) and structurally verified end to end against real Demucs separation. They are **not yet calibrated against a wide range of real tracks** — that's an explicit, ongoing, separate activity, done by ear against known material. On the one real mix verified so far, the drum classifier recovered kick and hat correctly but reported zero snares, and grid positions didn't perfectly match known ground truth. That's the expected state pre-calibration, not a bug, and it's why the drum classifier is deliberately conservative about what it claims (three classes only, an honest `unclassified` bucket, no invented drum-machine identity) rather than confidently wrong.
+Drum decomposition and bass note extraction are numerically verified against synthetic fixtures (including one specifically constructed so a naive single-onset-list classifier cannot pass it), against committed real-material fixtures in `tests/fixtures/real/`, and end to end against real Demucs separation. As of schema v5 they are also calibrated against an **eight-track corpus** — house, swung hip-hop, funk, live band, ambient, drum & bass, and two short clips — with the outputs committed under `calibration/v5/` and the v4 → v5 delta written up in `calibration/v5-vs-v4.md`.
+
+What the corpus found is worth knowing before you trust any single number:
+
+- **The classifier fails on drums it was not designed for, and now says so.** Bonham's kick on "When the Levee Breaks" yields **zero** kick hits in seven minutes — not because the band is quiet (it holds 37% of the stem's energy) but because it is compressed and reverberant enough that the energy never falls back between hits, so per-hit peak-picking cannot separate them. The caveat says exactly that, and says that any drum living in those bands is missing from the counts however loud it is. A global sensitivity increase would have manufactured kicks on the three tracks that work; it was built, measured, and reverted.
+- **Roni Size's "Brown Paper Bag" is reported at 170 BPM, and the backend reads 84.92 at its highest confidence anywhere in the corpus.** The octave is arbitrated by fitting a drum grid at each candidate, not by correlation — correlation was measured and cannot do it.
+- **Brian Eno's "1/1" returns no grid, no arrangement and no sections**, and that is a pass. A tool only ever tested on material it handles well learns to always answer.
+- Some thresholds are still marked `[guess]` in the source, with the measurement they need named. That is deliberate: an undocumented constant is a future bug with no paper trail.
+
+The drum classifier stays deliberately conservative about what it claims — three classes only, an honest `unclassified` bucket, no invented drum-machine identity — rather than confidently wrong.
 
 See `CLAUDE.md` for the implementation brief and module contracts if you're extending it.

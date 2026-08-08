@@ -1,0 +1,82 @@
+{
+  "schema_version": 5,
+  "track_name": "ancient-heavy-tech-donjon",
+  "bpm": 90.38639831542969,
+  "tempo_status": "coarse",
+  "tempo_confidence": "low",
+  "suggested_cycle_seconds": 2.655267,
+  "subdivision_feel": null,
+  "drum_density": "moderate",
+  "bass_activity": "moderate",
+  "tonal_centre": null,
+  "drum_grid": {
+    "status": "too_few_hits",
+    "steps_per_cycle": null,
+    "kick_steps": [],
+    "snare_steps": [],
+    "hat_steps": [],
+    "unclassified_count": 0,
+    "caveats": [
+      "no hits looked for in these bands \u2014 they hold under 0.001 of this source's energy, which is residue rather than content: noise, air",
+      "no hits looked for in these bands \u2014 they are full of transients that never separate. The energy does not fall back between hits, which is a compressed or reverberant source (or a roll), and this module cannot tell one hit from the next in it. **Any drum living in these bands is missing from the counts below, however loud it is.** An envelope fold can still see the pattern where per-hit detection cannot: kick, body",
+      "no drum hits detected"
+    ]
+  },
+  "bass_line": {
+    "status": "silent",
+    "note_sequence": [],
+    "truncated_from": null,
+    "median_midi_note": null,
+    "steps": [],
+    "step_share": [],
+    "caveats": [
+      "source is below the silence floor and was not analysed: at this level a stem is separation residue, and a pitch tracker or onset detector pointed at a noise floor returns confident nonsense"
+    ]
+  },
+  "arrangement": {
+    "status": "ok",
+    "bar_count": 2,
+    "bar_seconds": 2.6552667710295306,
+    "sections": [
+      "bar 0 x2 full: drums, other, kick"
+    ],
+    "truncated_from": null,
+    "absent_tracks": [
+      "bass",
+      "vocals"
+    ],
+    "caveats": [
+      "the supplied bar grid is coarse, so section boundaries are approximate: an entry or an exit is a step of orders of magnitude in a stem's level and survives a drifting grid, but the bar it is reported at does not",
+      "treated as not present in this record at all: bass (0.00201 of the loudest stem), vocals (0.00140 of the loudest stem). Below 0.02 of the loudest stem a separated stem is bleed, and thresholding bleed against itself invents an arrangement"
+    ]
+  },
+  "sound_suggestions": [
+    {
+      "role": "bass",
+      "match": "none",
+      "sound": null,
+      "reason": "Spectral shape does not clearly read as sub bass or as harmonically rich; picking a synth waveform from this evidence alone would be a guess, not a measurement. (bass line status is 'silent'; this verdict is based on the stem's overall spectral shape only, independent of note segmentation)",
+      "alternatives": [
+        "sine",
+        "sawtooth",
+        "square",
+        "triangle"
+      ],
+      "evidence": {
+        "low_band_ratio": 0.5321784725446479,
+        "brightness": 0.07450457151995236,
+        "centroid_energy_hz": 736.2033413734297,
+        "centroid_mean_hz": 1348.7514120122437
+      }
+    }
+  ],
+  "strudel_vocabulary_read": "2026-08-04",
+  "notes": [
+    "tempo refinement was refused: no beat multiple produced a usable autocorrelation peak, so bpm is the backend's raw estimate and the grid is not bar-exact. On material that genuinely drifts, or has no pulse, this is the correct answer rather than a failure \u2014 verify by ear",
+    "drum inter-onset intervals fit neither an even nor a swung grid, subdivision not inferred \u2014 verify by ear",
+    "bass stem is below the silence floor, so it was not used as a fallback tonal centre \u2014 a key detector reads separation residue as confidently as it reads a bassline",
+    "drum grid status is 'too_few_hits', see analysis/drums.json for detail",
+    "bass line status is 'silent', see analysis/bass.json for detail",
+    "not in this record at all: bass, vocals \u2014 do not write parts for them"
+  ]
+}

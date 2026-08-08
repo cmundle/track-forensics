@@ -1,7 +1,9 @@
 {
-  "schema_version": 4,
+  "schema_version": 5,
   "track_name": "when-the-levee-breaks-remaster",
   "bpm": 143.2527313232422,
+  "tempo_status": "coarse",
+  "tempo_confidence": "low",
   "suggested_cycle_seconds": 1.675361,
   "subdivision_feel": null,
   "drum_density": "moderate",
@@ -15,10 +17,10 @@
     "hat_steps": [],
     "unclassified_count": 48,
     "caveats": [
-      "no hits looked for in these bands \u2014 they hold nothing, or nothing transient: kick, body",
+      "no hits looked for in these bands \u2014 they are full of transients that never separate. The energy does not fall back between hits, which is a compressed or reverberant source (or a roll), and this module cannot tell one hit from the next in it. **Any drum living in these bands is missing from the counts below, however loud it is.** An envelope fold can still see the pattern where per-hit detection cannot: kick, body",
       "48 of 1164 hits are unclassified. Three classes cannot describe a full kit: toms, rides, crashes, claps and shakers all land here, and on percussive material that is correct rather than a failure.",
-      "the grid anchor was moved +0.32 steps onto the hits' own phase. A supplied downbeat fixes which step is step 0, not the sub-step phase, and this move cannot change any step number.",
-      "no cycle grid: folding the band flux onto this cycle length puts only 0.33 of the profile on the grid, against 0.5 required and 0.25 expected by chance. The hits do not fit any grid at this period \u2014 this is not a near miss."
+      "the grid anchor was moved -0.20 steps onto the hits' own phase. A supplied downbeat fixes which step is step 0, not the sub-step phase, and this move cannot change any step number.",
+      "no cycle grid: folding the band flux onto this cycle length puts only 0.36 of the profile on the grid, against 0.5 required and 0.25 expected by chance. The hits do not fit any grid at this period \u2014 this is not a near miss."
     ]
   },
   "bass_line": {
@@ -59,7 +61,78 @@
     ],
     "truncated_from": 1055,
     "median_midi_note": 41,
+    "steps": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15
+    ],
+    "step_share": [
+      0.0777,
+      0.0626,
+      0.0588,
+      0.0739,
+      0.054,
+      0.054,
+      0.0626,
+      0.0569,
+      0.0635,
+      0.0512,
+      0.0654,
+      0.0654,
+      0.0607,
+      0.0626,
+      0.0673,
+      0.0635
+    ],
     "caveats": []
+  },
+  "arrangement": {
+    "status": "ok",
+    "bar_count": 256,
+    "bar_seconds": 1.6753607263407266,
+    "sections": [
+      "bar 0 x3 intro: drums, kick",
+      "bar 3 x46 groove: drums, bass, other, kick",
+      "bar 49 x13 full: drums, bass, vocals, other, kick",
+      "bar 62 x2 groove: drums, bass, other, kick",
+      "bar 64 x15 full: drums, bass, vocals, other, kick",
+      "bar 79 x9 groove: drums, bass, other, kick",
+      "bar 88 x2 breakdown: other",
+      "bar 90 x4 groove: drums, bass, other, kick",
+      "bar 94 x12 full: drums, bass, vocals, other, kick",
+      "bar 106 x41 groove: drums, bass, other, kick",
+      "bar 147 x13 full: drums, bass, vocals, other, kick",
+      "bar 160 x3 groove: drums, bass, other, kick",
+      "bar 163 x14 full: drums, bass, vocals, other, kick",
+      "bar 177 x14 groove: drums, bass, other, kick",
+      "bar 191 x8 full: drums, bass, vocals, other, kick",
+      "bar 199 x2 groove: drums, bass, other, kick",
+      "bar 201 x2 full: drums, bass, vocals, other, kick",
+      "bar 203 x5 groove: drums, bass, other, kick",
+      "bar 208 x23 full: drums, bass, vocals, other, kick",
+      "bar 231 x3 groove: drums, bass, other, kick",
+      "bar 234 x16 full: drums, bass, vocals, other, kick",
+      "bar 250 x4 outro: other",
+      "bar 254 x2 silence: nothing playing"
+    ],
+    "truncated_from": null,
+    "absent_tracks": [],
+    "caveats": [
+      "the supplied bar grid is coarse, so section boundaries are approximate: an entry or an exit is a step of orders of magnitude in a stem's level and survives a drifting grid, but the bar it is reported at does not"
+    ]
   },
   "sound_suggestions": [
     {
@@ -123,6 +196,7 @@
   ],
   "strudel_vocabulary_read": "2026-08-04",
   "notes": [
+    "tempo refinement was refused: no beat multiple produced a usable autocorrelation peak, so bpm is the backend's raw estimate and the grid is not bar-exact. On material that genuinely drifts, or has no pulse, this is the correct answer rather than a failure \u2014 verify by ear",
     "drum inter-onset intervals fit neither an even nor a swung grid, subdivision not inferred \u2014 verify by ear",
     "drum grid status is 'no_grid', see analysis/drums.json for detail"
   ]

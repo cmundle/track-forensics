@@ -1,0 +1,595 @@
+{
+  "schema_version": 5,
+  "track_name": "ancient-heavy-tech-donjon",
+  "input_path": "examples/Ancient-Heavy-Tech-Donjon.wav",
+  "duration_seconds": 4.296009,
+  "backend": "essentia",
+  "separation_model": "htdemucs_ft",
+  "separation_device": "mps",
+  "analysis_sample_rate": 44100,
+  "tempo": {
+    "bpm": 90.386398,
+    "period_seconds": 0.663817,
+    "coarse_bpm": 90.386398,
+    "confidence": 0.0,
+    "confidence_label": "low",
+    "status": "coarse",
+    "multiples": [
+      {
+        "beats": 16,
+        "bpm": null,
+        "lag_frames": null,
+        "r": 0.0,
+        "accepted": false,
+        "reason": "too_short"
+      },
+      {
+        "beats": 32,
+        "bpm": null,
+        "lag_frames": null,
+        "r": 0.0,
+        "accepted": false,
+        "reason": "too_short"
+      }
+    ],
+    "stability": {
+      "first_half_bpm": null,
+      "second_half_bpm": null,
+      "delta_bpm": null,
+      "label": "unknown"
+    },
+    "octave_candidates": [
+      {
+        "ratio": 0.5,
+        "bpm": 45.193199,
+        "r": 0.0,
+        "status": "unmeasurable"
+      },
+      {
+        "ratio": 1.0,
+        "bpm": 90.386398,
+        "r": 0.0,
+        "status": "unmeasurable"
+      },
+      {
+        "ratio": 2.0,
+        "bpm": 180.772797,
+        "r": 0.0,
+        "status": "unmeasurable"
+      }
+    ],
+    "octave_status": "unavailable",
+    "octave_arbitration": [],
+    "caveats": [
+      "no beat multiple produced a usable autocorrelation peak (too_short)"
+    ]
+  },
+  "downbeat": {
+    "offset_seconds": 0.01161,
+    "confidence": 0.0,
+    "confidence_label": "low",
+    "beat_offset_seconds": 0.01161,
+    "beat_confidence": 0.803061,
+    "phase_confidence": 0.0,
+    "bar_phase": 0,
+    "candidate_offsets": [
+      0.01161,
+      0.675427,
+      1.339243,
+      2.00306
+    ],
+    "candidate_scores": [
+      0.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    "unresolved_offsets": [
+      0.675427,
+      1.339243,
+      2.00306
+    ],
+    "resolved_by": "onset",
+    "status": "ambiguous",
+    "caveats": [
+      "no bright-band content to read bar phase from; every beat of the bar remains a candidate (4 in total)"
+    ]
+  },
+  "arrangement": {
+    "sections": [
+      {
+        "start_bar": 0,
+        "length_bars": 2,
+        "start_seconds": 0.01161,
+        "active": [
+          "drums",
+          "other",
+          "kick"
+        ],
+        "label": "full",
+        "label_reason": "every track that is in this record is playing: drums, other, kick"
+      }
+    ],
+    "bar_count": 2,
+    "bar_seconds": 2.655267,
+    "downbeat_seconds": 0.01161,
+    "absent_tracks": [
+      "bass",
+      "vocals"
+    ],
+    "status": "ok",
+    "caveats": [
+      "the supplied bar grid is coarse, so section boundaries are approximate: an entry or an exit is a step of orders of magnitude in a stem's level and survives a drifting grid, but the bar it is reported at does not",
+      "treated as not present in this record at all: bass (0.00201 of the loudest stem), vocals (0.00140 of the loudest stem). Below 0.02 of the loudest stem a separated stem is bleed, and thresholding bleed against itself invents an arrangement"
+    ]
+  },
+  "sources": {
+    "mix": {
+      "schema_version": 5,
+      "source": "mix",
+      "audio_path": "examples/Ancient-Heavy-Tech-Donjon.wav",
+      "duration_seconds": 4.296009,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 90.386398,
+        "bpm_confidence": 0.0,
+        "beat_count": 6,
+        "onset_count": 22,
+        "onset_density": 5.121032,
+        "transient_sharpness": 1.970726
+      },
+      "tonal": {
+        "key": "F",
+        "scale": "major",
+        "key_confidence": 0.444961,
+        "hpcp_mean": [
+          0.033842,
+          0.066952,
+          0.119943,
+          0.120027,
+          0.444055,
+          0.127007,
+          0.385968,
+          0.119692,
+          0.034569,
+          0.150009,
+          0.191086,
+          0.046957
+        ],
+        "tonal_stability": 0.553684
+      },
+      "spectral": {
+        "centroid_mean": 742.336667,
+        "centroid_std": 532.757728,
+        "centroid_energy_hz": 560.296377,
+        "rolloff_mean": 663.01427,
+        "rolloff_energy_hz": 732.128906,
+        "brightness": 0.073477,
+        "band_energy_ratios": {
+          "low": 0.39343,
+          "low_mid": 0.533515,
+          "high_mid": 0.067862,
+          "high": 0.005194
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -22.242655,
+        "rms_mean": 0.049151,
+        "rms_std": 0.035844,
+        "crest_factor": 11.299547
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "percussive",
+          "confidence": 0.274962,
+          "evidence": {
+            "crest_factor": 11.299547,
+            "onset_density": 5.121032,
+            "min_crest_factor": 8.0,
+            "min_onset_density": 2.0
+          }
+        }
+      ],
+      "unavailable_features": []
+    },
+    "drums": {
+      "schema_version": 5,
+      "source": "drums",
+      "audio_path": "calibration/v5/ancient-heavy-tech-donjon/stems/drums.wav",
+      "duration_seconds": 4.295986,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 91.489594,
+        "bpm_confidence": 0.0,
+        "beat_count": 6,
+        "onset_count": 18,
+        "onset_density": 4.189958,
+        "transient_sharpness": 2.373135
+      },
+      "tonal": {
+        "key": "F",
+        "scale": "minor",
+        "key_confidence": 0.571156,
+        "hpcp_mean": [
+          0.09141,
+          0.117346,
+          0.149388,
+          0.150297,
+          0.215053,
+          0.164553,
+          0.08643,
+          0.062336,
+          0.076677,
+          0.257475,
+          0.215158,
+          0.074435
+        ],
+        "tonal_stability": 0.217738
+      },
+      "spectral": {
+        "centroid_mean": 137.702349,
+        "centroid_std": 82.705607,
+        "centroid_energy_hz": 77.343919,
+        "rolloff_mean": 149.111643,
+        "rolloff_energy_hz": 129.199219,
+        "brightness": 1.4e-05,
+        "band_energy_ratios": {
+          "low": 0.981247,
+          "low_mid": 0.018741,
+          "high_mid": 9e-06,
+          "high": 4e-06
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -28.696331,
+        "rms_mean": 0.024786,
+        "rms_std": 0.028474,
+        "crest_factor": 11.707529
+      },
+      "drum_decomposition": {
+        "status": "too_few_hits",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": [
+          "no hits looked for in these bands \u2014 they hold under 0.001 of this source's energy, which is residue rather than content: noise, air",
+          "no hits looked for in these bands \u2014 they are full of transients that never separate. The energy does not fall back between hits, which is a compressed or reverberant source (or a roll), and this module cannot tell one hit from the next in it. **Any drum living in these bands is missing from the counts below, however loud it is.** An envelope fold can still see the pattern where per-hit detection cannot: kick, body",
+          "no drum hits detected"
+        ]
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "kick-heavy",
+          "confidence": 1.0,
+          "evidence": {
+            "band_energy_low": 0.981247,
+            "min_band_energy_low": 0.5
+          }
+        },
+        {
+          "label": "percussive",
+          "confidence": 0.308961,
+          "evidence": {
+            "crest_factor": 11.707529,
+            "onset_density": 4.189958,
+            "min_crest_factor": 8.0,
+            "min_onset_density": 2.0
+          }
+        }
+      ],
+      "unavailable_features": [
+        "drum_decomposition (status=too_few_hits)"
+      ]
+    },
+    "bass": {
+      "schema_version": 5,
+      "source": "bass",
+      "audio_path": "calibration/v5/ancient-heavy-tech-donjon/stems/bass.wav",
+      "duration_seconds": 4.295986,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 90.364639,
+        "bpm_confidence": 0.0,
+        "beat_count": 6,
+        "onset_count": 13,
+        "onset_density": 3.026081,
+        "transient_sharpness": 1.699124
+      },
+      "tonal": {
+        "key": "E",
+        "scale": "minor",
+        "key_confidence": 0.687967,
+        "hpcp_mean": [
+          0.13348,
+          0.09356,
+          0.061092,
+          0.17433,
+          0.235745,
+          0.287449,
+          0.216806,
+          0.144594,
+          0.140427,
+          0.144064,
+          0.179789,
+          0.11126
+        ],
+        "tonal_stability": 0.373644
+      },
+      "spectral": {
+        "centroid_mean": 1348.751412,
+        "centroid_std": 429.591331,
+        "centroid_energy_hz": 736.203341,
+        "rolloff_mean": 181.700873,
+        "rolloff_energy_hz": 689.0625,
+        "brightness": 0.074505,
+        "band_energy_ratios": {
+          "low": 0.532178,
+          "low_mid": 0.399881,
+          "high_mid": 0.039655,
+          "high": 0.028285
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -70.0,
+        "rms_mean": 8.2e-05,
+        "rms_std": 4.1e-05,
+        "crest_factor": 11.077531
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "silent",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": [
+          "source is below the silence floor and was not analysed: at this level a stem is separation residue, and a pitch tracker or onset detector pointed at a noise floor returns confident nonsense"
+        ]
+      },
+      "labels": [
+        {
+          "label": "silent/absent stem",
+          "confidence": 1.0,
+          "evidence": {
+            "loudness_lufs": -70.0,
+            "max_loudness_lufs": -50.0
+          }
+        }
+      ],
+      "unavailable_features": [
+        "bass_line (status=silent)",
+        "source (silent: rms_mean 8.2e-05 is below the 0.001 silence floor)"
+      ]
+    },
+    "vocals": {
+      "schema_version": 5,
+      "source": "vocals",
+      "audio_path": "calibration/v5/ancient-heavy-tech-donjon/stems/vocals.wav",
+      "duration_seconds": 4.295986,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 89.102905,
+        "bpm_confidence": 0.0,
+        "beat_count": 6,
+        "onset_count": 17,
+        "onset_density": 3.957182,
+        "transient_sharpness": 1.968842
+      },
+      "tonal": {
+        "key": "E",
+        "scale": "major",
+        "key_confidence": 0.699816,
+        "hpcp_mean": [
+          0.120131,
+          0.037291,
+          0.046922,
+          0.229531,
+          0.241765,
+          0.319316,
+          0.168451,
+          0.173756,
+          0.210752,
+          0.147394,
+          0.094827,
+          0.135283
+        ],
+        "tonal_stability": 0.36531
+      },
+      "spectral": {
+        "centroid_mean": 2131.547959,
+        "centroid_std": 971.08787,
+        "centroid_energy_hz": 1918.284218,
+        "rolloff_mean": 877.304372,
+        "rolloff_energy_hz": 3940.576172,
+        "brightness": 0.382097,
+        "band_energy_ratios": {
+          "low": 0.490907,
+          "low_mid": 0.155964,
+          "high_mid": 0.288083,
+          "high": 0.065046
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -70.0,
+        "rms_mean": 4.7e-05,
+        "rms_std": 3.7e-05,
+        "crest_factor": 34.772044
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "silent/absent stem",
+          "confidence": 1.0,
+          "evidence": {
+            "loudness_lufs": -70.0,
+            "max_loudness_lufs": -50.0
+          }
+        }
+      ],
+      "unavailable_features": [
+        "source (silent: rms_mean 4.7e-05 is below the 0.001 silence floor)"
+      ]
+    },
+    "other": {
+      "schema_version": 5,
+      "source": "other",
+      "audio_path": "calibration/v5/ancient-heavy-tech-donjon/stems/other.wav",
+      "duration_seconds": 4.295986,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 87.894737,
+        "bpm_confidence": 0.0,
+        "beat_count": 6,
+        "onset_count": 15,
+        "onset_density": 3.491631,
+        "transient_sharpness": 2.080342
+      },
+      "tonal": {
+        "key": "C",
+        "scale": "major",
+        "key_confidence": 0.381136,
+        "hpcp_mean": [
+          0.021337,
+          0.009766,
+          0.032657,
+          0.086269,
+          0.613954,
+          0.107491,
+          0.455176,
+          0.114358,
+          0.045755,
+          0.057707,
+          0.034998,
+          0.084584
+        ],
+        "tonal_stability": 0.814557
+      },
+      "spectral": {
+        "centroid_mean": 1369.35804,
+        "centroid_std": 574.505039,
+        "centroid_energy_hz": 888.957699,
+        "rolloff_mean": 1273.700542,
+        "rolloff_energy_hz": 796.728516,
+        "brightness": 0.124885,
+        "band_energy_ratios": {
+          "low": 0.014584,
+          "low_mid": 0.861223,
+          "high_mid": 0.115369,
+          "high": 0.008825
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -22.15036,
+        "rms_mean": 0.031876,
+        "rms_std": 0.032789,
+        "crest_factor": 7.632844
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "tonally stable",
+          "confidence": 0.070343,
+          "evidence": {
+            "chroma_entropy": 0.743726,
+            "max_chroma_entropy": 0.8,
+            "key_confidence": 0.381136,
+            "tonal_stability": 0.814557
+          }
+        }
+      ],
+      "unavailable_features": []
+    }
+  }
+}

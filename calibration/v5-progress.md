@@ -719,3 +719,290 @@ mix's F major (F5, closed).
 The two octave caveats read as contradicting each other. `tempo.py` emits *"the reported tempo was
 not shifted"* and `analyze.py` then emits *"tempo octave corrected ×2"*, both onto the same track.
 Each is true of its own layer and the pair is confusing. Worth one rewording.
+
+---
+
+## Wave 8 — W8A cut, W8B complete
+
+**W8A (terminal visualisation) was dropped**, not deferred: `strudel_hints.json` already meets the
+need `track-forensics show` existed to meet. There is no `viz.py` and `CLAUDE.md` now says so
+explicitly, with the terminal-only constraint preserved in case it is ever revived.
+
+W8B: `pytest` **1029 passed**, `ruff check .` and `mypy src` clean.
+
+### The v4 → v5 delta is in `calibration/v5-vs-v4.md`
+
+Headline verifications, all measured against the frozen `v4/` JSON rather than assumed:
+
+| claim | verdict |
+|---|---|
+| madonna's drum grid `no_grid` → `ok` | **confirmed.** 16 steps, error 0.288 → 0.0338, kick occupancy 0.96/0.94/0.96/0.90 on 0/4/8/12, hats 1240 → 783 |
+| the two short clips' silent bass stems are now gated | **confirmed.** Both `bass_line.status` `ok` → `silent`; donjon's two-note line and showers' one-note line are gone |
+| donjon's `tonal_centre` no longer comes from a −70 LUFS stem | **confirmed.** `E minor` → `None`, with the reason printed |
+| the two clips still fail the same way | **confirmed, and this is the point.** donjon is still `too_few_hits` with 0 hits; showers is still `no_grid`. Neither was "fixed"; both now say what happened |
+
+**One capability was lost and the delta says so rather than burying it.** showers-of-gold's v4
+output named 65 hats and suggested Strudel's `oh`. v5 finds 45 hits, classifies none, and explains
+that the kick band holds under 0.001 of the source's energy and the noise/air bands are full of
+transients that never separate. That is a more accurate report and a less useful one, and both
+halves are in the document.
+
+**A control worth reusing.** The `mix` source is byte-identical between v4 and v5 on all three
+tracks, because it is the input file rather than a Demucs output. Every *stem* descriptor moved,
+because Demucs re-ran and is not bit-reproducible here. So: where `mix` differs, the code changed;
+where only stems differ, the separator did. The residue stems moved by up to 2× (showers' vocals
+`centroid_mean` 2853 → 5511, `brightness` 0.35 → 0.69) on a stem that contains nothing — the single
+best argument for `SILENCE_RMS_FLOOR` in the whole corpus.
+
+### Task 2 — the centroid migration, three of four
+
+Migrated one at a time, each measured across all eight tracks' 40 stems before the next. **Nothing
+was rescaled.** Nine label changes in total, all of them corrections.
+
+**`noisy_centroid_hz` (2500) → `centroid_energy_hz`. Value unchanged.** The largest effect, and all
+of it false positives removed. Against `centroid_mean` the label fired on 13 stems; after, on 2.
+
+| stem | `centroid_mean` | `centroid_energy_hz` | low band | after |
+|---|---|---|---|---|
+| madonna drums | 4390 | **412** | 0.890 | dropped |
+| badu drums | 2722 | **187** | 0.959 | dropped |
+| chameleon drums | 2754 | **502** | 0.779 | dropped |
+| roni drums | 3738 | **1276** | 0.616 | dropped |
+| madonna / roni / levee vocals | 2713–3351 | 763–1418 | — | dropped |
+| showers drums | 7792 | 7336 | 0.001 | **kept** (0.29) |
+| chameleon vocals | 4155 | 2507 | 0.001 | **kept** (0.001) |
+
+A stem that is 89% kick is not broadband noise. **W4D's brightness pairing was tested and not
+added**: the two survivors read brightness 0.958 and 0.922 against ≤0.47 for everything else, so it
+separates the same two — but `centroid_energy_hz` already separates them 7336/2507 against ≤1899,
+and `_all` takes a minimum, so a third clause could only lower a confidence, never change a verdict.
+A clause that changes nothing across a whole corpus is code, not evidence.
+
+**`dark_centroid_hz` (250) → `centroid_energy_hz`. Value unchanged. This is a dead branch found
+alive, F4's exact shape.** `sustained sub` had **never fired on any real material in the project's
+history**, and the reason was not the threshold: no bass stem in the corpus has a `centroid_mean`
+below 250 Hz at all. The minimum is 334 (Levee); Madonna's reads 1005. A threshold grounded in the
+low band could not be met by a statistic that does not live on that scale. Against the corrected
+descriptor the six audible bass stems read 68.7 / 79.0 / 120.4 / 138.8 / 159.9 / 161.4 Hz.
+
+Stated plainly, because the orchestrator's brief warned about exactly this: **250 now admits every
+audible bass stem in the corpus.** On its own it is a register sanity check, not a discriminator.
+The ANDed onset-density clause is what carries the label, and only Eno's bass (0.37 onsets/sec,
+low ratio 0.9998, brightness 0.000005) passes it — at 0.93 confidence, on the one stem in the corpus
+that is a sustained sub. It was **not** tightened to make the centroid clause selective on its own:
+every real bass stem's energy genuinely is in the low band, and tuning a threshold until it
+disagreed with that would be measuring nothing.
+
+**`vocal_centroid_min_hz` / `max_hz` (300 / 3000) → `centroid_energy_hz`. Values unchanged.** The
+threshold comment's own stated intuition — "sung and spoken voice centroids typically sit between
+about 500 Hz and 2.5 kHz" — was musically right and was being applied to a statistic it does not
+describe. Two of the four real vocal stems sat **outside** even the widened 3000 Hz ceiling on the
+frame mean and got no label:
+
+| | `centroid_mean` | `centroid_energy_hz` | before | after |
+|---|---|---|---|---|
+| badu vocals | 1868 | 846 | 0.48 | 0.48 |
+| madonna vocals | 2713 | 763 | 0.44 | 0.44 |
+| levee vocals | **3253** | 1281 | **none** | **0.21** |
+| roni vocals | **3351** | 1418 | **none** | **0.01** |
+
+No false positive was gained: Chameleon is an instrumental whose "vocals" stem is leakage at 2507 Hz
+and is excluded by the onset-density clause (0.12/sec), not by the centroid. The window was **not**
+tightened back to 500–2500 despite the corpus fitting it — the binding constraint is reachability on
+the synthetic table, where a 165 Hz harmonic voiced tone reads 312 Hz. Margin at the floor is 12 Hz
+on synthesis and 463 Hz on real material, and that asymmetry is recorded where the threshold lives.
+
+**`transient_bright_centroid_hz` (1000) — migration built, measured, and refused.** Two independent
+reasons and either is sufficient:
+
+1. **1000 is a sparsity correction, not a brightness threshold.** Re-measured through the real
+   backend on a bright pluck train at 2, 4 and 8 hits/sec: `centroid_mean` reads 1698 / 3397 / 6820
+   while `centroid_energy_hz` reads **9543 at all three rates**. The corrected descriptor is
+   invariant to hit density, which is what it was added to be — so there is no correspondence
+   between the two numbers to migrate along.
+2. **The corrected descriptor is the wrong one for this clause.** `bright hats` and `bright plucks`
+   AND it against a high-band *share*, which is immune to a loud kick in the same stem; an energy
+   centroid is not. A drums stem with 0.15 of its energy above 6 kHz and 0.8 below 250 Hz has a
+   genuine energy centroid near 1500 Hz, so migrating would make the clause veto exactly the
+   material the label describes.
+
+On the corpus the migration would have changed no label on 40 stems while adding that failure mode.
+Left on `centroid_mean`, documented in full at the definition.
+
+**`processed_centroid_std_hz` (800) — nowhere to migrate to.** `centroid_std` is the standard
+deviation of the same contaminated per-frame centroids and has no corrected sibling in `schemas.py`,
+which is frozen. Recorded at the definition and reported here rather than moved to a field that does
+not exist. **This is a field shape for a future wave, not for W8B.**
+
+Real-material regression cover for all of the above is now in `tests/test_heuristics.py` as
+`CORPUS_SPECTRAL` — 15 stems transcribed from the committed calibration JSON, including
+`test_the_two_centroids_are_not_a_rescaling_of_each_other`, which fails if anyone ever tries to
+convert between them (the ratio runs 1.06 to 14.5 across the corpus).
+
+**One thing the migration needed that did not exist.** The two-backend reachability tables in
+`tests/test_heuristics.py` had no `centroid_energy_hz` column, and **the generators for their
+signals were never committed**, so the rows could not be re-derived. The column was added by
+reconstructing the ten signals, validating each against its committed `centroid_mean` and band
+ratios, and only then recording the energy centroid. Four rows reproduce to the last digit that
+matters; `processed_vocal` could not be reproduced and is deliberately left unmeasured (nothing that
+row gates reads the field). The reconstruction recipe is in the comment. **Committing those
+generators properly is worth a future item.**
+
+### Task 3 — the swung branch is reachable, and the corpus has no shuffle in it
+
+Not dead code. It fires on a synthetic triplet shuffle, and — the case none of the existing tests
+covered — it fires on a **whole kit** playing one: shuffled offbeat hats at 2/3 of the beat, kick on
+every beat, snare on 2 and 4, all hits jittered independently and coincident hits collapsed the way
+a detector's would. It survives ±15 ms of jitter, well past both a drummer's contribution and the
+~12 ms onset-detector hop. Both `swung 8ths` and `swung 16ths` are reachable. Pinned by four new
+tests.
+
+Why nothing real reaches it, measured on each drums stem's own onsets:
+
+| track | IOIs | long/short | alternation | verdict |
+|---|---|---|---|---|
+| **badu** | 1039 | **1.191** | **0.748** | `straight 8ths` |
+| madonna | 1415 | — | 0.245 | neither |
+| roni | 1547 | — | 0.356 | neither |
+| chameleon | 5082 | — | 0.333 | neither |
+| levee | 1095 | — | 0.303 | neither |
+| eno | 274 | — | 0.418 | neither |
+
+`SWING_MIN_ALTERNATION` is 0.75 and Badu reaches **0.748** — two thousandths short, which reads as a
+knife edge until you look at the other column: the long/short ratio is **1.191**, against a
+`SWING_RATIO_RANGE` floor of 1.5. Even if the clusters had split, the ratio disqualifies it twice
+over. That is Dilla's loose micro-timing on a straight-8th hat pattern, and `straight 8ths` is the
+right answer. **The branch works; the corpus lacks the material.** A genuine shuffle — a swing-era
+ride pattern, a blues shuffle, a UK garage record — is still wanted, and `SWING_MIN_ALTERNATION` was
+**not** loosened to manufacture a hit.
+
+### Task 4 — the two octave caveats, resolved where a reader meets them
+
+`strudel_hints.py` gained `_octave_note()`, which emits **one** account of the octave built from the
+structured `octave_arbitration` / `octave_status` fields rather than by matching on either module's
+prose. Three outcomes, all exercised by the corpus:
+
+| case | tracks | note |
+|---|---|---|
+| octave moved | roni | *"bpm above is the backend's estimate moved x2 (its x1 reading was 85.04) … track_summary.json keeps both the correlation reading, which declined to shift, and the grid arbitration, which did. They describe different stages, not different answers"* |
+| ambiguous, grid confirmed x1 | madonna, badu | *"correlation could not settle it, so the drum grid was fitted at each candidate and the backend's own octave won"* — deliberately not a warning |
+| ambiguous, nothing to arbitrate with | eno, levee | *"no drum grid to arbitrate with … half-time or double-time is the likeliest way this number is wrong — verify by ear"* |
+| settled | chameleon, showers | silence. This file does not narrate the absence of a problem |
+
+One trap found while building it: `TempoFit.coarse_bpm` is **re-refined at the winning octave**, so
+quoting it in the correction note prints the corrected number twice and reads as no correction at
+all. The pre-move value comes from the ×1 arbitration row instead.
+
+**Not fixed, and reported:** `TempoFit.caveats` in `track_summary.json` still holds both original
+strings. `tempo.py` and `analyze.py` are not W8B's. The pair is now harmless (it is the audit trail,
+and the hints file no longer echoes it), but if either module is touched again, the `tempo.py`
+string would read better as *"this layer did not shift the tempo"* than as *"the reported tempo was
+not shifted"* — the second makes a claim about the final output that it is not entitled to make.
+
+### Task 5 — one rounding artefact
+
+`_GRID_FAILURE_CAVEATS["not_periodic"]` prints `on_grid` to three places instead of two. Chameleon
+read *"only 0.50 of the profile on the grid, against 0.5 required"*, which is a contradiction on its
+face; the measurement was right and the format string was hiding the margin. `{chance:.2f}` is left
+alone — it is a reference value, not one of the two numbers being compared. Nothing else in
+`drum_elements.py` was touched.
+
+A residual, reported not fixed: that same caveat ends *"this is not a near miss"*, which is true of
+Levee (0.36) and showers (0.44) and **false of Chameleon**, which misses by under a thousandth.
+W4B's sentence, W4B's call.
+
+### Task 6 — `CLAUDE.md` and `README.md`
+
+`CLAUDE.md`: schema v5, `tempo.py` and `arrangement.py` in the module table, **no `viz.py`** and
+W8A recorded as cut, the tempo described as refined and resolved once per track, silence gating and
+the `silent` status, a "Calibration corpus" section, a "measured refusal is a result" section naming
+the four packages that returned one, and an additive-only section that states the cost plainly —
+`centroid_mean`, `rolloff_mean` and `rhythm.bpm` survive as fields that look authoritative and are
+not, with docstrings as the only guard. Codegen (W7) and harmony (W5B) are named in the non-goals
+and stay in `V2-PLAN.md`'s appendix.
+
+`README.md`: the sample output was v4 (`"schema_version": 4`, no tempo status, no arrangement) and
+was generated from a synthetic wav that no longer exists in the repo, so it could not be regenerated
+as-is. Replaced with real, committed Madonna v5 output from `calibration/v5/`, abridged only where a
+list repeats — which also makes it re-derivable, which the old sample was not. The status section
+now reports the eight-track corpus and names what it found, including the Bonham zero-kick failure.
+
+### A bug found while writing task 1, fixed in a file W8B owns
+
+Three of the eight tracks printed a **density for a stem that is separation residue**: donjon and
+showers reported `bass_activity: "moderate"` for bass stems at rms 8.2e-05 and 6.4e-05, and Eno's
+empty drums stem reported `drum_density: "sparse"`. The onset detector had counted 3.03, 2.05 and
+0.35 onsets/sec of noise floor. F5's shape exactly, in `strudel_hints._density_with_note`, which was
+the one path in that file not consulting the `_is_silent` helper sitting next to it. Fixed and
+pinned.
+
+### Standing caveats — measured across eight tracks
+
+**1. `SUB_BASS_BRIGHTNESS_MAX` (0.005) accept side, was n=1. Now n=6, and the caveat stands
+down — but a different threshold has taken over the branch.** Every audible bass stem in the corpus
+sits under it: eno 0.000005, badu 0.000007, roni 0.000111, levee 0.000421, chameleon 0.000539, madonna
+0.002052. Five of the six clear it by ≥9×. Madonna is still the one setting the margin at 2.4×, so
+"one record sets the margin" survives even though "one record is the only evidence" does not.
+
+The finding underneath is more interesting: **`SUB_BASS_CENTROID_HZ_MAX` (150) is now the binding
+constraint, and it is rejecting on a statistic W4D explicitly demoted.** Badu and Chameleon both
+return `match="none"` despite passing brightness comfortably, because their energy centroids are
+159.9 and 161.4 Hz — 6% and 8% over a ceiling set from synthesis (max sine/triangle 114.0, min
+square/saw 108.8) and described in its own comment as a sanity check. The verdicts may well be
+right on the music; the *reason* they fired is the clause that was supposed to have stopped
+discriminating. Recorded for whoever owns `strudel_vocab.py` next. Reject side of the brightness
+threshold is still synthetic-only: no real harmonic bass in the corpus reads above 0.005.
+
+**2. `stability_medium_bpm` (0.50) is still `[guess]`, and now we know why it cannot be settled
+here.** Only three tracks produce a stability reading at all, all labelled `high`: 0.0003 (badu),
+0.0033 (madonna), 0.0251 (roni). The largest is **twenty times below** the boundary. The five that
+would exercise it read `unknown`, and that is structural rather than bad luck: **the check is
+downstream of a gate that already catches drift.** Levee Breaks is the live-band row that exists to
+produce a floating tempo, and `MIN_AUTOCORRELATION_R` refuses it first (r = 0.108), so no stability
+is computed. The corpus does establish one useful bound — on material that refines at all, the two
+halves agree to ≤0.03 BPM — which makes 0.50 very permissive rather than wrong. Settling it needs
+material that refines *and* drifts, which may not exist.
+
+**3. `downbeat_tie_fraction` (0.25) and `downbeat_conflict_ceiling` (0.50) are no longer untested.**
+Both fire on real material and both produce sensible output:
+
+| threshold | fires on | effect |
+|---|---|---|
+| `downbeat_tie_fraction` | chameleon, madonna, showers | *"bar phase is degenerate: 1 other beat(s) scored within 25% of the winner"* |
+| `downbeat_conflict_ceiling` | badu, levee | confidence capped at exactly 0.500, *"the spectral objective and the source's first onset disagree about bar phase"* |
+
+Only roni reaches `status="ok"` with phase confidence 1.000 — one track in eight resolves its bar
+phase unambiguously, which is itself worth knowing. What the corpus still does **not** supply is a
+case where a different value would have changed the verdict, so the *values* remain `[guess]` while
+the *behaviour* is now confirmed on real material. Downgrade the caveat, do not delete it.
+
+**4. The F6 voiced-fraction caveat window (0.15–0.30) is measured, and the ambient track settled it
+exactly as W4C predicted.** Brian Eno's bass reads **0.1977** — inside the window, the caveat fired,
+and it is the right call: a 17-minute drone with 12 octave corrections and 20% coverage. Everything
+else sits well clear at 0.447 (chameleon), 0.453 (madonna), 0.463 (roni), 0.680 (levee), 0.795
+(badu). The **upper** edge at 0.30 is now supported by a 2.3× gap to the next value. The **lower**
+edge at 0.15 is still untested — nothing in the corpus falls below 0.1977.
+
+**5. `HARMONIC_BASS_LOW_RATIO_MAX` (0.55) is unreachable on real material, confirmed at n=6, and the
+one thing that does reach it should not.** Audible bass low ratios run 0.864–0.9998. The only two
+stems under 0.55 are donjon (0.532) and showers (0.356) — **both separation residue below the
+silence floor**, and showers' is where the corpus's one `sawtooth` verdict comes from, built on
+`brightness 0.366` and `centroid_energy_hz 1899` from a stem whose descriptors move by 2× between
+separator runs.
+
+That is a live F5-shaped leak: `strudel_vocab.suggest_bass_sound()` is not silence-gated the way
+`_tonal_centre` and `_bass_line_hint` now are. It appends a parenthetical noting the `silent` status
+and then gives the verdict anyway. **Reported, not fixed — `strudel_vocab.py` is not W8B's.** The
+fix is one guard, and the branch it protects has no legitimate caller in the corpus.
+
+### Open for a future cycle
+
+1. `strudel_vocab.suggest_bass_sound()` needs the silence gate. Its harmonic-bass branch is reached
+   only by residue.
+2. `SUB_BASS_CENTROID_HZ_MAX` (150) is doing discrimination it was demoted from, on two real stems.
+3. `centroid_std` has no corrected sibling; `processed_centroid_std_hz` reads a contaminated
+   descriptor with nowhere to go. A field shape for whoever next opens `schemas.py`.
+4. The reachability-table signal generators are still not committed; W8B reconstructed them.
+5. A genuine shuffle for the corpus. The swung branch works and nothing real has exercised it.
+6. `feature_window_seconds` (250 ms) on dense material, and envelope-fold kick recovery for
+   compressed/reverberant sources — both carried over from Wave 4 and both still open.

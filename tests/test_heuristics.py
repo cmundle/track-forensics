@@ -94,6 +94,7 @@ def make_analysis(
     chroma_bias: str = "nearest",
     hpcp_mean: list[float] | None = None,
     centroid_mean: float | None = None,
+    centroid_energy_hz: float | None = None,
     centroid_std: float | None = None,
     band_low: float | None = None,
     band_high: float | None = None,
@@ -130,6 +131,7 @@ def make_analysis(
         ),
         spectral=SpectralFeatures(
             centroid_mean=centroid_mean,
+            centroid_energy_hz=centroid_energy_hz,
             centroid_std=centroid_std,
             band_energy_ratios=BandEnergyRatios(low=band_low, high=band_high),
         ),
@@ -300,7 +302,7 @@ def test_chroma_with_entropy_round_trips() -> None:
 def test_labels_do_not_fire_when_chroma_is_missing() -> None:
     """An empty `hpcp_mean` must degrade to no label, not to entropy 0.0 —
     which would otherwise read as 'maximally tonal'."""
-    labels = apply(make_analysis("mix", centroid_mean=9000.0))
+    labels = apply(make_analysis("mix", centroid_energy_hz=9000.0))
     assert "tonally stable" not in names(labels)
     assert "noisy" not in names(labels)
 
@@ -423,10 +425,10 @@ def test_sustained_boundary_either_side_and_exactly_on_the_line() -> None:
 
 
 def test_noisy_fires_on_bright_and_flat_chroma() -> None:
-    labels = label_generic(make_analysis(centroid_mean=5250.0, chroma_entropy_value=0.965))
+    labels = label_generic(make_analysis(centroid_energy_hz=5250.0, chroma_entropy_value=0.965))
     noisy = by_name(labels, "noisy")
     assert noisy.confidence == pytest.approx(0.5, abs=1e-3)
-    assert noisy.evidence["centroid_mean"] == 5250.0
+    assert noisy.evidence["centroid_energy_hz"] == 5250.0
     assert noisy.evidence["chroma_entropy"] == pytest.approx(0.965, abs=1e-6)
     assert noisy.evidence["min_centroid_hz"] == THRESHOLDS["noisy_centroid_hz"]
     assert noisy.evidence["min_chroma_entropy"] == THRESHOLDS["noisy_min_chroma_entropy"]
@@ -435,7 +437,7 @@ def test_noisy_fires_on_bright_and_flat_chroma() -> None:
 def test_noisy_reports_retired_descriptors_as_evidence_without_gating_on_them() -> None:
     labels = label_generic(
         make_analysis(
-            centroid_mean=5250.0,
+            centroid_energy_hz=5250.0,
             chroma_entropy_value=0.965,
             # The values essentia really measures for white noise, either of
             # which would once have suppressed this label.
@@ -454,17 +456,19 @@ def test_noisy_boundary_either_side_and_exactly_on_the_line() -> None:
     entropy = THRESHOLDS["noisy_min_chroma_entropy"]
 
     on_line = label_generic(
-        make_analysis(centroid_mean=centroid, chroma_entropy_value=entropy, chroma_bias="at_least")
+        make_analysis(
+            centroid_energy_hz=centroid, chroma_entropy_value=entropy, chroma_bias="at_least"
+        )
     )
     assert by_name(on_line, "noisy").confidence == pytest.approx(0.0, abs=1e-6)
 
     dark = label_generic(
-        make_analysis(centroid_mean=centroid - 1.0, chroma_entropy_value=entropy)
+        make_analysis(centroid_energy_hz=centroid - 1.0, chroma_entropy_value=entropy)
     )
     assert "noisy" not in names(dark)
 
     peaky = label_generic(
-        make_analysis(centroid_mean=centroid, chroma_entropy_value=entropy - 0.01)
+        make_analysis(centroid_energy_hz=centroid, chroma_entropy_value=entropy - 0.01)
     )
     assert "noisy" not in names(peaky)
 
@@ -507,14 +511,14 @@ def test_a_dead_band_separates_tonally_stable_from_noisy() -> None:
     floor = THRESHOLDS["noisy_min_chroma_entropy"]
     assert ceiling < floor, "the two labels must not overlap"
     midpoint = (ceiling + floor) / 2.0
-    labels = label_generic(make_analysis(chroma_entropy_value=midpoint, centroid_mean=9000.0))
+    labels = label_generic(make_analysis(chroma_entropy_value=midpoint, centroid_energy_hz=9000.0))
     assert "tonally stable" not in names(labels)
     assert "noisy" not in names(labels)
 
 
 def test_noisy_still_needs_a_bright_centroid() -> None:
     """Entropy alone would call a quiet atonal pad noisy."""
-    labels = label_generic(make_analysis(chroma_entropy_value=0.999, centroid_mean=400.0))
+    labels = label_generic(make_analysis(chroma_entropy_value=0.999, centroid_energy_hz=400.0))
     assert "noisy" not in names(labels)
 
 
@@ -621,16 +625,16 @@ def test_sparse_bass_fires_and_is_graded() -> None:
 
 
 def test_sustained_sub_needs_dark_centroid_and_low_onset_density() -> None:
-    labels = label_bass(make_analysis("bass", centroid_mean=155.0, onset_density=1.125))
+    labels = label_bass(make_analysis("bass", centroid_energy_hz=155.0, onset_density=1.125))
     sub = by_name(labels, "sustained sub")
     assert sub.confidence == pytest.approx(0.5)
-    assert sub.evidence["centroid_mean"] == 155.0
+    assert sub.evidence["centroid_energy_hz"] == 155.0
     assert sub.evidence["max_centroid_hz"] == THRESHOLDS["dark_centroid_hz"]
 
-    bright = label_bass(make_analysis("bass", centroid_mean=900.0, onset_density=1.125))
+    bright = label_bass(make_analysis("bass", centroid_energy_hz=900.0, onset_density=1.125))
     assert "sustained sub" not in names(bright)
 
-    busy = label_bass(make_analysis("bass", centroid_mean=155.0, onset_density=6.0))
+    busy = label_bass(make_analysis("bass", centroid_energy_hz=155.0, onset_density=6.0))
     assert "sustained sub" not in names(busy)
 
 
@@ -638,7 +642,7 @@ def test_sustained_sub_boundary_exactly_on_both_lines() -> None:
     labels = label_bass(
         make_analysis(
             "bass",
-            centroid_mean=THRESHOLDS["dark_centroid_hz"],
+            centroid_energy_hz=THRESHOLDS["dark_centroid_hz"],
             onset_density=THRESHOLDS["moderate_onsets_per_sec"],
         )
     )
@@ -670,34 +674,34 @@ def test_plucked_bass_boundary_either_side_and_exactly_on_the_line() -> None:
 
 def test_speech_vocal_dominant_needs_energy_mid_centroid_and_moderate_onsets() -> None:
     labels = label_vocals(
-        make_analysis("vocals", rms_mean=0.055, centroid_mean=1500.0, onset_density=3.0)
+        make_analysis("vocals", rms_mean=0.055, centroid_energy_hz=1500.0, onset_density=3.0)
     )
     dominant = by_name(labels, "speech/vocal dominant")
     # RMS is the weakest ingredient at 0.5; the two windows are both saturated.
     assert dominant.confidence == pytest.approx(0.5)
     assert dominant.evidence["rms_mean"] == 0.055
-    assert dominant.evidence["centroid_mean"] == 1500.0
+    assert dominant.evidence["centroid_energy_hz"] == 1500.0
     assert dominant.evidence["onset_density"] == 3.0
 
 
 def test_speech_vocal_dominant_rejected_outside_each_condition() -> None:
     too_quiet = label_vocals(
-        make_analysis("vocals", rms_mean=0.001, centroid_mean=1500.0, onset_density=3.0)
+        make_analysis("vocals", rms_mean=0.001, centroid_energy_hz=1500.0, onset_density=3.0)
     )
     assert "speech/vocal dominant" not in names(too_quiet)
 
     too_bright = label_vocals(
-        make_analysis("vocals", rms_mean=0.055, centroid_mean=7000.0, onset_density=3.0)
+        make_analysis("vocals", rms_mean=0.055, centroid_energy_hz=7000.0, onset_density=3.0)
     )
     assert "speech/vocal dominant" not in names(too_bright)
 
     too_dark = label_vocals(
-        make_analysis("vocals", rms_mean=0.055, centroid_mean=100.0, onset_density=3.0)
+        make_analysis("vocals", rms_mean=0.055, centroid_energy_hz=100.0, onset_density=3.0)
     )
     assert "speech/vocal dominant" not in names(too_dark)
 
     too_busy = label_vocals(
-        make_analysis("vocals", rms_mean=0.055, centroid_mean=1500.0, onset_density=9.0)
+        make_analysis("vocals", rms_mean=0.055, centroid_energy_hz=1500.0, onset_density=9.0)
     )
     assert "speech/vocal dominant" not in names(too_busy)
 
@@ -707,7 +711,7 @@ def test_speech_vocal_dominant_boundary_exactly_on_every_line() -> None:
         make_analysis(
             "vocals",
             rms_mean=THRESHOLDS["vocal_presence_rms"],
-            centroid_mean=THRESHOLDS["vocal_centroid_min_hz"],
+            centroid_energy_hz=THRESHOLDS["vocal_centroid_min_hz"],
             onset_density=THRESHOLDS["sparse_onsets_per_sec"],
         )
     )
@@ -768,7 +772,7 @@ def test_sustained_pad_like_texture_boundary_exactly_on_both_lines() -> None:
 
 
 def test_other_noisy_matches_the_generic_definition() -> None:
-    analysis = make_analysis("other", centroid_mean=5250.0, chroma_entropy_value=0.965)
+    analysis = make_analysis("other", centroid_energy_hz=5250.0, chroma_entropy_value=0.965)
     assert by_name(label_other(analysis), "noisy").confidence == pytest.approx(0.5, abs=1e-3)
 
 
@@ -859,7 +863,7 @@ def test_apply_combines_generic_and_source_labels() -> None:
 
 def test_apply_dedupes_labels_reachable_by_two_routes() -> None:
     """`noisy` fires generically and from `label_other`; only one may survive."""
-    analysis = make_analysis("other", centroid_mean=5250.0, chroma_entropy_value=0.965)
+    analysis = make_analysis("other", centroid_energy_hz=5250.0, chroma_entropy_value=0.965)
     labels = apply(analysis)
     assert [label.label for label in labels].count("noisy") == 1
 
@@ -916,6 +920,7 @@ def test_every_confidence_stays_within_the_schema_bounds() -> None:
                 key_confidence=min(1.0, max(0.0, value)),
                 tonal_stability=min(1.0, max(0.0, value)),
                 centroid_mean=value,
+                centroid_energy_hz=value,
                 centroid_std=value,
                 band_low=min(1.0, max(0.0, value)),
                 band_high=min(1.0, max(0.0, value)),
@@ -962,52 +967,91 @@ def test_confidence_is_graded_not_binary_across_a_label() -> None:
 # run's `hpcp_mean`; `make_analysis` rebuilds a 12-bin vector matching it.
 #
 # Source: 8 s synthetic signals at 44.1 kHz, 44.1 kHz mono, both backends.
+#
+# `centroid_energy_hz` was added to every row in W8B, when `_noisy`,
+# `sustained sub` and the `speech/vocal dominant` window migrated onto it. It is
+# a LATER MEASUREMENT than the rest of each row and its provenance is stated
+# plainly, because the original run's signal generators were never committed and
+# could only be reconstructed:
+#
+#   * Reconstructed at 8 s / 44.1 kHz mono, then validated against each row's
+#     committed `centroid_mean` and band ratios before its energy centroid was
+#     recorded. `sine_a440` (441.0 / 439.9 against 441.04 / 439.93),
+#     `a_minor_triad` (274.7 / 274.2 against 274.69 / 274.21), `white_noise`
+#     (11036.7 / 9939.7 against 11034.78 / 9936.58) and `smooth_sub_60hz`
+#     (61.4 / 60.0 against 61.28 / 60.04) reproduce to the last digit that
+#     matters. `voiced_phrases` reproduces on the band that defines it
+#     (low 0.6446 against 0.6422) from a 165 Hz stack of ten 1/n harmonics
+#     gated into 0.45 s phrases.
+#   * The click, dense and pluck rows reproduce their SPECTRA (band_high 0.657,
+#     0.657, 0.998 against 0.700, 0.604, 0.977) but not their hit density. That
+#     does not matter for this column and is the whole reason the column exists:
+#     an energy centroid is invariant to how sparse the hits are. Measured on
+#     one pluck train at 2, 4 and 8 hits/sec, `centroid_mean` reads 1698 / 3397
+#     / 6820 Hz while `centroid_energy_hz` reads 9543 Hz at every rate.
+#   * `processed_vocal` is deliberately left UNMEASURED. Its band split
+#     (low 0.24, high 0.0415) could not be reproduced closely enough to attach a
+#     spectrum-derived number to it, and nothing that row gates reads the field
+#     — `processed/wide vocal` is built from `band_high` and `centroid_std`. A
+#     `None` here is the honest shape: a descriptor that was not measured.
+#
+# The two backends agree on this descriptor to 0.05 Hz on every row above
+# (W4D measured a worst case of 0.240 Hz on real stems), so both tables carry
+# the same number rather than two transcriptions of one measurement.
 MEASURED_LIBROSA: dict[str, dict[str, float | None]] = {
     "sine_a440": {
         "key_confidence": 0.1714, "tonal_stability": 0.99991, "chroma_entropy_value": 0.0868,
-        "centroid_mean": 441.04, "centroid_std": 14.72, "crest_factor": 1.4142,
+        "centroid_mean": 441.04,
+        "centroid_energy_hz": 439.99, "centroid_std": 14.72, "crest_factor": 1.4142,
         "onset_density": 0.0, "transient_sharpness": None, "band_low": 0.0, "band_high": 0.0,
         "rms_mean": 0.3531,
     },
     "white_noise": {
         "key_confidence": 0.0221, "tonal_stability": 0.99448, "chroma_entropy_value": 0.9999,
-        "centroid_mean": 11034.78, "centroid_std": 138.19, "crest_factor": 4.7289,
+        "centroid_mean": 11034.78,
+        "centroid_energy_hz": 10029.3, "centroid_std": 138.19, "crest_factor": 4.7289,
         "onset_density": 8.125, "transient_sharpness": 1.3834, "band_low": 0.012,
         "band_high": 0.7013, "rms_mean": 0.1901,
     },
     "a_minor_triad": {
         "key_confidence": 0.2035, "tonal_stability": 0.99995, "chroma_entropy_value": 0.5145,
-        "centroid_mean": 274.69, "centroid_std": 36.91, "crest_factor": 2.4481,
+        "centroid_mean": 274.69,
+        "centroid_energy_hz": 270.39, "centroid_std": 36.91, "crest_factor": 2.4481,
         "onset_density": 19.125, "transient_sharpness": 3.9485, "band_low": 0.3668,
         "band_high": 0.0, "rms_mean": 0.3669,
     },
     "click_120bpm": {
         "key_confidence": 0.0257, "tonal_stability": 0.99937, "chroma_entropy_value": 0.9947,
-        "centroid_mean": 2098.81, "centroid_std": 4296.46, "crest_factor": 19.0442,
+        "centroid_mean": 2098.81,
+        "centroid_energy_hz": 9201.36, "centroid_std": 4296.46, "crest_factor": 19.0442,
         "onset_density": 2.0, "transient_sharpness": 100.0, "band_low": 0.0256,
         "band_high": 0.7001, "rms_mean": 0.017,
     },
     "dense_16ths": {
         "key_confidence": 0.0612, "tonal_stability": 0.99881, "chroma_entropy_value": 0.9955,
-        "centroid_mean": 5472.81, "centroid_std": 5216.42, "crest_factor": 19.9148,
+        "centroid_mean": 5472.81,
+        "centroid_energy_hz": 9201.28, "centroid_std": 5216.42, "crest_factor": 19.9148,
         "onset_density": 7.875, "transient_sharpness": 100.0, "band_low": 0.0605,
         "band_high": 0.6041, "rms_mean": 0.0308,
     },
     "smooth_sub_60hz": {
         "key_confidence": 0.0709, "tonal_stability": 1.0, "chroma_entropy_value": 0.353,
-        "centroid_mean": 61.28, "centroid_std": 3.19, "crest_factor": 1.5492,
+        "centroid_mean": 61.28,
+        "centroid_energy_hz": 60.0, "centroid_std": 3.19, "crest_factor": 1.5492,
         "onset_density": 0.0, "transient_sharpness": None, "band_low": 1.0, "band_high": 0.0,
         "rms_mean": 0.3707,
     },
     "bright_pluck_train": {
         "key_confidence": 0.2784, "tonal_stability": 0.99952, "chroma_entropy_value": 0.9983,
-        "centroid_mean": 1301.85, "centroid_std": 2838.91, "crest_factor": 21.3126,
+        "centroid_mean": 1301.85,
+        "centroid_energy_hz": 10371.07, "centroid_std": 2838.91, "crest_factor": 21.3126,
         "onset_density": 2.875, "transient_sharpness": 100.0, "band_low": 0.0003,
         "band_high": 0.9765, "rms_mean": 0.0166,
     },
     "voiced_phrases": {
         "key_confidence": 0.0296, "tonal_stability": 0.99668, "chroma_entropy_value": 0.8591,
-        "centroid_mean": 389.96, "centroid_std": 352.84, "crest_factor": 2.9841,
+        "centroid_mean": 389.96,
+        "centroid_energy_hz": 312.06, "centroid_std": 352.84, "crest_factor": 2.9841,
         "onset_density": 3.375, "transient_sharpness": 97.954, "band_low": 0.6422,
         "band_high": 0.0, "rms_mean": 0.0958,
     },
@@ -1022,7 +1066,8 @@ MEASURED_LIBROSA: dict[str, dict[str, float | None]] = {
     # row alone fires noisy, busy drums and bright hats on pure numerical noise.
     "separation_residue": {
         "key_confidence": 0.1748, "tonal_stability": 0.99632, "chroma_entropy_value": 0.9761,
-        "centroid_mean": 10861.67, "centroid_std": 138.63, "crest_factor": 4.5354,
+        "centroid_mean": 10861.67,
+        "centroid_energy_hz": 9988.2, "centroid_std": 138.63, "crest_factor": 4.5354,
         "onset_density": 7.375, "transient_sharpness": 1.3934, "band_low": 0.0202,
         "band_high": 0.6323, "rms_mean": 0.000941, "loudness_lufs": -54.67,
     },
@@ -1035,49 +1080,57 @@ MEASURED_LIBROSA: dict[str, dict[str, float | None]] = {
 MEASURED_ESSENTIA: dict[str, dict[str, float | None]] = {
     "sine_a440": {
         "key_confidence": 0.688, "tonal_stability": 0.78205, "chroma_entropy_value": 0.5286,
-        "centroid_mean": 439.93, "centroid_std": 1.14, "crest_factor": 1.4142,
+        "centroid_mean": 439.93,
+        "centroid_energy_hz": 439.99, "centroid_std": 1.14, "crest_factor": 1.4142,
         "onset_density": 0.25, "transient_sharpness": 2.6008, "band_low": 0.0, "band_high": 0.0,
         "rms_mean": 0.3529,
     },
     "white_noise": {
         "key_confidence": 0.6953, "tonal_stability": 0.24165, "chroma_entropy_value": 0.9954,
-        "centroid_mean": 9936.58, "centroid_std": 99.3, "crest_factor": 4.7289,
+        "centroid_mean": 9936.58,
+        "centroid_energy_hz": 10029.3, "centroid_std": 99.3, "crest_factor": 4.7289,
         "onset_density": 0.125, "transient_sharpness": 1.0452, "band_low": 0.012,
         "band_high": 0.7013, "rms_mean": 0.1899,
     },
     "a_minor_triad": {
         "key_confidence": 0.7663, "tonal_stability": 0.80031, "chroma_entropy_value": 0.75,
-        "centroid_mean": 274.21, "centroid_std": 3.12, "crest_factor": 2.4481,
+        "centroid_mean": 274.21,
+        "centroid_energy_hz": 270.39, "centroid_std": 3.12, "crest_factor": 2.4481,
         "onset_density": 0.375, "transient_sharpness": 3.154, "band_low": 0.3669,
         "band_high": 0.0, "rms_mean": 0.3667,
     },
     "click_120bpm": {
         "key_confidence": 0.8098, "tonal_stability": 0.51637, "chroma_entropy_value": 0.7783,
-        "centroid_mean": 1897.75, "centroid_std": 3890.65, "crest_factor": 19.0442,
+        "centroid_mean": 1897.75,
+        "centroid_energy_hz": 9201.36, "centroid_std": 3890.65, "crest_factor": 19.0442,
         "onset_density": 2.0, "transient_sharpness": 100.0, "band_low": 0.0256,
         "band_high": 0.7001, "rms_mean": 0.017,
     },
     "dense_16ths": {
         "key_confidence": 0.7927, "tonal_stability": 0.35185, "chroma_entropy_value": 0.7862,
-        "centroid_mean": 4853.36, "centroid_std": 4641.73, "crest_factor": 19.9148,
+        "centroid_mean": 4853.36,
+        "centroid_energy_hz": 9201.28, "centroid_std": 4641.73, "crest_factor": 19.9148,
         "onset_density": 7.875, "transient_sharpness": 100.0, "band_low": 0.0605,
         "band_high": 0.6041, "rms_mean": 0.0307,
     },
     "smooth_sub_60hz": {
         "key_confidence": 0.688, "tonal_stability": 0.61243, "chroma_entropy_value": 0.7725,
-        "centroid_mean": 60.04, "centroid_std": 2.4, "crest_factor": 1.5492,
+        "centroid_mean": 60.04,
+        "centroid_energy_hz": 60.0, "centroid_std": 2.4, "crest_factor": 1.5492,
         "onset_density": 0.875, "transient_sharpness": 1.0921, "band_low": 1.0,
         "band_high": 0.0, "rms_mean": 0.3705,
     },
     "bright_pluck_train": {
         "key_confidence": 0.766, "tonal_stability": 0.30535, "chroma_entropy_value": 0.7268,
-        "centroid_mean": 1169.48, "centroid_std": 2552.18, "crest_factor": 21.3126,
+        "centroid_mean": 1169.48,
+        "centroid_energy_hz": 10371.07, "centroid_std": 2552.18, "crest_factor": 21.3126,
         "onset_density": 2.875, "transient_sharpness": 100.0, "band_low": 0.0003,
         "band_high": 0.9765, "rms_mean": 0.0166,
     },
     "voiced_phrases": {
         "key_confidence": 0.5699, "tonal_stability": 0.90966, "chroma_entropy_value": 0.5439,
-        "centroid_mean": 273.54, "centroid_std": 235.72, "crest_factor": 2.9841,
+        "centroid_mean": 273.54,
+        "centroid_energy_hz": 312.06, "centroid_std": 235.72, "crest_factor": 2.9841,
         "onset_density": 2.5, "transient_sharpness": 7.26, "band_low": 0.6422,
         "band_high": 0.0, "rms_mean": 0.0957,
     },
@@ -1092,7 +1145,8 @@ MEASURED_ESSENTIA: dict[str, dict[str, float | None]] = {
     # descriptor — note how far apart their tonal readings of it are.
     "separation_residue": {
         "key_confidence": 0.688, "tonal_stability": 0.57664, "chroma_entropy_value": 0.8558,
-        "centroid_mean": 9471.58, "centroid_std": 121.79, "crest_factor": 4.5354,
+        "centroid_mean": 9471.58,
+        "centroid_energy_hz": 9988.2, "centroid_std": 121.79, "crest_factor": 4.5354,
         "onset_density": 0.125, "transient_sharpness": 0.9822, "band_low": 0.0202,
         "band_high": 0.6323, "rms_mean": 0.000941, "loudness_lufs": -54.62,
     },
@@ -1407,3 +1461,131 @@ def test_labels_are_serialisable_with_their_evidence() -> None:
     kick = next(entry for entry in payload if entry["label"] == "kick-heavy")
     assert kick["evidence"]["band_energy_low"] == 0.675
     assert kick["evidence"]["min_band_energy_low"] == THRESHOLDS["kick_heavy_low_ratio"]
+
+
+# ---------------------------------------------------------------------------
+# W8B: the centroid migration, pinned against the eight-track corpus
+# ---------------------------------------------------------------------------
+# Transcribed from `calibration/v5/*/analysis/*.json` (essentia, the default
+# backend). Real music rather than synthesis, and it is the evidence behind
+# `noisy_centroid_hz`, `dark_centroid_hz` and `vocal_centroid_min_hz` now
+# reading `centroid_energy_hz`. No audio and no stems are needed: these are the
+# committed numbers the pipeline itself wrote.
+#
+# The point of the table is the SPREAD between the two columns. They are not two
+# scales of one quantity — on a stem that is 89% kick they differ by 10x and
+# both are correct.
+CORPUS_SPECTRAL: dict[str, dict[str, float]] = {
+    # stem                     centroid_mean  centroid_energy_hz  band_low
+    "madonna/drums": {"mean": 4389.98, "energy": 411.79, "low": 0.890089},
+    "badu/drums": {"mean": 2722.42, "energy": 187.19, "low": 0.958900},
+    "chameleon/drums": {"mean": 2754.24, "energy": 501.86, "low": 0.779000},
+    "roni/drums": {"mean": 3737.53, "energy": 1275.72, "low": 0.616000},
+    "showers/drums": {"mean": 7791.96, "energy": 7335.63, "low": 0.001000},
+    "eno/bass": {"mean": 473.75, "energy": 68.71, "low": 1.000000},
+    "roni/bass": {"mean": 744.86, "energy": 78.99, "low": 0.989000},
+    "levee/bass": {"mean": 334.32, "energy": 120.44, "low": 0.978000},
+    "madonna/bass": {"mean": 1004.75, "energy": 138.81, "low": 0.917000},
+    "badu/bass": {"mean": 371.75, "energy": 159.93, "low": 0.924000},
+    "chameleon/bass": {"mean": 415.86, "energy": 161.42, "low": 0.864000},
+    "badu/vocals": {"mean": 1867.61, "energy": 846.39, "low": 0.029000},
+    "madonna/vocals": {"mean": 2712.51, "energy": 762.68, "low": 0.332000},
+    "levee/vocals": {"mean": 3252.68, "energy": 1280.53, "low": 0.017000},
+    "roni/vocals": {"mean": 3351.14, "energy": 1417.52, "low": 0.143000},
+}
+
+CORPUS_AUDIBLE_BASS = ("eno/bass", "roni/bass", "levee/bass", "madonna/bass", "badu/bass",
+                       "chameleon/bass")
+CORPUS_REAL_VOCALS = ("badu/vocals", "madonna/vocals", "levee/vocals", "roni/vocals")
+
+
+def test_no_corpus_bass_stem_could_ever_reach_the_dark_centroid_on_the_frame_mean() -> None:
+    """Why `sustained sub` migrated. Against `centroid_mean` the label had never
+    fired on any real material: the quietest-registered bass stem in the corpus
+    still reads 334 Hz, over the 250 Hz low-band edge the threshold is grounded
+    in. Against the corrected descriptor every one of them clears it."""
+    ceiling = THRESHOLDS["dark_centroid_hz"]
+    for stem in CORPUS_AUDIBLE_BASS:
+        row = CORPUS_SPECTRAL[stem]
+        assert row["mean"] > ceiling, f"{stem} would have fired on the frame mean"
+        assert row["energy"] < ceiling, f"{stem} does not read as low-register energy"
+
+
+def test_a_real_sustained_sub_is_labelled_and_a_busy_bass_is_not() -> None:
+    """Eno's bass: 68.7 Hz energy centroid, 1.000 low-band ratio, 0.37
+    onsets/sec. The one thing in the corpus that is a sustained sub. Madonna's
+    bass sits in the same register and plays 3.26 onsets/sec, so the
+    onset clause — not the centroid — is what separates them."""
+    eno = label_bass(
+        make_analysis(
+            "bass", centroid_energy_hz=CORPUS_SPECTRAL["eno/bass"]["energy"], onset_density=0.37
+        )
+    )
+    assert "sustained sub" in names(eno)
+    assert by_name(eno, "sustained sub").confidence > 0.9
+
+    madonna = label_bass(
+        make_analysis(
+            "bass",
+            centroid_energy_hz=CORPUS_SPECTRAL["madonna/bass"]["energy"],
+            onset_density=3.26,
+        )
+    )
+    assert "sustained sub" not in names(madonna)
+
+
+@pytest.mark.parametrize("stem", ["madonna/drums", "badu/drums", "chameleon/drums", "roni/drums"])
+def test_a_kick_dominated_drum_stem_is_not_called_noisy(stem: str) -> None:
+    """The false positive the `noisy` migration removed. Each of these stems has
+    most of its energy under 250 Hz and a frame-mean centroid over the 2500 Hz
+    threshold, because the frames between kicks hold tails and air. A near-flat
+    chroma is supplied so only the centroid clause can decide."""
+    row = CORPUS_SPECTRAL[stem]
+    assert row["low"] > 0.6, "this test only means something on a low-heavy stem"
+    assert row["mean"] > THRESHOLDS["noisy_centroid_hz"], "would not have fired before either"
+    labels = label_generic(
+        make_analysis("drums", centroid_energy_hz=row["energy"], chroma_entropy_value=0.98)
+    )
+    assert "noisy" not in names(labels)
+
+
+def test_the_one_genuinely_broadband_drum_stem_is_still_called_noisy() -> None:
+    """The other side: showers-of-gold's drums stem is cymbals and nothing else
+    — 0.001 of its energy below 250 Hz — and must keep the label."""
+    row = CORPUS_SPECTRAL["showers/drums"]
+    labels = label_generic(
+        make_analysis("drums", centroid_energy_hz=row["energy"], chroma_entropy_value=0.95)
+    )
+    assert "noisy" in names(labels)
+
+
+@pytest.mark.parametrize("stem", CORPUS_REAL_VOCALS)
+def test_every_real_vocal_stem_lands_inside_the_vocal_centroid_window(stem: str) -> None:
+    """Why the vocal window migrated. Two of these four sat outside even the
+    widened 3000 Hz ceiling on the frame mean and got no label at all; on the
+    corrected descriptor all four land inside the 500-2500 Hz range the
+    threshold comment described in the first place."""
+    row = CORPUS_SPECTRAL[stem]
+    assert row["energy"] >= THRESHOLDS["vocal_centroid_min_hz"]
+    assert row["energy"] <= THRESHOLDS["vocal_centroid_max_hz"]
+    assert 500.0 <= row["energy"] <= 2500.0
+
+
+def test_two_real_vocal_stems_were_excluded_by_the_frame_mean_ceiling() -> None:
+    """Pins the defect rather than only the fix: Levee Breaks and Roni Size read
+    3253 and 3351 Hz on `centroid_mean`, over the ceiling, and 1281 and 1418 Hz
+    on the corrected descriptor."""
+    ceiling = THRESHOLDS["vocal_centroid_max_hz"]
+    for stem in ("levee/vocals", "roni/vocals"):
+        assert CORPUS_SPECTRAL[stem]["mean"] > ceiling
+        assert CORPUS_SPECTRAL[stem]["energy"] < ceiling
+
+
+def test_the_two_centroids_are_not_a_rescaling_of_each_other() -> None:
+    """W4D's warning, made a failing test if anyone ever 'converts' between
+    them. The ratio between the two columns runs from 1.06 to 14.5 across the
+    corpus — there is no factor, and a threshold moved by one would be wrong
+    everywhere else."""
+    ratios = [row["mean"] / row["energy"] for row in CORPUS_SPECTRAL.values()]
+    assert min(ratios) < 1.1
+    assert max(ratios) > 10.0

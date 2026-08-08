@@ -1,5 +1,5 @@
 {
-  "schema_version": 4,
+  "schema_version": 5,
   "source": "vocals",
   "audio_path": "calibration/v5/brian-eno-1-1-remastered-2004/stems/vocals.wav",
   "duration_seconds": 1041.52,
@@ -4615,5 +4615,7 @@
       }
     }
   ],
-  "unavailable_features": []
+  "unavailable_features": [
+    "source (silent: rms_mean 8.4e-06 is below the 0.001 silence floor)"
+  ]
 }

@@ -1,5 +1,5 @@
 {
-  "schema_version": 4,
+  "schema_version": 5,
   "track_name": "erykah-badu-didnt-cha-know",
   "input_path": "examples/Erykah_Badu_-_Didnt_Cha_Know.wav",
   "duration_seconds": 243.170998,
@@ -7,9 +7,205 @@
   "separation_model": "htdemucs_ft",
   "separation_device": "mps",
   "analysis_sample_rate": 44100,
+  "tempo": {
+    "bpm": 135.26386,
+    "period_seconds": 0.443577,
+    "coarse_bpm": 135.273865,
+    "confidence": 0.803969,
+    "confidence_label": "high",
+    "status": "refined",
+    "multiples": [
+      {
+        "beats": 16,
+        "bpm": 135.263504,
+        "lag_frames": 611.306799,
+        "r": 0.856432,
+        "accepted": true,
+        "reason": null
+      },
+      {
+        "beats": 32,
+        "bpm": 135.264216,
+        "lag_frames": 1222.607168,
+        "r": 0.803969,
+        "accepted": true,
+        "reason": null
+      }
+    ],
+    "stability": {
+      "first_half_bpm": 135.263427,
+      "second_half_bpm": 135.263743,
+      "delta_bpm": 0.000316,
+      "label": "high"
+    },
+    "octave_candidates": [
+      {
+        "ratio": 0.5,
+        "bpm": 67.632108,
+        "r": 0.803969,
+        "status": "live"
+      },
+      {
+        "ratio": 1.0,
+        "bpm": 135.263504,
+        "r": 0.856432,
+        "status": "live"
+      },
+      {
+        "ratio": 2.0,
+        "bpm": 270.526376,
+        "r": 0.857492,
+        "status": "live"
+      }
+    ],
+    "octave_status": "ambiguous",
+    "octave_arbitration": [
+      {
+        "ratio": 0.5,
+        "bpm": 67.632108,
+        "grid_status": "ok",
+        "quantisation_error_steps": 0.068942,
+        "quantisation_error_seconds": 0.01529,
+        "chosen": false
+      },
+      {
+        "ratio": 1.0,
+        "bpm": 135.263504,
+        "grid_status": "ok",
+        "quantisation_error_steps": 0.111475,
+        "quantisation_error_seconds": 0.012362,
+        "chosen": true
+      },
+      {
+        "ratio": 2.0,
+        "bpm": 270.526376,
+        "grid_status": "no_grid",
+        "quantisation_error_steps": 0.197045,
+        "quantisation_error_seconds": null,
+        "chosen": false
+      }
+    ],
+    "caveats": [
+      "the octave is not settled by correlation alone: the reported tempo was not shifted, but 67.63 BPM (r=0.80), 270.53 BPM (r=0.86) also fits this source. Arbitrate on grid quality, not on r \u2014 see the module docstring",
+      "the octave was arbitrated against the drum grid and the backend's own octave won; the alternatives are in octave_arbitration (3 fitted)"
+    ]
+  },
+  "downbeat": {
+    "offset_seconds": 1.562932,
+    "confidence": 0.5,
+    "confidence_label": "high",
+    "beat_offset_seconds": 0.2322,
+    "beat_confidence": 0.893457,
+    "phase_confidence": 0.5,
+    "bar_phase": 3,
+    "candidate_offsets": [
+      0.2322,
+      0.675777,
+      1.119354,
+      1.562932
+    ],
+    "candidate_scores": [
+      -0.729775,
+      -0.115904,
+      -0.02751,
+      0.873189
+    ],
+    "unresolved_offsets": [
+      0.2322
+    ],
+    "resolved_by": "spectral",
+    "status": "ambiguous",
+    "caveats": [
+      "the spectral objective and the source's first onset disagree about bar phase; confidence capped and the alternative listed"
+    ]
+  },
+  "arrangement": {
+    "sections": [
+      {
+        "start_bar": 0,
+        "length_bars": 2,
+        "start_seconds": 1.562932,
+        "active": [
+          "other"
+        ],
+        "label": "intro",
+        "label_reason": "first section, thinner than the full band (bass, drums, kick, other, vocals): other"
+      },
+      {
+        "start_bar": 2,
+        "length_bars": 11,
+        "start_seconds": 5.111552,
+        "active": [
+          "drums",
+          "bass",
+          "other",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, other, kick"
+      },
+      {
+        "start_bar": 13,
+        "length_bars": 104,
+        "start_seconds": 24.62896,
+        "active": [
+          "drums",
+          "bass",
+          "vocals",
+          "other",
+          "kick"
+        ],
+        "label": "full",
+        "label_reason": "every track that is in this record is playing: drums, bass, vocals, other, kick"
+      },
+      {
+        "start_bar": 117,
+        "length_bars": 2,
+        "start_seconds": 209.157185,
+        "active": [
+          "drums",
+          "bass",
+          "vocals",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, vocals, kick"
+      },
+      {
+        "start_bar": 119,
+        "length_bars": 14,
+        "start_seconds": 212.705805,
+        "active": [
+          "drums",
+          "bass",
+          "vocals",
+          "other",
+          "kick"
+        ],
+        "label": "full",
+        "label_reason": "every track that is in this record is playing: drums, bass, vocals, other, kick"
+      },
+      {
+        "start_bar": 133,
+        "length_bars": 3,
+        "start_seconds": 237.546142,
+        "active": [
+          "other"
+        ],
+        "label": "outro",
+        "label_reason": "after the last full-band section (bass, drums, kick, other, vocals): other"
+      }
+    ],
+    "bar_count": 136,
+    "bar_seconds": 1.77431,
+    "downbeat_seconds": 1.562932,
+    "absent_tracks": [],
+    "status": "ok",
+    "caveats": []
+  },
   "sources": {
     "mix": {
-      "schema_version": 4,
+      "schema_version": 5,
       "source": "mix",
       "audio_path": "examples/Erykah_Badu_-_Didnt_Cha_Know.wav",
       "duration_seconds": 243.170998,
@@ -88,7 +284,7 @@
       "unavailable_features": []
     },
     "drums": {
-      "schema_version": 4,
+      "schema_version": 5,
       "source": "drums",
       "audio_path": "calibration/v5/erykah-badu-didnt-cha-know/stems/drums.wav",
       "duration_seconds": 243.170975,
@@ -145,16 +341,48 @@
       "drum_decomposition": {
         "status": "ok",
         "steps_per_cycle": 16,
-        "cycle_seconds": 1.774219,
-        "grid_anchor_seconds": 0.469408,
-        "grid_anchor_source": "beats",
-        "quantisation_error_steps": 0.114621,
+        "cycle_seconds": 1.77431,
+        "grid_anchor_seconds": 1.572231,
+        "grid_anchor_source": "supplied",
+        "quantisation_error_steps": 0.111544,
         "patterns": [
           {
             "drum": "kick",
             "steps": [
               0,
-              4,
+              1,
+              2,
+              3,
+              5,
+              6,
+              7,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15
+            ],
+            "step_occupancy": [
+              0.969697,
+              0.068182,
+              0.113636,
+              0.022727,
+              0.015152,
+              0.045455,
+              0.007576,
+              0.5,
+              0.030303,
+              0.484848,
+              0.022727,
+              0.159091,
+              0.022727
+            ],
+            "hit_count": 328
+          },
+          {
+            "drum": "snare",
+            "steps": [
               5,
               6,
               7,
@@ -164,51 +392,21 @@
               11,
               12,
               13,
+              14,
               15
             ],
             "step_occupancy": [
-              0.052632,
-              0.496241,
-              0.030075,
-              0.481203,
-              0.022556,
-              0.157895,
-              0.022556,
-              0.962406,
-              0.067669,
-              0.112782,
-              0.022556,
-              0.015038
-            ],
-            "hit_count": 328
-          },
-          {
-            "drum": "snare",
-            "steps": [
-              0,
-              1,
-              2,
-              3,
-              4,
-              5,
-              6,
-              7,
-              8,
-              9,
-              15
-            ],
-            "step_occupancy": [
-              0.028986,
-              0.057971,
-              0.304348,
-              0.115942,
-              0.188406,
-              0.202899,
-              0.144928,
-              0.028986,
-              0.521739,
-              0.014493,
-              0.028986
+              0.029412,
+              0.029412,
+              0.058824,
+              0.308824,
+              0.117647,
+              0.191176,
+              0.220588,
+              0.147059,
+              0.029412,
+              0.529412,
+              0.014706
             ],
             "hit_count": 123
           },
@@ -216,7 +414,6 @@
             "drum": "hat",
             "steps": [
               0,
-              1,
               2,
               3,
               4,
@@ -225,45 +422,44 @@
               7,
               8,
               10,
+              11,
               12,
               13,
-              14,
-              15
+              14
             ],
             "step_occupancy": [
-              0.955224,
-              0.014925,
-              0.955224,
-              0.007463,
-              0.932836,
-              0.029851,
-              0.335821,
-              0.014925,
-              0.955224,
-              0.955224,
-              0.947761,
-              0.007463,
-              0.955224,
-              0.007463
+              0.962406,
+              0.954887,
+              0.007519,
+              0.962406,
+              0.007519,
+              0.962406,
+              0.022556,
+              0.962406,
+              0.947368,
+              0.030075,
+              0.338346,
+              0.015038,
+              0.962406
             ],
             "hit_count": 1023
           },
           {
             "drum": "unclassified",
             "steps": [
-              2,
-              3,
               4,
-              5,
-              6,
-              14
+              8,
+              9,
+              10,
+              11,
+              12
             ],
             "step_occupancy": [
+              0.1,
               0.2,
               0.1,
               0.1,
               0.5,
-              0.1,
               0.1
             ],
             "hit_count": 11
@@ -273,8 +469,7 @@
         "unclassified_count": 11,
         "caveats": [
           "22 detections in the noise/air bands were the kick's own transient found a second time, not hits of their own \u2014 their windows are over 0.6 kick energy and their air/(air+noise) is under 0.5, which is a beater click rather than a hat",
-          "11 of 1485 hits are unclassified. Three classes cannot describe a full kit: toms, rides, crashes, claps and shakers all land here, and on percussive material that is correct rather than a failure.",
-          "the grid anchor was moved +0.36 steps onto the hits' own phase. A supplied downbeat fixes which step is step 0, not the sub-step phase, and this move cannot change any step number."
+          "11 of 1485 hits are unclassified. Three classes cannot describe a full kit: toms, rides, crashes, claps and shakers all land here, and on percussive material that is correct rather than a failure."
         ]
       },
       "bass_line": {
@@ -311,7 +506,7 @@
       "unavailable_features": []
     },
     "bass": {
-      "schema_version": 4,
+      "schema_version": 5,
       "source": "bass",
       "audio_path": "calibration/v5/erykah-badu-didnt-cha-know/stems/bass.wav",
       "duration_seconds": 243.170975,
@@ -390,7 +585,7 @@
       "unavailable_features": []
     },
     "vocals": {
-      "schema_version": 4,
+      "schema_version": 5,
       "source": "vocals",
       "audio_path": "calibration/v5/erykah-badu-didnt-cha-know/stems/vocals.wav",
       "duration_seconds": 243.170975,
@@ -494,7 +689,7 @@
       "unavailable_features": []
     },
     "other": {
-      "schema_version": 4,
+      "schema_version": 5,
       "source": "other",
       "audio_path": "calibration/v5/erykah-badu-didnt-cha-know/stems/other.wav",
       "duration_seconds": 243.170975,

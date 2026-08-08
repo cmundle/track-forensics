@@ -1,0 +1,595 @@
+{
+  "schema_version": 5,
+  "track_name": "showers-of-gold",
+  "input_path": "examples/Showers-of-gold.wav",
+  "duration_seconds": 17.09,
+  "backend": "essentia",
+  "separation_model": "htdemucs_ft",
+  "separation_device": "mps",
+  "analysis_sample_rate": 44100,
+  "tempo": {
+    "bpm": 150.900482,
+    "period_seconds": 0.397613,
+    "coarse_bpm": 150.900482,
+    "confidence": 0.0,
+    "confidence_label": "low",
+    "status": "coarse",
+    "multiples": [
+      {
+        "beats": 16,
+        "bpm": null,
+        "lag_frames": 541.0,
+        "r": 0.022585,
+        "accepted": false,
+        "reason": "below_correlation_floor"
+      },
+      {
+        "beats": 32,
+        "bpm": null,
+        "lag_frames": null,
+        "r": 0.0,
+        "accepted": false,
+        "reason": "too_short"
+      }
+    ],
+    "stability": {
+      "first_half_bpm": null,
+      "second_half_bpm": null,
+      "delta_bpm": null,
+      "label": "unknown"
+    },
+    "octave_candidates": [
+      {
+        "ratio": 0.5,
+        "bpm": 75.450241,
+        "r": 0.0,
+        "status": "unmeasurable"
+      },
+      {
+        "ratio": 1.0,
+        "bpm": 150.900482,
+        "r": 0.022585,
+        "status": "ruled_out"
+      },
+      {
+        "ratio": 2.0,
+        "bpm": 301.800964,
+        "r": 0.028871,
+        "status": "ruled_out"
+      }
+    ],
+    "octave_status": "single",
+    "octave_arbitration": [],
+    "caveats": [
+      "no beat multiple produced a usable autocorrelation peak (below_correlation_floor, too_short)"
+    ]
+  },
+  "downbeat": {
+    "offset_seconds": 0.992596,
+    "confidence": 0.783436,
+    "confidence_label": "high",
+    "beat_offset_seconds": 0.19737,
+    "beat_confidence": 0.783436,
+    "phase_confidence": 0.966192,
+    "bar_phase": 2,
+    "candidate_offsets": [
+      0.19737,
+      0.594983,
+      0.992596,
+      1.390209
+    ],
+    "candidate_scores": [
+      -0.112677,
+      0.059174,
+      0.113904,
+      -0.060402
+    ],
+    "unresolved_offsets": [
+      0.594983
+    ],
+    "resolved_by": "spectral",
+    "status": "ambiguous",
+    "caveats": [
+      "bar phase is degenerate: 1 other beat(s) scored within 25% of the winner"
+    ]
+  },
+  "arrangement": {
+    "sections": [
+      {
+        "start_bar": 0,
+        "length_bars": 10,
+        "start_seconds": 0.992596,
+        "active": [
+          "drums",
+          "other",
+          "kick"
+        ],
+        "label": "full",
+        "label_reason": "every track that is in this record is playing: drums, other, kick"
+      }
+    ],
+    "bar_count": 10,
+    "bar_seconds": 1.590452,
+    "downbeat_seconds": 0.992596,
+    "absent_tracks": [
+      "bass",
+      "vocals"
+    ],
+    "status": "ok",
+    "caveats": [
+      "the supplied bar grid is coarse, so section boundaries are approximate: an entry or an exit is a step of orders of magnitude in a stem's level and survives a drifting grid, but the bar it is reported at does not",
+      "treated as not present in this record at all: bass (0.00069 of the loudest stem), vocals (0.00045 of the loudest stem). Below 0.02 of the loudest stem a separated stem is bleed, and thresholding bleed against itself invents an arrangement"
+    ]
+  },
+  "sources": {
+    "mix": {
+      "schema_version": 5,
+      "source": "mix",
+      "audio_path": "examples/Showers-of-gold.wav",
+      "duration_seconds": 17.09,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 150.900482,
+        "bpm_confidence": 1.005781,
+        "beat_count": 41,
+        "onset_count": 69,
+        "onset_density": 4.037449,
+        "transient_sharpness": 1.64094
+      },
+      "tonal": {
+        "key": "F",
+        "scale": "major",
+        "key_confidence": 0.711024,
+        "hpcp_mean": [
+          0.135205,
+          0.076453,
+          0.288857,
+          0.055512,
+          0.051006,
+          0.183501,
+          0.132696,
+          0.063105,
+          0.218605,
+          0.077286,
+          0.242362,
+          0.042719
+        ],
+        "tonal_stability": 0.696945
+      },
+      "spectral": {
+        "centroid_mean": 1994.242439,
+        "centroid_std": 726.353327,
+        "centroid_energy_hz": 1445.222419,
+        "rolloff_mean": 2149.653532,
+        "rolloff_energy_hz": 2196.386719,
+        "brightness": 0.403067,
+        "band_energy_ratios": {
+          "low": 0.003169,
+          "low_mid": 0.699937,
+          "high_mid": 0.285845,
+          "high": 0.01105
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -16.228577,
+        "rms_mean": 0.081326,
+        "rms_std": 0.04533,
+        "crest_factor": 7.529203
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [],
+      "unavailable_features": []
+    },
+    "drums": {
+      "schema_version": 5,
+      "source": "drums",
+      "audio_path": "calibration/v5/showers-of-gold/stems/drums.wav",
+      "duration_seconds": 17.09,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 108.053444,
+        "bpm_confidence": 0.895132,
+        "beat_count": 31,
+        "onset_count": 58,
+        "onset_density": 3.393797,
+        "transient_sharpness": 1.675694
+      },
+      "tonal": {
+        "key": "C#",
+        "scale": "minor",
+        "key_confidence": 0.626088,
+        "hpcp_mean": [
+          0.191558,
+          0.406994,
+          0.174411,
+          0.123414,
+          0.112545,
+          0.078639,
+          0.070557,
+          0.147342,
+          0.179592,
+          0.118427,
+          0.229899,
+          0.297064
+        ],
+        "tonal_stability": 0.383192
+      },
+      "spectral": {
+        "centroid_mean": 7791.963892,
+        "centroid_std": 1714.874664,
+        "centroid_energy_hz": 7335.64626,
+        "rolloff_mean": 12351.775469,
+        "rolloff_energy_hz": 12747.65625,
+        "brightness": 0.957753,
+        "band_energy_ratios": {
+          "low": 0.00092,
+          "low_mid": 0.07705,
+          "high_mid": 0.380365,
+          "high": 0.541665
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -35.077961,
+        "rms_mean": 0.006035,
+        "rms_std": 0.005371,
+        "crest_factor": 57.946106
+      },
+      "drum_decomposition": {
+        "status": "no_grid",
+        "steps_per_cycle": null,
+        "cycle_seconds": 1.590452,
+        "grid_anchor_seconds": 0.951503,
+        "grid_anchor_source": "supplied",
+        "quantisation_error_steps": 0.187824,
+        "patterns": [
+          {
+            "drum": "unclassified",
+            "steps": [],
+            "step_occupancy": [],
+            "hit_count": 45
+          }
+        ],
+        "total_hit_count": 45,
+        "unclassified_count": 45,
+        "caveats": [
+          "no hits looked for in these bands \u2014 they hold under 0.001 of this source's energy, which is residue rather than content: kick",
+          "no hits looked for in these bands \u2014 they are full of transients that never separate. The energy does not fall back between hits, which is a compressed or reverberant source (or a roll), and this module cannot tell one hit from the next in it. **Any drum living in these bands is missing from the counts below, however loud it is.** An envelope fold can still see the pattern where per-hit detection cannot: noise, air",
+          "45 of 45 hits are unclassified. Three classes cannot describe a full kit: toms, rides, crashes, claps and shakers all land here, and on percussive material that is correct rather than a failure.",
+          "most hits are unclassified, so read the kick/snare/hat pattern as a partial transcription of this source rather than a complete one",
+          "the grid anchor was moved -0.41 steps onto the hits' own phase. A supplied downbeat fixes which step is step 0, not the sub-step phase, and this move cannot change any step number.",
+          "no cycle grid: folding the band flux onto this cycle length puts only 0.44 of the profile on the grid, against 0.5 required and 0.25 expected by chance. The hits do not fit any grid at this period \u2014 this is not a near miss."
+        ]
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "bright hats",
+          "confidence": 1.0,
+          "evidence": {
+            "band_energy_high": 0.541665,
+            "centroid_mean": 7791.963892,
+            "min_band_energy_high": 0.12,
+            "min_centroid_hz": 1000.0
+          }
+        },
+        {
+          "label": "percussive",
+          "confidence": 0.348449,
+          "evidence": {
+            "crest_factor": 57.946106,
+            "onset_density": 3.393797,
+            "min_crest_factor": 8.0,
+            "min_onset_density": 2.0
+          }
+        },
+        {
+          "label": "noisy",
+          "confidence": 0.290887,
+          "evidence": {
+            "centroid_mean": 7791.963892,
+            "chroma_entropy": 0.950362,
+            "min_centroid_hz": 2500.0,
+            "min_chroma_entropy": 0.93,
+            "key_confidence": 0.626088,
+            "tonal_stability": 0.383192
+          }
+        }
+      ],
+      "unavailable_features": [
+        "drum_decomposition (status=no_grid)"
+      ]
+    },
+    "bass": {
+      "schema_version": 5,
+      "source": "bass",
+      "audio_path": "calibration/v5/showers-of-gold/stems/bass.wav",
+      "duration_seconds": 17.09,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 77.28299,
+        "bpm_confidence": 1.010948,
+        "beat_count": 26,
+        "onset_count": 35,
+        "onset_density": 2.047981,
+        "transient_sharpness": 1.612653
+      },
+      "tonal": {
+        "key": "A",
+        "scale": "minor",
+        "key_confidence": 0.0,
+        "hpcp_mean": [
+          0.215362,
+          0.19255,
+          0.237139,
+          0.068481,
+          0.054694,
+          0.186015,
+          0.0536,
+          0.09939,
+          0.248651,
+          0.136911,
+          0.157817,
+          0.046503
+        ],
+        "tonal_stability": 0.62911
+      },
+      "spectral": {
+        "centroid_mean": 2638.045529,
+        "centroid_std": 555.105179,
+        "centroid_energy_hz": 1899.043088,
+        "rolloff_mean": 1295.454446,
+        "rolloff_energy_hz": 2799.316406,
+        "brightness": 0.365997,
+        "band_energy_ratios": {
+          "low": 0.355655,
+          "low_mid": 0.336609,
+          "high_mid": 0.230137,
+          "high": 0.077599
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -70.0,
+        "rms_mean": 6.4e-05,
+        "rms_std": 2.1e-05,
+        "crest_factor": 16.404796
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "silent",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": [
+          "source is below the silence floor and was not analysed: at this level a stem is separation residue, and a pitch tracker or onset detector pointed at a noise floor returns confident nonsense"
+        ]
+      },
+      "labels": [
+        {
+          "label": "silent/absent stem",
+          "confidence": 1.0,
+          "evidence": {
+            "loudness_lufs": -70.0,
+            "max_loudness_lufs": -50.0
+          }
+        }
+      ],
+      "unavailable_features": [
+        "bass_line (status=silent)",
+        "source (silent: rms_mean 6.4e-05 is below the 0.001 silence floor)"
+      ]
+    },
+    "vocals": {
+      "schema_version": 5,
+      "source": "vocals",
+      "audio_path": "calibration/v5/showers-of-gold/stems/vocals.wav",
+      "duration_seconds": 17.09,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 99.232437,
+        "bpm_confidence": 0.882786,
+        "beat_count": 35,
+        "onset_count": 103,
+        "onset_density": 6.026917,
+        "transient_sharpness": 1.568975
+      },
+      "tonal": {
+        "key": "F",
+        "scale": "minor",
+        "key_confidence": 0.687967,
+        "hpcp_mean": [
+          0.210525,
+          0.119458,
+          0.238952,
+          0.152025,
+          0.059443,
+          0.32543,
+          0.136136,
+          0.094764,
+          0.186137,
+          0.156883,
+          0.115049,
+          0.037639
+        ],
+        "tonal_stability": 0.53097
+      },
+      "spectral": {
+        "centroid_mean": 5511.17261,
+        "centroid_std": 1058.00185,
+        "centroid_energy_hz": 3752.14798,
+        "rolloff_mean": 8804.815732,
+        "rolloff_energy_hz": 6761.425781,
+        "brightness": 0.689872,
+        "band_energy_ratios": {
+          "low": 0.04488,
+          "low_mid": 0.31716,
+          "high_mid": 0.439441,
+          "high": 0.198519
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -70.0,
+        "rms_mean": 3e-05,
+        "rms_std": 3.1e-05,
+        "crest_factor": 65.063531
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "silent/absent stem",
+          "confidence": 1.0,
+          "evidence": {
+            "loudness_lufs": -70.0,
+            "max_loudness_lufs": -50.0
+          }
+        }
+      ],
+      "unavailable_features": [
+        "source (silent: rms_mean 3e-05 is below the 0.001 silence floor)"
+      ]
+    },
+    "other": {
+      "schema_version": 5,
+      "source": "other",
+      "audio_path": "calibration/v5/showers-of-gold/stems/other.wav",
+      "duration_seconds": 17.09,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 151.565247,
+        "bpm_confidence": 0.972213,
+        "beat_count": 42,
+        "onset_count": 78,
+        "onset_density": 4.564073,
+        "transient_sharpness": 1.651447
+      },
+      "tonal": {
+        "key": "F",
+        "scale": "major",
+        "key_confidence": 0.703473,
+        "hpcp_mean": [
+          0.132244,
+          0.072996,
+          0.294427,
+          0.049234,
+          0.0564,
+          0.184128,
+          0.138966,
+          0.06318,
+          0.218304,
+          0.069184,
+          0.245244,
+          0.038973
+        ],
+        "tonal_stability": 0.70146
+      },
+      "spectral": {
+        "centroid_mean": 1353.690424,
+        "centroid_std": 412.265977,
+        "centroid_energy_hz": 1354.776878,
+        "rolloff_mean": 1745.927887,
+        "rolloff_energy_hz": 2174.853516,
+        "brightness": 0.394242,
+        "band_energy_ratios": {
+          "low": 0.002245,
+          "low_mid": 0.710489,
+          "high_mid": 0.284316,
+          "high": 0.00295
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -16.335346,
+        "rms_mean": 0.08001,
+        "rms_std": 0.04543,
+        "crest_factor": 7.097873
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [],
+      "unavailable_features": []
+    }
+  }
+}

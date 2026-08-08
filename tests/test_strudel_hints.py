@@ -27,6 +27,8 @@ from audio_pipeline.schemas import (
     DrumHit,
     DrumPattern,
     DynamicsFeatures,
+    OctaveCandidate,
+    OctaveGridFit,
     RhythmFeatures,
     Section,
     SourceAnalysis,
@@ -41,6 +43,7 @@ from audio_pipeline.strudel_hints import (
     BEATS_PER_CYCLE,
     DENSITY_TERMS,
     SUBDIVISION_TERMS,
+    _octave_note,
     build,
     classify_density,
     infer_subdivision_feel,
@@ -977,3 +980,240 @@ def test_hints_emit_descriptions_not_strudel_code() -> None:
     for value in fields:
         assert value is not None
         assert not any(token in value for token in ("~", "<", ">", "*", "(", "s(", "sound"))
+
+
+# ---------------------------------------------------------------------------
+# W8B: the swung branch, and whether anything can reach it
+# ---------------------------------------------------------------------------
+# The branch had returned nothing on every track in the project's history,
+# including two chosen specifically to exercise it. The tests above show it
+# firing on clean alternating interval sequences; what none of them show is a
+# whole kit, which is what a drums stem's `onset_times` actually is — the union
+# of kick, snare and hat, with the kick and snare landing on beats that the
+# shuffled hats already occupy and every hit carrying its own jitter.
+#
+# Measured on the eight-track corpus, folding each drums stem's real onsets:
+#
+#   track       n IOIs   long/short   alternation   verdict
+#   badu          1039        1.191         0.748   straight 8ths
+#   madonna       1415            -         0.245   neither
+#   roni          1547            -         0.356   neither
+#   chameleon     5082            -         0.333   neither
+#   levee         1095            -         0.303   neither
+#   eno            274            -         0.418   neither
+#
+# `SWING_MIN_ALTERNATION` is 0.75 and Badu reaches 0.748, so its clusters are
+# not even split into a pair — and if they were, the ratio is 1.191, well under
+# `SWING_RATIO_RANGE[0]` at 1.5. That is Dilla's loose micro-timing on a
+# straight-8th hat pattern, not a shuffle, and the tool naming it `straight
+# 8ths` is the right answer. **The branch is reachable; the corpus has no
+# shuffle in it.**
+
+
+def kit_shuffle_times(
+    bpm: float = 120.0, bars: int = 16, jitter: float = 0.0, seed: int = 0
+) -> list[float]:
+    """A triplet-feel shuffle played by a whole kit, as onset times.
+
+    Hats on shuffled 8ths (offbeat at 2/3 of the beat, not 1/2), kick on every
+    beat, snare on 2 and 4, every hit jittered independently. Coincident hits
+    collapse the way an onset detector's would.
+    """
+    rng = random.Random(seed)
+    beat = 60.0 / bpm
+    times: list[float] = []
+    for index in range(bars * 4):
+        start = index * beat
+        times.append(start)  # hat downbeat + kick
+        times.append(start + beat * 2 / 3)  # shuffled offbeat hat
+        if index % 2 == 1:
+            times.append(start)  # snare on 2 and 4, coincident with the kick
+    jittered = sorted(value + rng.gauss(0.0, jitter) for value in times)
+    deduped = [jittered[0]]
+    for value in jittered[1:]:
+        if value - deduped[-1] > 0.005:
+            deduped.append(value)
+    return deduped
+
+
+def test_a_whole_kit_playing_a_shuffle_reaches_the_swung_branch() -> None:
+    """The reachability answer. Not a bare alternating IOI list — kick, snare
+    and shuffled hats together, which is the shape a real drums stem hands
+    over."""
+    summary = make_summary(
+        make_source("drums", bpm=120.0, onset_times=kit_shuffle_times()),
+        tempo=make_tempo_fit(120.0),
+    )
+    assert infer_subdivision_feel(summary) == "swung 8ths"
+
+
+@pytest.mark.parametrize("jitter", [0.004, 0.008, 0.015])
+def test_the_swung_branch_survives_human_timing(jitter: float) -> None:
+    """+/-15 ms is well past what a drummer contributes and past the ~12 ms
+    onset-detector hop, and the branch still fires. It is not a knife-edge
+    synthetic-only path."""
+    summary = make_summary(
+        make_source("drums", bpm=120.0, onset_times=kit_shuffle_times(jitter=jitter, seed=7)),
+        tempo=make_tempo_fit(120.0),
+    )
+    assert infer_subdivision_feel(summary) == "swung 8ths"
+
+
+def test_a_straight_kit_at_the_same_tempo_is_not_called_swung() -> None:
+    """The control: the same kit, offbeat hats on the half rather than 2/3."""
+    beat = 0.5
+    times: list[float] = []
+    for index in range(64):
+        times.append(index * beat)
+        times.append(index * beat + beat / 2)
+    summary = make_summary(
+        make_source("drums", bpm=120.0, onset_times=times), tempo=make_tempo_fit(120.0)
+    )
+    assert infer_subdivision_feel(summary) == "straight 8ths"
+
+
+def test_badu_style_loose_straight_8ths_is_not_mistaken_for_swing() -> None:
+    """The corpus's near miss, reconstructed from its measured statistics: a
+    1.19 long/short ratio, under `SWING_RATIO_RANGE[0]`. Loose is not swung."""
+    beat = 0.5
+    long, short = beat / 2 * 1.087, beat / 2 * 0.913  # ratio 1.191, pair = 1 beat
+    summary = drums_with_iois(repeat_to([long, short], 64))
+    assert infer_subdivision_feel(summary) not in {"swung 8ths", "swung 16ths"}
+
+
+# ---------------------------------------------------------------------------
+# W8B: one account of the tempo octave
+# ---------------------------------------------------------------------------
+
+
+def make_octave_tempo_fit(
+    *, arbitration: list[tuple[float, float, str, bool]], live: list[tuple[float, float]]
+) -> TempoFit:
+    return TempoFit(
+        bpm=next(bpm for _, bpm, _, chosen in arbitration if chosen),
+        period_seconds=1.0,
+        coarse_bpm=next(bpm for _, bpm, _, chosen in arbitration if chosen),
+        confidence=0.48,
+        confidence_label="medium",
+        status="refined",
+        octave_status="ambiguous",
+        octave_candidates=[
+            OctaveCandidate(ratio=ratio, bpm=bpm, r=0.5, status="live") for ratio, bpm in live
+        ],
+        octave_arbitration=[
+            OctaveGridFit(
+                ratio=ratio,
+                bpm=bpm,
+                grid_status=grid,
+                quantisation_error_steps=0.1,
+                quantisation_error_seconds=0.01,
+                chosen=chosen,
+            )
+            for ratio, bpm, grid, chosen in arbitration
+        ],
+        caveats=[
+            "the octave is not settled by correlation alone: the reported tempo was not shifted",
+            "tempo octave corrected x2 to 170.069 BPM",
+        ],
+    )
+
+
+def test_a_corrected_octave_produces_one_note_that_says_the_tempo_moved() -> None:
+    """Roni Size. `tempo.py` says it did not shift the tempo and `analyze.py`
+    says it corrected it x2, both into the same caveat list. Read together they
+    contradict; the hints file must give the reader one account, and it must be
+    the one that describes the printed `bpm`."""
+    tempo = make_octave_tempo_fit(
+        arbitration=[
+            (0.5, 42.52, "no_grid", False),
+            (1.0, 85.04, "ok", False),
+            (2.0, 170.07, "ok", True),
+        ],
+        live=[(0.5, 85.04), (1.0, 170.07), (2.0, 340.16)],
+    )
+    notes = build(make_summary(make_source("drums", bpm=85.0), tempo=tempo)).notes
+    octave = [note for note in notes if note.startswith("tempo octave:")]
+    assert len(octave) == 1
+    assert "moved x2" in octave[0]
+    # The pre-move reading, not `coarse_bpm` — which is re-refined at the new
+    # octave and would print the corrected number twice.
+    assert "85.04" in octave[0]
+    assert "170.07" not in octave[0]
+    assert not any("was not shifted" in note for note in notes)
+
+
+def test_an_unmoved_but_ambiguous_octave_says_the_grid_confirmed_it() -> None:
+    """Madonna and Badu: correlation could not settle it, the grid was fitted at
+    every candidate, and the backend's own octave won. That is a different fact
+    from 'nothing could arbitrate' and must not read as a warning."""
+    tempo = make_octave_tempo_fit(
+        arbitration=[
+            (0.5, 66.0, "ok", False),
+            (1.0, 132.0, "ok", True),
+            (2.0, 264.0, "ok", False),
+        ],
+        live=[(0.5, 66.0), (1.0, 132.0), (2.0, 264.0)],
+    )
+    note = _octave_note(make_summary(make_source("drums"), tempo=tempo))
+    assert note is not None
+    assert "the backend's own octave won" in note
+    assert "verify by ear" not in note
+
+
+def test_an_ambiguous_octave_with_no_grid_warns_instead() -> None:
+    """Eno and Levee Breaks: nothing to arbitrate with, so the octave is a real
+    open question and the note says so."""
+    tempo = TempoFit(
+        bpm=143.25,
+        period_seconds=60.0 / 143.25,
+        coarse_bpm=143.25,
+        status="coarse",
+        confidence_label="low",
+        octave_status="ambiguous",
+        octave_candidates=[
+            OctaveCandidate(ratio=1.0, bpm=143.25, r=0.11, status="live"),
+            OctaveCandidate(ratio=2.0, bpm=286.5, r=0.10, status="live"),
+        ],
+    )
+    note = _octave_note(make_summary(make_source("drums"), tempo=tempo))
+    assert note is not None
+    assert "no drum grid to arbitrate with" in note
+    assert "286.50" in note
+
+
+def test_a_settled_octave_says_nothing_at_all() -> None:
+    """Chameleon and showers-of-gold: `octave_status="single"`. Silence is the
+    correct output — this file does not narrate the absence of a problem."""
+    tempo = make_tempo_fit(120.0)
+    assert tempo.octave_status == "unavailable"
+    assert _octave_note(make_summary(make_source("drums"), tempo=tempo)) is None
+
+    settled = make_tempo_fit(120.0)
+    settled.octave_status = "single"
+    assert _octave_note(make_summary(make_source("drums"), tempo=settled)) is None
+
+
+def test_a_silent_stem_gets_no_density() -> None:
+    """F5's shape, found again in W8B. Three of the eight corpus tracks printed
+    a density for separation residue: donjon and showers-of-gold both reported
+    `bass_activity: moderate` for bass stems at rms 8.2e-05 and 6.4e-05, and
+    Brian Eno's empty drums stem reported `drum_density: sparse`."""
+    hints = build(
+        make_summary(
+            make_source("drums", onset_density=0.35, rms_mean=4.8e-05),
+            make_source("bass", onset_density=3.03, rms_mean=8.2e-05),
+        )
+    )
+    assert hints.drum_density is None
+    assert hints.bass_activity is None
+    # Three notes, not two: the tonal-centre fallback declines the same bass
+    # stem for the same reason, which is the half of F5 that W6 already closed.
+    assert sum("below the silence floor" in note for note in hints.notes) == 3
+    assert any("drum density is not reported" in note for note in hints.notes)
+    assert any("bass activity is not reported" in note for note in hints.notes)
+
+
+def test_a_quiet_but_real_stem_still_gets_a_density() -> None:
+    """The other side: the gate reads `SILENCE_RMS_FLOOR`, not 'quiet'."""
+    hints = build(make_summary(make_source("bass", onset_density=3.03, rms_mean=0.0038)))
+    assert hints.bass_activity == "moderate"

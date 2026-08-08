@@ -1,5 +1,5 @@
 {
-  "schema_version": 4,
+  "schema_version": 5,
   "source": "vocals",
   "audio_path": "calibration/v5/when-the-levee-breaks-remaster/stems/vocals.wav",
   "duration_seconds": 430.32,

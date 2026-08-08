@@ -1995,8 +1995,16 @@ _GRID_FAILURE_CAVEATS: Final[dict[str, str]] = {
         "fold onto"
     ),
     "not_periodic": (
+        # `on_grid` is printed to three places, not two: it is compared against
+        # `floor` in the same sentence, and a value just under the floor rounds
+        # to the floor at two places. On Herbie Hancock's "Chameleon" the v5
+        # calibration run produced "puts only 0.50 of the profile on the grid,
+        # against 0.5 required", which reads as a contradiction. The measurement
+        # was right and the format string was hiding the margin. (W8B; the
+        # `{chance:.2f}` term is left at two places — it is a reference value,
+        # not one of the two numbers being compared.)
         "no cycle grid: folding the band flux onto this cycle length puts only "
-        "{on_grid:.2f} of the profile on the grid, against {floor:g} required and "
+        "{on_grid:.3f} of the profile on the grid, against {floor:g} required and "
         "{chance:.2f} expected by chance. The hits do not fit any grid at this "
         "period — this is not a near miss."
     ),

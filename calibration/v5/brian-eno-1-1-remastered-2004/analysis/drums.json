@@ -1,5 +1,5 @@
 {
-  "schema_version": 4,
+  "schema_version": 5,
   "source": "drums",
   "audio_path": "calibration/v5/brian-eno-1-1-remastered-2004/stems/drums.wav",
   "duration_seconds": 1041.52,
@@ -417,7 +417,7 @@
     "crest_factor": 77.98055
   },
   "drum_decomposition": {
-    "status": "too_few_hits",
+    "status": "silent",
     "steps_per_cycle": null,
     "cycle_seconds": null,
     "grid_anchor_seconds": null,
@@ -427,8 +427,7 @@
     "hits": [],
     "unclassified_count": 0,
     "caveats": [
-      "no hits looked for in these bands \u2014 they hold nothing, or nothing transient: kick, body, noise, air",
-      "no drum hits detected"
+      "source is below the silence floor and was not analysed: at this level a stem is separation residue, and a pitch tracker or onset detector pointed at a noise floor returns confident nonsense"
     ]
   },
   "bass_line": {
@@ -451,9 +450,10 @@
     }
   ],
   "unavailable_features": [
-    "drum_decomposition (status=too_few_hits)",
+    "drum_decomposition (status=silent)",
     "rhythm.beat_times",
     "rhythm.bpm",
-    "rhythm.bpm_confidence"
+    "rhythm.bpm_confidence",
+    "source (silent: rms_mean 4.8e-05 is below the 0.001 silence floor)"
   ]
 }

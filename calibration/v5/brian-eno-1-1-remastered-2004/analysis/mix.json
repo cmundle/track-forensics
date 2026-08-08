@@ -1,5 +1,5 @@
 {
-  "schema_version": 4,
+  "schema_version": 5,
   "source": "mix",
   "audio_path": "examples/Brian-Eno-1-1_Remastered_2004.wav",
   "duration_seconds": 1041.52,

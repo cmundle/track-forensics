@@ -1,5 +1,5 @@
 {
-  "schema_version": 4,
+  "schema_version": 5,
   "source": "mix",
   "audio_path": "examples/Erykah_Badu_-_Didnt_Cha_Know.wav",
   "duration_seconds": 243.170998,

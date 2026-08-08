@@ -1,5 +1,5 @@
 {
-  "schema_version": 4,
+  "schema_version": 5,
   "track_name": "roni-size-reprazent-brown-paper-bag",
   "input_path": "examples/Roni_Size_Reprazent_-_Brown_Paper_Bag.wav",
   "duration_seconds": 302.683741,
@@ -7,9 +7,685 @@
   "separation_model": "htdemucs_ft",
   "separation_device": "mps",
   "analysis_sample_rate": 44100,
+  "tempo": {
+    "bpm": 170.074811,
+    "period_seconds": 0.352786,
+    "coarse_bpm": 170.069342,
+    "confidence": 0.47622,
+    "confidence_label": "medium",
+    "status": "refined",
+    "multiples": [
+      {
+        "beats": 16,
+        "bpm": 170.069342,
+        "lag_frames": 486.198741,
+        "r": 0.574574,
+        "accepted": true,
+        "reason": null
+      },
+      {
+        "beats": 32,
+        "bpm": 170.080279,
+        "lag_frames": 972.334951,
+        "r": 0.47622,
+        "accepted": true,
+        "reason": null
+      }
+    ],
+    "stability": {
+      "first_half_bpm": 170.065238,
+      "second_half_bpm": 170.090307,
+      "delta_bpm": 0.025069,
+      "label": "high"
+    },
+    "octave_candidates": [
+      {
+        "ratio": 0.5,
+        "bpm": 85.04014,
+        "r": 0.47622,
+        "status": "live"
+      },
+      {
+        "ratio": 1.0,
+        "bpm": 170.069342,
+        "r": 0.574574,
+        "status": "live"
+      },
+      {
+        "ratio": 2.0,
+        "bpm": 340.155066,
+        "r": 0.559656,
+        "status": "live"
+      }
+    ],
+    "octave_status": "ambiguous",
+    "octave_arbitration": [
+      {
+        "ratio": 0.5,
+        "bpm": 42.521249,
+        "grid_status": "no_grid",
+        "quantisation_error_steps": 0.209058,
+        "quantisation_error_seconds": null,
+        "chosen": false
+      },
+      {
+        "ratio": 1.0,
+        "bpm": 85.04014,
+        "grid_status": "ok",
+        "quantisation_error_steps": 0.121819,
+        "quantisation_error_seconds": 0.021487,
+        "chosen": false
+      },
+      {
+        "ratio": 2.0,
+        "bpm": 170.069342,
+        "grid_status": "ok",
+        "quantisation_error_steps": 0.104621,
+        "quantisation_error_seconds": 0.009227,
+        "chosen": true
+      }
+    ],
+    "caveats": [
+      "the octave is not settled by correlation alone: the reported tempo was not shifted, but 85.04 BPM (r=0.48), 340.16 BPM (r=0.56) also fits this source. Arbitrate on grid quality, not on r \u2014 see the module docstring",
+      "tempo octave corrected x2 to 170.069 BPM: the drum grid fits better there than at the backend's octave on both quantisation-error measures (0.1046 steps and 9.2 ms). The backend's estimate is unchanged in every source's rhythm.bpm"
+    ]
+  },
+  "downbeat": {
+    "offset_seconds": 0.492106,
+    "confidence": 0.739809,
+    "confidence_label": "high",
+    "beat_offset_seconds": 0.13932,
+    "beat_confidence": 0.739809,
+    "phase_confidence": 1.0,
+    "bar_phase": 1,
+    "candidate_offsets": [
+      0.13932,
+      0.492106,
+      0.844892,
+      1.197678
+    ],
+    "candidate_scores": [
+      -0.242075,
+      0.586319,
+      -0.308884,
+      -0.03536
+    ],
+    "unresolved_offsets": [],
+    "resolved_by": "spectral",
+    "status": "ok",
+    "caveats": []
+  },
+  "arrangement": {
+    "sections": [
+      {
+        "start_bar": 0,
+        "length_bars": 3,
+        "start_seconds": 0.492106,
+        "active": [
+          "drums",
+          "kick"
+        ],
+        "label": "intro",
+        "label_reason": "first section, thinner than the full band (bass, drums, kick, other, vocals): drums, kick"
+      },
+      {
+        "start_bar": 3,
+        "length_bars": 2,
+        "start_seconds": 4.725537,
+        "active": [
+          "bass",
+          "other"
+        ],
+        "label": "groove",
+        "label_reason": "playing: bass, other"
+      },
+      {
+        "start_bar": 5,
+        "length_bars": 2,
+        "start_seconds": 7.547824,
+        "active": [
+          "other"
+        ],
+        "label": "breakdown",
+        "label_reason": "neither kick nor bass, away from the ends: other"
+      },
+      {
+        "start_bar": 7,
+        "length_bars": 2,
+        "start_seconds": 10.370112,
+        "active": [
+          "bass",
+          "other"
+        ],
+        "label": "groove",
+        "label_reason": "playing: bass, other"
+      },
+      {
+        "start_bar": 9,
+        "length_bars": 2,
+        "start_seconds": 13.192399,
+        "active": [
+          "other"
+        ],
+        "label": "breakdown",
+        "label_reason": "neither kick nor bass, away from the ends: other"
+      },
+      {
+        "start_bar": 11,
+        "length_bars": 2,
+        "start_seconds": 16.014687,
+        "active": [
+          "drums",
+          "bass",
+          "other",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, other, kick"
+      },
+      {
+        "start_bar": 13,
+        "length_bars": 2,
+        "start_seconds": 18.836974,
+        "active": [
+          "drums",
+          "other",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, other, kick"
+      },
+      {
+        "start_bar": 15,
+        "length_bars": 2,
+        "start_seconds": 21.659261,
+        "active": [
+          "drums",
+          "bass",
+          "other",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, other, kick"
+      },
+      {
+        "start_bar": 17,
+        "length_bars": 2,
+        "start_seconds": 24.481549,
+        "active": [
+          "drums",
+          "other",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, other, kick"
+      },
+      {
+        "start_bar": 19,
+        "length_bars": 2,
+        "start_seconds": 27.303836,
+        "active": [
+          "drums",
+          "bass",
+          "other",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, other, kick"
+      },
+      {
+        "start_bar": 21,
+        "length_bars": 2,
+        "start_seconds": 30.126124,
+        "active": [
+          "drums",
+          "other",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, other, kick"
+      },
+      {
+        "start_bar": 23,
+        "length_bars": 2,
+        "start_seconds": 32.948411,
+        "active": [
+          "drums",
+          "bass",
+          "other",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, other, kick"
+      },
+      {
+        "start_bar": 25,
+        "length_bars": 2,
+        "start_seconds": 35.770698,
+        "active": [
+          "drums",
+          "other",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, other, kick"
+      },
+      {
+        "start_bar": 27,
+        "length_bars": 2,
+        "start_seconds": 38.592986,
+        "active": [
+          "drums",
+          "bass",
+          "other",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, other, kick"
+      },
+      {
+        "start_bar": 29,
+        "length_bars": 2,
+        "start_seconds": 41.415273,
+        "active": [
+          "drums",
+          "other",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, other, kick"
+      },
+      {
+        "start_bar": 31,
+        "length_bars": 4,
+        "start_seconds": 44.237561,
+        "active": [
+          "drums",
+          "bass",
+          "other",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, other, kick"
+      },
+      {
+        "start_bar": 35,
+        "length_bars": 2,
+        "start_seconds": 49.882136,
+        "active": [
+          "vocals"
+        ],
+        "label": "breakdown",
+        "label_reason": "neither kick nor bass, away from the ends: vocals"
+      },
+      {
+        "start_bar": 37,
+        "length_bars": 4,
+        "start_seconds": 52.704423,
+        "active": [
+          "bass",
+          "vocals"
+        ],
+        "label": "groove",
+        "label_reason": "playing: bass, vocals"
+      },
+      {
+        "start_bar": 41,
+        "length_bars": 3,
+        "start_seconds": 58.348998,
+        "active": [
+          "drums",
+          "bass",
+          "vocals",
+          "other"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, vocals, other"
+      },
+      {
+        "start_bar": 44,
+        "length_bars": 2,
+        "start_seconds": 62.582429,
+        "active": [
+          "bass",
+          "vocals",
+          "other"
+        ],
+        "label": "groove",
+        "label_reason": "playing: bass, vocals, other"
+      },
+      {
+        "start_bar": 46,
+        "length_bars": 2,
+        "start_seconds": 65.404716,
+        "active": [
+          "bass",
+          "vocals",
+          "other",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: bass, vocals, other, kick"
+      },
+      {
+        "start_bar": 48,
+        "length_bars": 3,
+        "start_seconds": 68.227004,
+        "active": [
+          "vocals",
+          "other"
+        ],
+        "label": "breakdown",
+        "label_reason": "neither kick nor bass, away from the ends: vocals, other"
+      },
+      {
+        "start_bar": 51,
+        "length_bars": 7,
+        "start_seconds": 72.460435,
+        "active": [
+          "drums",
+          "bass",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, kick"
+      },
+      {
+        "start_bar": 58,
+        "length_bars": 2,
+        "start_seconds": 82.338441,
+        "active": [
+          "drums",
+          "bass",
+          "other",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, other, kick"
+      },
+      {
+        "start_bar": 60,
+        "length_bars": 4,
+        "start_seconds": 85.160728,
+        "active": [
+          "drums",
+          "bass",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, kick"
+      },
+      {
+        "start_bar": 64,
+        "length_bars": 3,
+        "start_seconds": 90.805303,
+        "active": [
+          "drums",
+          "bass",
+          "other",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, other, kick"
+      },
+      {
+        "start_bar": 67,
+        "length_bars": 7,
+        "start_seconds": 95.038734,
+        "active": [
+          "drums",
+          "bass",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, kick"
+      },
+      {
+        "start_bar": 74,
+        "length_bars": 4,
+        "start_seconds": 104.91674,
+        "active": [
+          "drums",
+          "bass",
+          "other",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, other, kick"
+      },
+      {
+        "start_bar": 78,
+        "length_bars": 3,
+        "start_seconds": 110.561315,
+        "active": [
+          "drums",
+          "bass",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, kick"
+      },
+      {
+        "start_bar": 81,
+        "length_bars": 3,
+        "start_seconds": 114.794746,
+        "active": [
+          "drums",
+          "bass",
+          "other",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, other, kick"
+      },
+      {
+        "start_bar": 84,
+        "length_bars": 3,
+        "start_seconds": 119.028178,
+        "active": [
+          "drums",
+          "bass",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, kick"
+      },
+      {
+        "start_bar": 87,
+        "length_bars": 6,
+        "start_seconds": 123.261609,
+        "active": [
+          "drums",
+          "bass",
+          "other",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, other, kick"
+      },
+      {
+        "start_bar": 93,
+        "length_bars": 4,
+        "start_seconds": 131.728471,
+        "active": [
+          "bass",
+          "other"
+        ],
+        "label": "groove",
+        "label_reason": "playing: bass, other"
+      },
+      {
+        "start_bar": 97,
+        "length_bars": 2,
+        "start_seconds": 137.373046,
+        "active": [
+          "drums",
+          "vocals"
+        ],
+        "label": "breakdown",
+        "label_reason": "neither kick nor bass, away from the ends: drums, vocals"
+      },
+      {
+        "start_bar": 99,
+        "length_bars": 15,
+        "start_seconds": 140.195333,
+        "active": [
+          "drums",
+          "bass",
+          "vocals",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, vocals, kick"
+      },
+      {
+        "start_bar": 114,
+        "length_bars": 2,
+        "start_seconds": 161.362489,
+        "active": [
+          "drums",
+          "bass",
+          "vocals",
+          "other",
+          "kick"
+        ],
+        "label": "full",
+        "label_reason": "every track that is in this record is playing: drums, bass, vocals, other, kick"
+      },
+      {
+        "start_bar": 116,
+        "length_bars": 6,
+        "start_seconds": 164.184776,
+        "active": [
+          "drums",
+          "bass",
+          "vocals",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, vocals, kick"
+      },
+      {
+        "start_bar": 122,
+        "length_bars": 10,
+        "start_seconds": 172.651639,
+        "active": [
+          "drums",
+          "bass",
+          "vocals",
+          "other",
+          "kick"
+        ],
+        "label": "full",
+        "label_reason": "every track that is in this record is playing: drums, bass, vocals, other, kick"
+      },
+      {
+        "start_bar": 132,
+        "length_bars": 4,
+        "start_seconds": 186.763076,
+        "active": [
+          "drums",
+          "bass",
+          "vocals",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, vocals, kick"
+      },
+      {
+        "start_bar": 136,
+        "length_bars": 41,
+        "start_seconds": 192.407651,
+        "active": [
+          "drums",
+          "bass",
+          "vocals",
+          "other",
+          "kick"
+        ],
+        "label": "full",
+        "label_reason": "every track that is in this record is playing: drums, bass, vocals, other, kick"
+      },
+      {
+        "start_bar": 177,
+        "length_bars": 2,
+        "start_seconds": 250.264543,
+        "active": [
+          "drums",
+          "bass",
+          "other",
+          "kick"
+        ],
+        "label": "outro",
+        "label_reason": "after the last full-band section (bass, drums, kick, other, vocals): drums, bass, other, kick"
+      },
+      {
+        "start_bar": 179,
+        "length_bars": 6,
+        "start_seconds": 253.08683,
+        "active": [
+          "drums",
+          "vocals",
+          "other",
+          "kick"
+        ],
+        "label": "outro",
+        "label_reason": "after the last full-band section (bass, drums, kick, other, vocals): drums, vocals, other, kick"
+      },
+      {
+        "start_bar": 185,
+        "length_bars": 2,
+        "start_seconds": 261.553693,
+        "active": [
+          "drums",
+          "other",
+          "kick"
+        ],
+        "label": "outro",
+        "label_reason": "after the last full-band section (bass, drums, kick, other, vocals): drums, other, kick"
+      },
+      {
+        "start_bar": 187,
+        "length_bars": 8,
+        "start_seconds": 264.37598,
+        "active": [
+          "drums",
+          "vocals",
+          "other",
+          "kick"
+        ],
+        "label": "outro",
+        "label_reason": "after the last full-band section (bass, drums, kick, other, vocals): drums, vocals, other, kick"
+      },
+      {
+        "start_bar": 195,
+        "length_bars": 2,
+        "start_seconds": 275.66513,
+        "active": [
+          "other"
+        ],
+        "label": "outro",
+        "label_reason": "after the last full-band section (bass, drums, kick, other, vocals): other"
+      },
+      {
+        "start_bar": 197,
+        "length_bars": 17,
+        "start_seconds": 278.487417,
+        "active": [],
+        "label": "silence",
+        "label_reason": "no track is playing"
+      }
+    ],
+    "bar_count": 214,
+    "bar_seconds": 1.411144,
+    "downbeat_seconds": 0.492106,
+    "absent_tracks": [],
+    "status": "ok",
+    "caveats": []
+  },
   "sources": {
     "mix": {
-      "schema_version": 4,
+      "schema_version": 5,
       "source": "mix",
       "audio_path": "examples/Roni_Size_Reprazent_-_Brown_Paper_Bag.wav",
       "duration_seconds": 302.683741,
@@ -88,7 +764,7 @@
       "unavailable_features": []
     },
     "drums": {
-      "schema_version": 4,
+      "schema_version": 5,
       "source": "drums",
       "audio_path": "calibration/v5/roni-size-reprazent-brown-paper-bag/stems/drums.wav",
       "duration_seconds": 302.683719,
@@ -143,35 +819,161 @@
         "crest_factor": 12.144214
       },
       "drum_decomposition": {
-        "status": "no_grid",
-        "steps_per_cycle": null,
-        "cycle_seconds": 2.826223,
-        "grid_anchor_seconds": 0.537777,
-        "grid_anchor_source": "beats",
-        "quantisation_error_steps": 0.242911,
+        "status": "ok",
+        "steps_per_cycle": 16,
+        "cycle_seconds": 1.411144,
+        "grid_anchor_seconds": 0.489038,
+        "grid_anchor_source": "supplied",
+        "quantisation_error_steps": 0.098123,
         "patterns": [
           {
             "drum": "kick",
-            "steps": [],
-            "step_occupancy": [],
+            "steps": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              6,
+              8,
+              9,
+              10,
+              12,
+              13,
+              15
+            ],
+            "step_occupancy": [
+              0.118644,
+              0.050847,
+              0.033898,
+              0.016949,
+              0.050847,
+              0.033898,
+              0.559322,
+              0.067797,
+              0.016949,
+              0.084746,
+              0.050847,
+              0.152542
+            ],
             "hit_count": 73
           },
           {
             "drum": "snare",
-            "steps": [],
-            "step_occupancy": [],
+            "steps": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15
+            ],
+            "step_occupancy": [
+              0.907975,
+              0.055215,
+              0.159509,
+              0.104294,
+              0.877301,
+              0.141104,
+              0.748466,
+              0.644172,
+              0.03681,
+              0.877301,
+              0.092025,
+              0.595092,
+              0.02454,
+              0.165644,
+              0.644172
+            ],
             "hit_count": 1015
           },
           {
             "drum": "hat",
-            "steps": [],
-            "step_occupancy": [],
+            "steps": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15
+            ],
+            "step_occupancy": [
+              0.964286,
+              0.017857,
+              0.928571,
+              0.011905,
+              0.928571,
+              0.017857,
+              0.946429,
+              0.488095,
+              0.857143,
+              0.029762,
+              0.916667,
+              0.011905,
+              0.89881,
+              0.017857,
+              0.880952,
+              0.285714
+            ],
             "hit_count": 1380
           },
           {
             "drum": "unclassified",
-            "steps": [],
-            "step_occupancy": [],
+            "steps": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15
+            ],
+            "step_occupancy": [
+              0.019417,
+              0.019417,
+              0.058252,
+              0.15534,
+              0.165049,
+              0.291262,
+              0.067961,
+              0.15534,
+              0.116505,
+              0.067961,
+              0.097087,
+              0.029126,
+              0.067961,
+              0.15534,
+              0.048544,
+              0.087379
+            ],
             "hit_count": 168
           }
         ],
@@ -179,9 +981,7 @@
         "unclassified_count": 168,
         "caveats": [
           "47 detections in the noise/air bands were the kick's own transient found a second time, not hits of their own \u2014 their windows are over 0.6 kick energy and their air/(air+noise) is under 0.5, which is a beater click rather than a hat",
-          "168 of 2636 hits are unclassified. Three classes cannot describe a full kit: toms, rides, crashes, claps and shakers all land here, and on percussive material that is correct rather than a failure.",
-          "the grid anchor was moved +0.11 steps onto the hits' own phase. A supplied downbeat fixes which step is step 0, not the sub-step phase, and this move cannot change any step number.",
-          "no cycle grid: folding the band flux onto this cycle length puts only 0.31 of the profile on the grid, against 0.5 required and 0.25 expected by chance. The hits do not fit any grid at this period \u2014 this is not a near miss."
+          "168 of 2636 hits are unclassified. Three classes cannot describe a full kit: toms, rides, crashes, claps and shakers all land here, and on percussive material that is correct rather than a failure."
         ]
       },
       "bass_line": {
@@ -233,12 +1033,10 @@
           }
         }
       ],
-      "unavailable_features": [
-        "drum_decomposition (status=no_grid)"
-      ]
+      "unavailable_features": []
     },
     "bass": {
-      "schema_version": 4,
+      "schema_version": 5,
       "source": "bass",
       "audio_path": "calibration/v5/roni-size-reprazent-brown-paper-bag/stems/bass.wav",
       "duration_seconds": 302.683719,
@@ -317,7 +1115,7 @@
       "unavailable_features": []
     },
     "vocals": {
-      "schema_version": 4,
+      "schema_version": 5,
       "source": "vocals",
       "audio_path": "calibration/v5/roni-size-reprazent-brown-paper-bag/stems/vocals.wav",
       "duration_seconds": 302.683719,
@@ -419,7 +1217,7 @@
       "unavailable_features": []
     },
     "other": {
-      "schema_version": 4,
+      "schema_version": 5,
       "source": "other",
       "audio_path": "calibration/v5/roni-size-reprazent-brown-paper-bag/stems/other.wav",
       "duration_seconds": 302.683719,

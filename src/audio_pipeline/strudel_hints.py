@@ -556,10 +556,25 @@ def _tonal_centre(summary: TrackSummary) -> tuple[str | None, str | None]:
 def _density_with_note(
     summary: TrackSummary, stem: str, field_label: str
 ) -> tuple[str | None, str | None]:
-    """Classify one stem's onset density, with a note when it cannot be done."""
+    """Classify one stem's onset density, with a note when it cannot be done.
+
+    **A silent stem gets no density** (W8B, and the same F5 shape as
+    `_tonal_centre`). The silence gate stopped the pitch track, the tonal centre
+    and the note segmentation, but not this: three of the eight corpus tracks
+    printed a density for a stem that is separation residue — a bass stem at
+    rms 8.2e-05 read `moderate` off 3.03 onsets/sec, and an ambient record's
+    empty drums stem read `sparse` off 0.35. An onset detector pointed at a
+    noise floor counts noise, and "moderate" is a description of nothing.
+    """
     analysis = _source(summary, stem)
     if analysis is None:
         return None, f"no {stem} stem, {field_label} not reported"
+    if _is_silent(analysis):
+        return None, (
+            f"{stem} stem is below the silence floor, so {field_label} is not reported — "
+            "an onset detector pointed at separation residue counts noise and reports a "
+            "confident density for it"
+        )
     density = classify_density(analysis.rhythm.onset_density)
     if density is None:
         return None, f"{stem} onset density unavailable, {field_label} not reported"
@@ -747,6 +762,70 @@ def _tempo_note(summary: TrackSummary) -> str | None:
     )
 
 
+def _octave_note(summary: TrackSummary) -> str | None:
+    """One sentence about the tempo octave, replacing two that contradict.
+
+    `TempoFit.caveats` can hold both *"the octave is not settled by correlation
+    alone: the reported tempo was not shifted"* (written by `tempo.py`, about
+    its own layer) and *"tempo octave corrected x2 to 170.069 BPM"* (written by
+    `analyze.py`, one layer up, after arbitrating on grid quality). Each is true
+    where it was written. Read together, in a file whose whole job is to be
+    read by hand, they say the tempo both did and did not move.
+
+    Neither of those modules belongs to this one, and `track_summary.json` keeps
+    both strings for audit. What this function does is make sure that the reader
+    who only opens `strudel_hints.json` gets **one** account of the octave, and
+    that it is the one that describes the number printed in `bpm`.
+
+    It is built from the structured fields — `octave_arbitration`,
+    `octave_status`, `coarse_bpm` — rather than by matching on either module's
+    prose, because prose is the thing most likely to be reworded next.
+
+    Returns `None` when there is nothing to say: a single live octave, or no
+    octave measurement at all.
+    """
+    fit = summary.tempo
+    chosen = next(
+        (row for row in fit.octave_arbitration if row.chosen and row.ratio != 1.0),
+        None,
+    )
+    if chosen is not None:
+        moved = f"x{chosen.ratio:g}" if chosen.ratio >= 1.0 else f"/{1.0 / chosen.ratio:g}"
+        # `coarse_bpm` is the value at the octave that WON — it is re-refined
+        # after the move — so the pre-move tempo comes from the x1 arbitration
+        # row instead. Quoting `coarse_bpm` here would print the same number
+        # twice and read as no correction at all.
+        incumbent = next((row for row in fit.octave_arbitration if row.ratio == 1.0), None)
+        was = f" (its x1 reading was {incumbent.bpm:.2f})" if incumbent is not None else ""
+        return (
+            f"tempo octave: bpm above is the backend's estimate moved {moved}{was}, chosen "
+            "because the drum grid fits better there on both quantisation-error measures. "
+            "Correlation alone could not settle the octave — track_summary.json keeps both "
+            "the correlation reading, which declined to shift, and the grid arbitration, "
+            "which did. They describe different stages, not different answers"
+        )
+    if fit.octave_status != "ambiguous":
+        return None
+
+    others = ", ".join(
+        f"{row.bpm:.2f}"
+        for row in fit.octave_candidates
+        if row.status == "live" and row.ratio != 1.0
+    )
+    alternatives = f" (other live candidates: {others} BPM)" if others else ""
+    if fit.octave_arbitration:
+        return (
+            "tempo octave: correlation could not settle it, so the drum grid was fitted at "
+            f"each candidate and the backend's own octave won{alternatives}. bpm above is "
+            "the right one"
+        )
+    return (
+        "tempo octave: not settled by correlation, and there was no drum grid to arbitrate "
+        f"with, so bpm is left at the backend's octave{alternatives}. Half-time or "
+        "double-time is the likeliest way this number is wrong — verify by ear"
+    )
+
+
 def _sound_suggestions(summary: TrackSummary) -> list[StrudelSoundSuggestion]:
     """Strudel sound suggestions for whichever of drums/bass are present.
 
@@ -861,6 +940,7 @@ def build(summary: TrackSummary, beats_per_cycle: int = BEATS_PER_CYCLE) -> Stru
     if bpm is None:
         note("tempo unknown, cycle length not suggested")
     note(_tempo_note(summary))
+    note(_octave_note(summary))
 
     feel, feel_note = _subdivision_feel(summary)
     note(feel_note)

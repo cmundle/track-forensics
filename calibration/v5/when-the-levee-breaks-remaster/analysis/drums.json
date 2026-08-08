@@ -1,5 +1,5 @@
 {
-  "schema_version": 4,
+  "schema_version": 5,
   "source": "drums",
   "audio_path": "calibration/v5/when-the-levee-breaks-remaster/stems/drums.wav",
   "duration_seconds": 430.32,
@@ -2192,10 +2192,10 @@
   "drum_decomposition": {
     "status": "no_grid",
     "steps_per_cycle": null,
-    "cycle_seconds": 1.671682,
-    "grid_anchor_seconds": 0.393432,
-    "grid_anchor_source": "beats",
-    "quantisation_error_steps": 0.235929,
+    "cycle_seconds": 1.675361,
+    "grid_anchor_seconds": 0.629674,
+    "grid_anchor_source": "supplied",
+    "quantisation_error_steps": 0.237469,
     "patterns": [
       {
         "drum": "snare",
@@ -16188,10 +16188,10 @@
     ],
     "unclassified_count": 48,
     "caveats": [
-      "no hits looked for in these bands \u2014 they hold nothing, or nothing transient: kick, body",
+      "no hits looked for in these bands \u2014 they are full of transients that never separate. The energy does not fall back between hits, which is a compressed or reverberant source (or a roll), and this module cannot tell one hit from the next in it. **Any drum living in these bands is missing from the counts below, however loud it is.** An envelope fold can still see the pattern where per-hit detection cannot: kick, body",
       "48 of 1164 hits are unclassified. Three classes cannot describe a full kit: toms, rides, crashes, claps and shakers all land here, and on percussive material that is correct rather than a failure.",
-      "the grid anchor was moved +0.32 steps onto the hits' own phase. A supplied downbeat fixes which step is step 0, not the sub-step phase, and this move cannot change any step number.",
-      "no cycle grid: folding the band flux onto this cycle length puts only 0.33 of the profile on the grid, against 0.5 required and 0.25 expected by chance. The hits do not fit any grid at this period \u2014 this is not a near miss."
+      "the grid anchor was moved -0.20 steps onto the hits' own phase. A supplied downbeat fixes which step is step 0, not the sub-step phase, and this move cannot change any step number.",
+      "no cycle grid: folding the band flux onto this cycle length puts only 0.36 of the profile on the grid, against 0.5 required and 0.25 expected by chance. The hits do not fit any grid at this period \u2014 this is not a near miss."
     ]
   },
   "bass_line": {

@@ -121,6 +121,21 @@ THRESHOLDS: dict[str, float] = {
     # [grounded] 4 dB, just above a pure sine — nothing real gets flatter.
     "sustained_crest_saturation": 1.6,
     # -- Spectral centroid, Hz ---------------------------------------------
+    # WHICH CENTROID EACH OF THESE READS IS NOT UNIFORM, and that is deliberate.
+    # Schema v5 added `centroid_energy_hz` beside `centroid_mean` (W4D): the
+    # first is the energy-weighted centroid of the aggregate spectrum, the
+    # second is the mean of per-frame centroids and is dragged down hard by
+    # frames holding a decaying tail or near-silence. They are DIFFERENT
+    # STATISTICS, not two scales of one — the Madonna drums stem reads
+    # `centroid_mean` 4390 Hz and `centroid_energy_hz` 412 Hz and both are
+    # correct, because 89% of that stem's energy is kick.
+    #
+    # W8B migrated three clauses to `centroid_energy_hz` and deliberately left
+    # one on `centroid_mean`. Each migration was made and measured on its own
+    # across the eight-track corpus in `calibration/v5/`; the per-clause notes
+    # below record what each one did to the labels. No threshold was rescaled —
+    # every one was re-derived, per W4D's warning.
+    #
     # [grounded, measured] The "bright" line for TRANSIENT material, which is
     # much lower than intuition suggests. `centroid_mean` averages over frames,
     # and sparse hits leave most frames holding a decaying tail or near-silence,
@@ -136,6 +151,31 @@ THRESHOLDS: dict[str, float] = {
     # consistently ~10% below librosa's on identical input (white noise 9937 vs
     # 11035, pluck train 1169 vs 1302, click train 1898 vs 2099), and 1200 left
     # `bright plucks` unreachable on essentia by 30 Hz.
+    #
+    # **W8B: this pair still reads `centroid_mean`, and that is a measured
+    # refusal rather than an oversight.** Two findings, both against it moving:
+    #
+    # 1. The 1000 Hz value only makes sense for a frame mean. Re-measured
+    #    through the real backend on a bright pluck train at 2, 4 and 8 hits
+    #    per second, `centroid_mean` reads 1698 / 3397 / 6820 Hz while
+    #    `centroid_energy_hz` reads 9543 Hz at all three rates — the corrected
+    #    descriptor is invariant to how sparse the hits are, which is exactly
+    #    what it was added to be. So 1000 is not a threshold on the corrected
+    #    scale at all; it is a sparsity correction, correct for the statistic
+    #    it reads.
+    # 2. The corrected descriptor is the WRONG ONE for this clause. `bright
+    #    hats` and `bright plucks` both AND this against a high-band *share*,
+    #    which is immune to a loud kick in the same stem. An energy centroid is
+    #    not: a drums stem carrying 0.15 of its energy above 6 kHz and 0.8
+    #    below 250 Hz has a genuine energy centroid near 1500 Hz, so migrating
+    #    would make the clause veto the exact material the label describes.
+    #    That is F1's shape, not a fix.
+    #
+    # Corpus check either way: across all eight tracks only one stem clears the
+    # high-band gate at all (showers-of-gold drums, high 0.5417), and it passes
+    # both readings comfortably (`centroid_mean` 7792, `centroid_energy_hz`
+    # 7336). Migrating would have changed no label on 40 stems while adding the
+    # failure mode above. Left alone.
     "transient_bright_centroid_hz": 1000.0,
     # [guess] Sustained cymbal territory, where the tails keep the mean up.
     "transient_bright_centroid_saturation": 6000.0,
@@ -143,12 +183,66 @@ THRESHOLDS: dict[str, float] = {
     # centroid below it means the energy really is sub/low-bass rather than a
     # bass with a bright harmonic stack — exactly the distinction "sustained
     # sub" is drawing.
+    #
+    # **W8B: the number is unchanged; the descriptor is not.** `label_bass`
+    # migrated this clause to `centroid_energy_hz`, and that is what made the
+    # label reachable at all. Measured across the eight-track corpus, NO bass
+    # stem's `centroid_mean` fell below 250 Hz — the minimum was 334 Hz (Levee
+    # Breaks) and Madonna's read 1005 Hz — so a threshold grounded in the low
+    # band could never be met by a statistic that does not live on that scale.
+    # `sustained sub` had never fired on any real material. Against the
+    # corrected descriptor the same six audible bass stems read 68.7 (Eno),
+    # 79.0 (Roni Size), 120.4 (Levee), 138.8 (Madonna), 159.9 (Badu) and 161.4
+    # (Chameleon) Hz.
+    #
+    # State plainly what 250 now does and does not do: **every audible bass
+    # stem in the corpus clears it.** On its own it is a register sanity check,
+    # not a discriminator; the onset-density clause ANDed with it is what
+    # carries the label. Of the six, only Eno's 0.37 onsets/sec passes, at 0.93
+    # confidence — a stem with a 0.9998 low-band ratio and 0.000005 brightness,
+    # which is the one thing in the corpus that actually is a sustained sub. It
+    # was deliberately NOT tightened to make the centroid clause selective on
+    # its own: every real bass stem's energy genuinely is in the low band, and
+    # a threshold tuned until it disagreed with that would be measuring
+    # nothing. It still rejects something real — the two residue bass stems
+    # read 736 and 1899 Hz.
     "dark_centroid_hz": 250.0,
     # [grounded] Near the bottom of the low band: a pure sub sine.
     "dark_centroid_saturation": 60.0,
     # [grounded] The `low_mid`/`high_mid` boundary region of `BAND_EDGES_HZ`.
     # Above it, most of the spectral mass sits past the musical midrange, which
     # is where broadband noise lives.
+    #
+    # **W8B: the number is unchanged; `_noisy` migrated to
+    # `centroid_energy_hz`.** This is the migration with the largest effect on
+    # the labels, and all of it is false positives removed. Against
+    # `centroid_mean` the clause fired on 13 of the corpus's 40 stems, of which
+    # nine were kick-dominated drum stems or ordinary vocals:
+    #
+    #     stem                     centroid_mean   centroid_energy_hz   low band
+    #     madonna drums                     4390                  412      0.890
+    #     badu drums                        2722                  187      0.959
+    #     chameleon drums                   2754                  502      0.779
+    #     roni drums                        3738                 1276      0.616
+    #     madonna / roni / levee vocals  2713-3351            763-1418          -
+    #     showers drums                     7792                 7336      0.001
+    #     chameleon vocals                  4155                 2507      0.001
+    #
+    # A stem that is 89% kick is not broadband noise, and the frame mean says
+    # it is only because the frames between kicks hold hat tails and air. After
+    # the migration exactly two audible stems fire: showers-of-gold's cymbal-only
+    # drums stem and Chameleon's near-empty vocals stem, which are the two the
+    # word describes. The chroma-entropy clause is unchanged and still does the
+    # atonality half of the work.
+    #
+    # W4D suggested pairing the centroid with `brightness`. Measured, and NOT
+    # added: on the same 40 stems the two survivors read brightness 0.958 and
+    # 0.922 against 0.47 and below for everything else, so brightness would
+    # separate the same two — but `centroid_energy_hz` already separates them
+    # by 7336/2507 against 1899 and below, and `_all` takes a minimum, so a
+    # third clause could only lower confidence, never change a verdict. A
+    # clause that changes nothing on the whole corpus is not evidence, it is
+    # code.
     "noisy_centroid_hz": 2500.0,
     # [guess] Roughly where band-limited white noise lands.
     "noisy_centroid_saturation": 8000.0,
@@ -255,6 +349,31 @@ THRESHOLDS: dict[str, float] = {
     # [guess] Sung and spoken voice centroids typically sit between about 500 Hz
     # and 2.5 kHz. The window is opened a little wider at both ends so a bright
     # or dark vocal is not excluded outright.
+    #
+    # **W8B: both edges unchanged; `label_vocals` migrated the window to
+    # `centroid_energy_hz`.** The 500 Hz–2.5 kHz intuition above was musically
+    # right all along and was being applied to a statistic it does not describe.
+    # Corpus vocals stems, `centroid_mean` against `centroid_energy_hz`:
+    #
+    #     badu      1868 -> 846      madonna   2713 ->  763
+    #     roni      3351 -> 1418     levee     3253 -> 1281
+    #
+    # Against the frame mean, two of the four real vocal stems sat OUTSIDE even
+    # the widened 3000 Hz ceiling and got no `speech/vocal dominant` label at
+    # all. Against the corrected descriptor all four land inside the original,
+    # un-widened 500–2500 intuition, and the label now fires on Levee Breaks
+    # (0.21) and Roni Size (0.007) as well as the two it already had. Nothing
+    # was gained falsely: Chameleon is an instrumental whose "vocals" stem is
+    # leakage at 2507 Hz, and it is excluded by the onset-density clause
+    # (0.12/sec, below the window floor), not by the centroid.
+    #
+    # The window was NOT tightened back to 500–2500 despite the corpus fitting
+    # it. The binding constraint is the synthetic reachability table: a 165 Hz
+    # harmonic voiced tone reads `centroid_energy_hz` 312 Hz, so the widened
+    # 300 Hz floor is what keeps the label reachable on both backends from a
+    # signal with no consonants and no breath. Real vocals have both and sit
+    # 2.5x higher. Margin at the floor is 12 Hz on synthesis and 463 Hz on real
+    # material; that asymmetry is the honest state of this pair.
     "vocal_centroid_min_hz": 300.0,
     # [guess]
     "vocal_centroid_max_hz": 3000.0,
@@ -269,6 +388,17 @@ THRESHOLDS: dict[str, float] = {
     # a *proxy* — stereo width is measured nowhere in the pipeline, so
     # "processed/wide vocal" infers width it cannot see. Read it as
     # "processed", and expect W3C to re-scope the label or drop the width claim.
+    #
+    # **W8B could not migrate this one.** `centroid_std` is the standard
+    # deviation of the same per-frame centroids `centroid_mean` averages, so it
+    # carries the same silence contamination — on the corpus it tracks the
+    # frame mean closely (Madonna drums 2888 against a 4390 mean, Eno's residue
+    # drums stem 2249 against 4274) and a stem with gaps between its events
+    # scores high on it whether or not the timbre moves. There is no corrected
+    # sibling in `schemas.py` to move to, and `schemas.py` is frozen. Recorded
+    # here, and reported to the orchestrator, rather than migrated to a
+    # descriptor that does not exist. On the corpus the label fires once, on
+    # Roni Size's chopped vocal (0.22), which is plausibly correct.
     "processed_centroid_std_hz": 800.0,
     # [guess]
     "processed_centroid_std_saturation": 2000.0,
@@ -524,8 +654,14 @@ def _noisy(analysis: SourceAnalysis) -> HeuristicLabel | None:
     call a quiet atonal pad noisy. Both retired descriptors are still reported
     as evidence — informative for a human reading the JSON, just not
     load-bearing.
+
+    **The centroid term reads `centroid_energy_hz`, not `centroid_mean`** (W8B).
+    A kick-dominated drum stem has a high frame-mean centroid because the frames
+    between kicks hold tails and air, and calling that broadband noise is wrong.
+    See `noisy_centroid_hz` in `THRESHOLDS` for the nine stems this removed the
+    label from and the two it kept it on.
     """
-    centroid = analysis.spectral.centroid_mean
+    centroid = analysis.spectral.centroid_energy_hz
     entropy = chroma_entropy(analysis.tonal.hpcp_mean)
     confidence = _all(
         _ramp(centroid, THRESHOLDS["noisy_centroid_hz"], THRESHOLDS["noisy_centroid_saturation"]),
@@ -539,8 +675,11 @@ def _noisy(analysis: SourceAnalysis) -> HeuristicLabel | None:
         "noisy",
         confidence,
         _evidence(
-            centroid_mean=centroid,
+            centroid_energy_hz=centroid,
             chroma_entropy=entropy,
+            # Reported so a reader can see the statistic this clause used to
+            # read, and how far the two diverge on the same source.
+            centroid_mean=analysis.spectral.centroid_mean,
             min_centroid_hz=THRESHOLDS["noisy_centroid_hz"],
             min_chroma_entropy=THRESHOLDS["noisy_min_chroma_entropy"],
             # Reported for audit only — deliberately not part of the gate.
@@ -711,9 +850,15 @@ def label_drums(analysis: SourceAnalysis) -> list[HeuristicLabel]:
 
 
 def label_bass(analysis: SourceAnalysis) -> list[HeuristicLabel]:
-    """e.g. 'sparse bass', 'sustained sub', 'plucked/transient bass'."""
+    """e.g. 'sparse bass', 'sustained sub', 'plucked/transient bass'.
+
+    `sustained sub` reads `centroid_energy_hz` (W8B). Against `centroid_mean`
+    it had never fired on any real material in the project's history — no bass
+    stem in the eight-track corpus had a frame-mean centroid below the 250 Hz
+    low-band edge. See `dark_centroid_hz` in `THRESHOLDS`.
+    """
     onsets = analysis.rhythm.onset_density
-    centroid = analysis.spectral.centroid_mean
+    centroid = analysis.spectral.centroid_energy_hz
     sharpness = analysis.rhythm.transient_sharpness
 
     sustained_sub = _emit(
@@ -727,7 +872,8 @@ def label_bass(analysis: SourceAnalysis) -> list[HeuristicLabel]:
             ),
         ),
         _evidence(
-            centroid_mean=centroid,
+            centroid_energy_hz=centroid,
+            centroid_mean=analysis.spectral.centroid_mean,
             onset_density=onsets,
             max_centroid_hz=THRESHOLDS["dark_centroid_hz"],
             max_onset_density=THRESHOLDS["moderate_onsets_per_sec"],
@@ -751,9 +897,15 @@ def label_bass(analysis: SourceAnalysis) -> list[HeuristicLabel]:
 
 
 def label_vocals(analysis: SourceAnalysis) -> list[HeuristicLabel]:
-    """e.g. 'speech/vocal dominant', 'sparse vocal', 'processed/wide vocal'."""
+    """e.g. 'speech/vocal dominant', 'sparse vocal', 'processed/wide vocal'.
+
+    The `speech/vocal dominant` centroid window reads `centroid_energy_hz`
+    (W8B); `processed/wide vocal` still reads `centroid_std`, which has no
+    corrected sibling in the schema. See `vocal_centroid_min_hz` and
+    `processed_centroid_std_hz` in `THRESHOLDS`.
+    """
     rms = analysis.dynamics.rms_mean
-    centroid = analysis.spectral.centroid_mean
+    centroid = analysis.spectral.centroid_energy_hz
     centroid_std = analysis.spectral.centroid_std
     onsets = analysis.rhythm.onset_density
     bands = analysis.spectral.band_energy_ratios
@@ -781,7 +933,8 @@ def label_vocals(analysis: SourceAnalysis) -> list[HeuristicLabel]:
         ),
         _evidence(
             rms_mean=rms,
-            centroid_mean=centroid,
+            centroid_energy_hz=centroid,
+            centroid_mean=analysis.spectral.centroid_mean,
             onset_density=onsets,
             min_rms_mean=THRESHOLDS["vocal_presence_rms"],
             min_centroid_hz=THRESHOLDS["vocal_centroid_min_hz"],

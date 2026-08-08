@@ -1,0 +1,114 @@
+{
+  "schema_version": 5,
+  "source": "bass",
+  "audio_path": "calibration/v5/ancient-heavy-tech-donjon/stems/bass.wav",
+  "duration_seconds": 4.295986,
+  "sample_rate": 44100,
+  "backend": "essentia",
+  "rhythm": {
+    "bpm": 90.364639,
+    "bpm_confidence": 0.0,
+    "beat_times": [
+      0.696599,
+      1.358367,
+      2.031746,
+      2.693515,
+      3.343673,
+      4.017052
+    ],
+    "onset_times": [
+      0.01161,
+      0.15093,
+      0.24381,
+      0.638549,
+      1.323537,
+      1.683447,
+      1.962086,
+      2.623855,
+      2.925714,
+      3.308844,
+      3.680363,
+      3.970612,
+      4.156372
+    ],
+    "onset_density": 3.026081,
+    "transient_sharpness": 1.699124
+  },
+  "tonal": {
+    "key": "E",
+    "scale": "minor",
+    "key_confidence": 0.687967,
+    "hpcp_mean": [
+      0.13348,
+      0.09356,
+      0.061092,
+      0.17433,
+      0.235745,
+      0.287449,
+      0.216806,
+      0.144594,
+      0.140427,
+      0.144064,
+      0.179789,
+      0.11126
+    ],
+    "tonal_stability": 0.373644
+  },
+  "spectral": {
+    "centroid_mean": 1348.751412,
+    "centroid_std": 429.591331,
+    "centroid_energy_hz": 736.203341,
+    "rolloff_mean": 181.700873,
+    "rolloff_energy_hz": 689.0625,
+    "brightness": 0.074505,
+    "band_energy_ratios": {
+      "low": 0.532178,
+      "low_mid": 0.399881,
+      "high_mid": 0.039655,
+      "high": 0.028285
+    }
+  },
+  "dynamics": {
+    "loudness_lufs": -70.0,
+    "rms_mean": 8.2e-05,
+    "rms_std": 4.1e-05,
+    "crest_factor": 11.077531
+  },
+  "drum_decomposition": {
+    "status": "not_attempted",
+    "steps_per_cycle": null,
+    "cycle_seconds": null,
+    "grid_anchor_seconds": null,
+    "grid_anchor_source": null,
+    "quantisation_error_steps": null,
+    "patterns": [],
+    "hits": [],
+    "unclassified_count": 0,
+    "caveats": []
+  },
+  "bass_line": {
+    "status": "silent",
+    "notes": [],
+    "median_midi_note": null,
+    "median_cents_offset": null,
+    "voiced_fraction": null,
+    "octave_corrections": 0,
+    "caveats": [
+      "source is below the silence floor and was not analysed: at this level a stem is separation residue, and a pitch tracker or onset detector pointed at a noise floor returns confident nonsense"
+    ]
+  },
+  "labels": [
+    {
+      "label": "silent/absent stem",
+      "confidence": 1.0,
+      "evidence": {
+        "loudness_lufs": -70.0,
+        "max_loudness_lufs": -50.0
+      }
+    }
+  ],
+  "unavailable_features": [
+    "bass_line (status=silent)",
+    "source (silent: rms_mean 8.2e-05 is below the 0.001 silence floor)"
+  ]
+}
