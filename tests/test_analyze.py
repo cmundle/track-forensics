@@ -47,13 +47,14 @@ from audio_pipeline import analyze
 from audio_pipeline.backends import AnalysisBackend
 from audio_pipeline.schemas import (
     BandEnergyRatios,
-    DrumDecomposition,
     DynamicsFeatures,
     HeuristicLabel,
+    OctaveGridFit,
     PitchTrack,
     RhythmFeatures,
     SourceAnalysis,
     SpectralFeatures,
+    TempoFit,
     TonalFeatures,
     TrackSummary,
 )
@@ -376,7 +377,224 @@ def test_analyze_source_defaults_to_get_backend(
     assert analysis.backend == "fake"
 
 
-# --- analyze_track --------------------------------------------------------
+# --- schema v5: the silence floor -------------------------------------------
+
+
+def test_silence_is_a_level_not_a_missing_measurement() -> None:
+    """`None` must not read as silent — an unmeasured level is unknown."""
+    assert analyze._is_silent(0.0) is True
+    assert analyze._is_silent(8e-06) is True  # the quietest corpus residue stem
+    assert analyze._is_silent(1.38e-04) is True  # the loudest corpus residue stem
+    assert analyze._is_silent(3.82e-03) is False  # the quietest real corpus stem
+    assert analyze._is_silent(None) is False
+    assert analyze._is_silent(float("nan")) is False
+
+
+def test_a_silent_stem_is_not_pitch_tracked(
+    click_track_120bpm: np.ndarray, wav_file: Callable[..., Path]
+) -> None:
+    """F5: a -70 LUFS bass stem produced a two-note bass line and an `e4` median.
+
+    The backend still reports its four descriptor blocks — they are the
+    measurement that *shows* the stem is silent. Only the derived blocks, which
+    interpret, are skipped.
+    """
+    quiet = wav_file(click_track_120bpm * 1e-5, name="bass.wav")
+    backend = _full_backend()
+    backend.dynamics_result = _full_dynamics().model_copy(update={"rms_mean": 5.0e-05})
+
+    analysis = analyze.analyze_source(quiet, "bass", backend)
+
+    assert analysis.bass_line.status == "silent"
+    assert analysis.bass_line.notes == []
+    assert analysis.bass_line.caveats
+    assert any("silence floor" in entry for entry in analysis.unavailable_features)
+    assert analysis.dynamics.rms_mean == 5.0e-05  # measured, not discarded
+
+
+def test_a_loud_stem_is_analysed_normally(
+    click_track_120bpm: np.ndarray, wav_file: Callable[..., Path]
+) -> None:
+    """The other side of the gate, so it cannot silently swallow real stems."""
+    loud = wav_file(click_track_120bpm, name="bass.wav")
+    analysis = analyze.analyze_source(loud, "bass", _full_backend())
+    assert analysis.bass_line.status == "ok"
+    assert not any("silence floor" in entry for entry in analysis.unavailable_features)
+
+
+# --- schema v5: the coarse tempo gate ----------------------------------------
+
+
+def test_a_negative_bpm_confidence_is_not_a_measurement() -> None:
+    """Measured at -0.187, -0.043, -0.030 and -0.004 on quiet corpus stems."""
+    assert analyze._usable_coarse_bpm(RhythmFeatures(bpm=132.0, bpm_confidence=2.7)) == 132.0
+    assert analyze._usable_coarse_bpm(RhythmFeatures(bpm=143.2, bpm_confidence=-0.004)) is None
+    assert analyze._usable_coarse_bpm(RhythmFeatures(bpm=None, bpm_confidence=2.7)) is None
+    assert analyze._usable_coarse_bpm(RhythmFeatures(bpm=0.0, bpm_confidence=2.7)) is None
+
+
+def test_a_zero_bpm_confidence_is_passed_through() -> None:
+    """Deliberately not treated as unusable — see `_usable_coarse_bpm`.
+
+    One example track reports exactly 0.0 on all five of its sources, which is
+    an extractor not reporting a confidence rather than five worthless
+    estimates. Rejecting it would delete that track's tempo on no evidence.
+    """
+    assert analyze._usable_coarse_bpm(RhythmFeatures(bpm=90.4, bpm_confidence=0.0)) == 90.4
+    assert analyze._usable_coarse_bpm(RhythmFeatures(bpm=90.4, bpm_confidence=None)) == 90.4
+
+
+# --- schema v5: octave arbitration -------------------------------------------
+
+
+def _grid_fit(ratio: float, bpm: float, steps: float | None, ms: float | None) -> OctaveGridFit:
+    return OctaveGridFit(
+        ratio=ratio,
+        bpm=bpm,
+        grid_status="ok" if steps is not None else "no_grid",
+        quantisation_error_steps=steps,
+        quantisation_error_seconds=None if ms is None else ms / 1000.0,
+    )
+
+
+def test_the_octave_rule_reproduces_every_corpus_track() -> None:
+    """The measured table, as the test. Numbers from the real drums stems.
+
+    `quantisation_error_steps` alone — the rule this package was briefed with —
+    halves the swung hip-hop track, which is already at its correct tempo:
+    0.0689 steps at half tempo against 0.1115 at the truth. It loses on
+    milliseconds. Requiring both is what makes the drum-and-bass track (which
+    must double) the only one that moves.
+    """
+    madonna_1 = _grid_fit(1.0, 131.9985, 0.03334, 3.789)
+    badu_1 = _grid_fit(1.0, 135.2635, 0.11147, 12.362)
+    roni_1 = _grid_fit(1.0, 85.0401, 0.12182, 21.487)
+
+    # Must stay.
+    assert not analyze._beats_incumbent(_grid_fit(0.5, 66.0007, 0.14298, 32.496), madonna_1)
+    assert not analyze._beats_incumbent(_grid_fit(2.0, 263.9907, 0.07297, 4.146), madonna_1)
+    assert not analyze._beats_incumbent(_grid_fit(0.5, 67.6321, 0.06894, 15.290), badu_1)
+    assert not analyze._beats_incumbent(_grid_fit(2.0, 270.5264, None, None), badu_1)
+    assert not analyze._beats_incumbent(_grid_fit(0.5, 42.5212, None, None), roni_1)
+
+    # Must double: wins on both, the only candidate in the corpus that does.
+    assert analyze._beats_incumbent(_grid_fit(2.0, 170.0693, 0.10462, 9.227), roni_1)
+
+
+def test_a_candidate_without_a_grid_never_wins() -> None:
+    incumbent = _grid_fit(1.0, 132.0, 0.03, 3.8)
+    assert not analyze._beats_incumbent(_grid_fit(2.0, 264.0, None, None), incumbent)
+
+
+def test_any_grid_beats_no_grid_at_the_coarse_octave() -> None:
+    """When the backend's own octave fits nothing, a candidate that fits wins."""
+    incumbent = _grid_fit(1.0, 85.0, None, None)
+    assert analyze._beats_incumbent(_grid_fit(2.0, 170.0, 0.10, 9.2), incumbent)
+
+
+def test_an_octave_move_is_never_silent() -> None:
+    winner = _grid_fit(2.0, 170.0693, 0.10462, 9.227)
+    caveats = analyze._octave_caveats([_grid_fit(1.0, 85.04, 0.12182, 21.487), winner], winner)
+    assert len(caveats) == 1
+    assert "170.069" in caveats[0]
+    assert "rhythm.bpm" in caveats[0]
+
+
+def test_no_usable_grid_at_any_octave_says_so() -> None:
+    rows = [_grid_fit(1.0, 85.0, None, None), _grid_fit(2.0, 170.0, None, None)]
+    assert "nothing here can tell" in analyze._octave_caveats(rows, None)[0]
+
+
+# --- schema v5: the dataclass -> model conversion ----------------------------
+
+
+def test_promoted_dataclasses_convert_without_a_hand_written_mapping() -> None:
+    """`_as_model` is one line, and it is only safe while the names match."""
+    from audio_pipeline import tempo as tempo_module
+
+    fit = tempo_module.refine_bpm(np.zeros(2048, dtype=np.float32), 44100, None)
+    model = analyze._as_model(TempoFit, fit)
+    assert model.status == fit.status
+    assert model.stability.label == fit.stability.label
+    assert model.octave_arbitration == []
+
+
+# --- schema v5: one grid, shared -------------------------------------------
+
+
+def _stem_paths(
+    click_track_120bpm: np.ndarray, wav_file: Callable[..., Path]
+) -> dict[str, Path]:
+    return {
+        name: wav_file(click_track_120bpm, name=f"{name}.wav")
+        for name in ("drums", "bass", "vocals", "other")
+    }
+
+
+def test_analyze_track_carries_the_track_level_blocks(
+    click_wav: Path, click_track_120bpm: np.ndarray, wav_file: Callable[..., Path]
+) -> None:
+    """One tempo, one downbeat, one structure — and still a mapping of sources."""
+    result = analyze.analyze_track(
+        click_wav, _stem_paths(click_track_120bpm, wav_file), _full_backend()
+    )
+
+    assert isinstance(result, analyze.TrackAnalysis)
+    assert set(result) == {"mix", "drums", "bass", "vocals", "other"}
+    assert result["mix"].source == "mix"
+    assert len(result) == 5
+    assert result.get("nope") is None
+    assert dict(result.items()) == result.sources
+
+    assert result.tempo.status in {"refined", "coarse", "unavailable"}
+    assert result.downbeat.status in {"ok", "ambiguous", "unavailable"}
+    assert result.arrangement.status in {"ok", "no_grid", "too_short", "unavailable"}
+
+
+def test_the_drum_grid_is_anchored_on_the_downbeat_not_on_beat_times(
+    click_wav: Path, click_track_120bpm: np.ndarray, wav_file: Callable[..., Path]
+) -> None:
+    """W4B's finding 2, pinned end to end.
+
+    `rhythm.beat_times[0]` is not a downbeat — on the calibration track it lands
+    the kick on steps 3/7/11/15. When a grid was resolved, the anchor must come
+    from `DownbeatFit`, which `decompose` records as `"supplied"`.
+    """
+    result = analyze.analyze_track(
+        click_wav, _stem_paths(click_track_120bpm, wav_file), _full_backend()
+    )
+    decomposition = result["drums"].drum_decomposition
+    if result.tempo.period_seconds is not None:
+        assert decomposition.grid_anchor_source == "supplied"
+
+
+def test_every_source_keeps_its_own_backend_bpm(
+    click_wav: Path, click_track_120bpm: np.ndarray, wav_file: Callable[..., Path]
+) -> None:
+    """Ground rule 11. `TempoFit.bpm` joins `rhythm.bpm`; it never replaces it."""
+    result = analyze.analyze_track(
+        click_wav, _stem_paths(click_track_120bpm, wav_file), _full_backend()
+    )
+    for analysis in result.sources.values():
+        assert analysis.rhythm.bpm == 120.123456789
+
+
+def test_a_silent_drums_stem_does_not_become_the_tempo_source(
+    click_track_120bpm: np.ndarray, wav_file: Callable[..., Path]
+) -> None:
+    """The ambient corpus row's drums stem is residue at 4.8e-05 RMS.
+
+    Refining a tempo from it would be refining a tempo from nothing, so
+    `_grid_source` falls back to the mix — and says so in the caveats.
+    """
+    silent = wav_file(click_track_120bpm * 1e-5, name="drums.wav")
+    loud = wav_file(click_track_120bpm, name="mix.wav")
+    audio, _ = analyze.load_audio(silent, mono=True)
+    assert analyze._is_silent(analyze._mean_frame_rms(audio))
+
+    grid_audio, _rate, is_drums = analyze._grid_source({"drums": audio}, loud)
+    assert is_drums is False
+    assert grid_audio is not None
 
 
 def test_analyze_track_skips_missing_stems_with_a_warning(
@@ -441,12 +659,11 @@ def test_one_source_raising_does_not_prevent_the_others_from_being_analyzed(
         path: Path,
         source: str,
         backend: AnalysisBackend | None = None,
-        *,
-        drum_decomposition: DrumDecomposition | None = None,
+        **kwargs: object,
     ) -> SourceAnalysis:
         if source == "bass":
             raise RuntimeError("simulated corrupt stem")
-        return real_analyze_source(path, source, backend, drum_decomposition=drum_decomposition)
+        return real_analyze_source(path, source, backend, **kwargs)  # type: ignore[arg-type]
 
     monkeypatch.setattr(analyze, "analyze_source", flaky)
 

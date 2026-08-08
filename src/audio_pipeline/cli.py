@@ -142,14 +142,23 @@ def _announce_separation_plan(model: str, device: str) -> None:
 def _build_summary(
     input_file: Path,
     track_name: str,
-    sources: dict[str, SourceAnalysis],
+    analysis: analyze_module.TrackAnalysis | dict[str, SourceAnalysis],
     backend_name: str,
     separation_model: str | None,
     separation_device: str | None,
 ) -> TrackSummary:
+    """Wrap one run's analysis in the identity and provenance only the CLI knows.
+
+    Accepts a bare source mapping as well as a `TrackAnalysis`, because that is
+    what `analyze_track` returned before schema v5 put one tempo and one
+    structure at track level. The track-level blocks then fall back to their
+    empty defaults, which is the honest result for a caller that never measured
+    them.
+    """
+    sources = analysis.sources if isinstance(analysis, analyze_module.TrackAnalysis) else analysis
     mix = sources.get("mix")
     duration_seconds = mix.duration_seconds if mix is not None else 0.0
-    return TrackSummary(
+    summary = TrackSummary(
         track_name=track_name,
         input_path=str(input_file),
         duration_seconds=duration_seconds,
@@ -158,6 +167,11 @@ def _build_summary(
         separation_device=separation_device,
         sources=sources,
     )
+    if isinstance(analysis, analyze_module.TrackAnalysis):
+        summary.tempo = analysis.tempo
+        summary.downbeat = analysis.downbeat
+        summary.arrangement = analysis.arrangement
+    return summary
 
 
 def _load_track_summary_with_timing(output_root: Path, track_name: str) -> TrackSummary:
@@ -301,12 +315,12 @@ def analyze(
     track_name = separate_module.slugify(input_file.stem)
     stems = separate_module.stem_paths(output_root, track_name)
     started = time.perf_counter()
-    sources = analyze_module.analyze_track(input_file, stems, backend=resolved_backend)
+    analysis = analyze_module.analyze_track(input_file, stems, backend=resolved_backend)
     elapsed = time.perf_counter() - started
     summary = _build_summary(
         input_file,
         track_name,
-        sources,
+        analysis,
         resolved_backend.name,
         separation_model=None,
         separation_device=None,
@@ -431,12 +445,14 @@ def run_all(
     )
     track_name = separate_module.slugify(input_file.stem)
     analyze_started = time.perf_counter()
-    sources = analyze_module.analyze_track(input_file, separation.stems, backend=resolved_backend)
+    analysis = analyze_module.analyze_track(
+        input_file, separation.stems, backend=resolved_backend
+    )
     analyze_elapsed = time.perf_counter() - analyze_started
     summary = _build_summary(
         input_file,
         track_name,
-        sources,
+        analysis,
         resolved_backend.name,
         separation_model=separation.model,
         separation_device=separation.device,
