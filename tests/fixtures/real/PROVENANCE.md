@@ -1,7 +1,7 @@
 # Real-material fixtures
 
-Derived arrays from one real track, committed so tests can assert against real material without
-shipping audio. Ground rule 9 of `KICKOFF-v2.md`.
+Derived arrays from the calibration corpus, committed so tests can assert against real material
+without shipping audio. Ground rule 9 of `KICKOFF-v2.md`.
 
 Regenerate or extend to a new track with:
 
@@ -18,9 +18,22 @@ audible audio. No `.wav` is committed, here or anywhere else in the repo.
 
 ## Source
 
-`madonna-i-feel-so-free-peggy-gou-energy-mix-official`, 267.5 s, separated with `htdemucs_ft`.
-The v4 analysis of the same stems is frozen at `calibration/v4/`. The audio and the stems are local
-only and are excluded by `.gitignore`.
+All stems come from `calibration/v5/<track>/stems/`, separated with `htdemucs_ft`. The audio and
+the stems are local only and are excluded by `.gitignore`.
+
+| slug | track | duration |
+|---|---|---|
+| `madonna` | `madonna-i-feel-so-free-peggy-gou-energy-mix-official` | 267.5 s |
+| `badu` | `erykah-badu-didnt-cha-know` | 243.2 s |
+| `levee` | `when-the-levee-breaks-remaster` | 430.3 s |
+| `roni` | `roni-size-reprazent-brown-paper-bag` | 302.7 s |
+| `eno` | `brian-eno-1-1-remastered-2004` | 1041.5 s |
+
+`madonna`'s v4 analysis of the same stems is frozen at `calibration/v4/`.
+
+Regenerating a fixture from unchanged stems is byte-identical — verified when `levee` and `roni`
+band envelopes were added and the existing `__stem_frame_rms.npz` files came back unchanged. Demucs
+itself is *not* reproducible, so that guarantee holds only while the stems on disk stay put.
 
 ## The grid every fixture sits on
 
@@ -66,6 +79,23 @@ computes into the fixture W5A asserts against would make the two agree by constr
 
 This is the *input* to note segmentation, not the v4 note list. W4C's job is to re-run segmentation
 and show the 32 ms onset lag is gone; a committed note list would already have the lag in it.
+
+### `levee__drums_band_envelopes.npz` · `roni__drums_band_envelopes.npz`
+
+Same five arrays and the same grid as `madonna__drums_band_envelopes.npz` above: 37065 frames for
+`levee`, 26072 for `roni`.
+
+These exist because kick detection fails differently on each, and neither failure could be measured
+deterministically before they were committed — the only way to re-check a fix was to regenerate
+stems through Demucs, which is not reproducible, so a real change and separator noise looked alike.
+
+| track | the failure it pins |
+|---|---|
+| `levee` | the kick band is never searched: flux sparsity 0.654 against a 0.72 floor, because a compressed, reverberant room never lets the band fall back between hits. Zero kicks in 430 s. |
+| `roni` | the kick band *is* searched and 236 of its 293 hits die in classification, because the 250 ms feature window catches a whole break and no window is kick-dominated. This is what `_kick_survival_caveat` reports. |
+
+`chameleon` is deliberately absent: its bug is over-detection and a near-miss grid, nobody is
+working it, and at 947 s it would be the largest file here.
 
 ### `<track>__stem_frame_rms.npz` — five tracks
 

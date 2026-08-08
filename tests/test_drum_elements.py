@@ -1885,3 +1885,90 @@ def test_the_three_reasons_a_band_is_skipped_are_reported_separately(
     assert pair[0].endswith("noise, air")
     both = drum_elements._dormant_caveats({"kick": "not_sparse", "air": "empty"})
     assert len(both) == 2
+
+
+# ---------------------------------------------------------------------------
+# The other limit: a kick band that WAS searched and came back nearly empty
+# ---------------------------------------------------------------------------
+#
+# `_dormant_caveats` covers the band that was never opened -- Levee Breaks,
+# above. This is the opposite failure and it used to be silent: Roni Size's
+# kick band is active, the grid fits at 0.098 quantisation error, `status` is
+# `"ok"`, and 236 of the band's 293 hits are thrown away in classification.
+# A drum & bass grid with almost no kick in it, presented as clean.
+#
+# Same fixture shape as Madonna's: per-frame band energies, no audio. See
+# `tests/fixtures/real/PROVENANCE.md`.
+
+RONI_ENVELOPES = FIXTURE_DIR / "roni__drums_band_envelopes.npz"
+
+#: From `calibration/v5/roni-.../track_summary.json` -- the refined tempo and
+#: downbeat the committed run actually used, so this test folds the same grid.
+RONI_BEAT_PERIOD_SECONDS = 0.352786
+RONI_DOWNBEAT_SECONDS = 0.492106
+
+
+@pytest.fixture(scope="module")
+def roni_envelopes() -> dict[str, np.ndarray]:
+    with np.load(RONI_ENVELOPES, allow_pickle=True) as data:
+        return {name: data[f"band_{name}"].astype(np.float64) for name in DETECTION_BANDS}
+
+
+def test_roni_reports_the_kick_it_could_not_classify(
+    roni_envelopes: dict[str, np.ndarray],
+) -> None:
+    """The grid is fine and the kick class is not, and the output must say so.
+
+    This is the one output in the corpus that was confidently wrong: `ok`
+    status, clean grid, and nothing admitting that the kick pattern describes
+    57 surviving hits rather than what the record plays. The caveat does not
+    change `status` -- the grid really does fit -- it changes what the reader
+    is told about one class inside it.
+    """
+    result = drum_elements._decompose_bands(
+        roni_envelopes,
+        ANALYSIS_SAMPLE_RATE,
+        bpm=None,
+        beat_times=(),
+        beats_per_cycle=DRUM_PATTERN_BEATS_PER_CYCLE,
+        beat_period_seconds=RONI_BEAT_PERIOD_SECONDS,
+        downbeat_seconds=RONI_DOWNBEAT_SECONDS,
+    )
+
+    assert result.status == "ok"  # the grid is not what is wrong here
+    caveat = next(
+        (c for c in result.caveats if "kick band was searched" in c),
+        None,
+    )
+    assert caveat is not None, result.caveats
+    assert "classified as kicks" in caveat
+    # It names both counts, so the reader can see the size of the loss.
+    assert "293" in caveat and "57" in caveat
+
+
+def test_a_working_kick_band_is_not_complained_about(
+    madonna_envelopes: dict[str, np.ndarray],
+) -> None:
+    """A caveat that fires on healthy material is worse than no caveat.
+
+    Madonna's kick band survives classification at 0.963 and Badu's at 0.968,
+    against Roni's 0.195. The bound sits at 0.5, in the gap between them.
+    """
+    result = _madonna(madonna_envelopes)
+    assert not any("kick band was searched" in c for c in result.caveats)
+
+
+def test_a_dormant_kick_band_gets_the_dormant_caveat_not_this_one() -> None:
+    """0 of 0 is not a failure rate, and Levee is already told the band closed.
+
+    Both caveats firing would tell a reader the band was skipped *and* that its
+    hits were thrown away, which cannot both be true.
+    """
+    result = drum_elements.decompose(
+        _reverberant_kit(),
+        ANALYSIS_SAMPLE_RATE,
+        bpm=None,
+        beat_times=(),
+    )
+    assert any("never separate" in c for c in result.caveats)
+    assert not any("kick band was searched" in c for c in result.caveats)

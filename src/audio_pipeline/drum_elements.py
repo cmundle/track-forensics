@@ -665,6 +665,38 @@ THRESHOLDS: Final[dict[str, float]] = {
     # [guess] Share of hits that may be `unclassified` before that fact is
     # raised as a caveat rather than left to the reader to notice.
     "unclassified_caveat_fraction": 0.25,
+    # [grounded, measured — six-track corpus] Share of the kick band's own
+    # candidates that must survive classification as kicks before the kick
+    # pattern is reported without comment. Below it, `_kick_survival_caveat`
+    # says so.
+    #
+    # This covers the case `_dormant_caveats` cannot: that helper reports a band
+    # that was never searched, and a reader chasing a missing kick on Levee
+    # Breaks is told the band was closed. Roni Size is the opposite failure and
+    # was silent — the band is active, the grid fits at 0.098 quantisation
+    # error, `status` is `"ok"`, and the kick class holds 73 of 2636 hits with
+    # nothing in the output admitting it. A drum & bass grid with no kick in it,
+    # presented as clean.
+    #
+    # Measured across all six tracks in `calibration/v5/`, candidates detected
+    # in the kick band against those classified as kick:
+    #
+    #     madonna    491 -> 473   0.963
+    #     badu       279 -> 270   0.968
+    #     chameleon  827 -> 563   0.681
+    #     roni       293 ->  57   0.195
+    #     levee, eno   kick band dormant — `_dormant_caveats` owns these
+    #
+    # 0.5 is the majority bound and it is a statable fact, not a midpoint: below
+    # it the kick band found more things that were not kicks than things that
+    # were. It sits in a 3.5x gap with nothing in it — 2.6x above Roni, 1.36x
+    # below the nearest track that is not being complained about.
+    #
+    # Chameleon at 0.681 stays quiet deliberately. It already returns `no_grid`
+    # and says why, 695 kicks over 947 s is a plausible funk rate, and moving
+    # the bound up to catch it would put the threshold 1.4x under Madonna and
+    # Badu with no gap left to absorb a seventh track.
+    "kick_survival_caveat_fraction": 0.5,
 }
 
 FLUX_MEDIAN_HALF_SECONDS: Final[float] = THRESHOLDS["flux_median_half_seconds"]
@@ -1984,6 +2016,44 @@ def _dormant_caveats(dormant: dict[str, str]) -> list[str]:
     ]
 
 
+def _kick_survival_caveat(candidates: list[_Candidate], active: Sequence[str]) -> str | None:
+    """Report a kick band that was searched and produced almost no kicks.
+
+    The sibling of `_dormant_caveats`, which covers a band that was never
+    searched at all. This is the case that was silent: the band is active, hits
+    come out of it, and classification then throws nearly all of them away — so
+    the kick pattern is a transcription of whatever survived rather than of the
+    source, and nothing in the output said so. See
+    `kick_survival_caveat_fraction` in `THRESHOLDS` for the corpus measurement
+    and why the bound sits where it does.
+
+    Only the kick is checked. It is the one detection band whose name maps 1:1
+    to a class -- a snare is found in `body` and a hat in `noise`/`air`, and
+    neither mapping is clean enough to count survivors against. It is also the
+    class whose absence most changes what a reader builds from the grid.
+
+    Returns `None` when the band is dormant (`_dormant_caveats` has already
+    said so, and 0 of 0 is not a failure rate) or when enough survived.
+    """
+    if "kick" not in active:
+        return None
+    detected = [candidate for candidate in candidates if candidate.band == "kick"]
+    if not detected:
+        return None
+    survived = sum(1 for candidate in detected if candidate.drum == "kick")
+    share = survived / len(detected)
+    if share >= THRESHOLDS["kick_survival_caveat_fraction"]:
+        return None
+    return (
+        f"the kick band was searched and found {len(detected)} hits, but only "
+        f"{survived} of them ({share:.0%}) classified as kicks. Read the kick "
+        "pattern as what survived classification, not as what this source "
+        "plays -- on dense material the feature window catches the whole "
+        "pattern, so no window is kick-dominated and genuine kicks are lost "
+        "here rather than never detected"
+    )
+
+
 #: Why a grid was not reported, keyed by `_Grid.failure`. `BLOCK_STATUSES` is
 #: frozen and has one `no_grid` for all of these, so the distinction lives here
 #: — and it is a real distinction: "your tempo is 0.04 BPM out" and "this
@@ -2288,6 +2358,9 @@ def _decompose_bands(
             "most hits are unclassified, so read the kick/snare/hat pattern as a "
             "partial transcription of this source rather than a complete one"
         )
+    kick_survival = _kick_survival_caveat(candidates, active)
+    if kick_survival is not None:
+        caveats.append(kick_survival)
     caveats.extend(_grid_caveats(grid, beats_per_cycle))
 
     return DrumDecomposition(
