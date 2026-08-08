@@ -1,7 +1,7 @@
 {
   "schema_version": 5,
   "track_name": "herbie-hancock-chameleon-official-audio",
-  "bpm": 117.28422546386719,
+  "bpm": 117.284225,
   "tempo_status": "coarse",
   "tempo_confidence": "low",
   "suggested_cycle_seconds": 2.046311,
@@ -102,7 +102,7 @@
   "arrangement": {
     "status": "ok",
     "bar_count": 462,
-    "bar_seconds": 2.046310994089644,
+    "bar_seconds": 2.046311,
     "sections": [
       "bar 0 x6 intro: bass",
       "bar 6 x12 groove: drums, bass, kick",
@@ -137,8 +137,8 @@
       "alternatives": [],
       "evidence": {
         "hit_count": 695.0,
-        "mean_kick_ratio": 0.7569512029954868,
-        "mean_confidence": 0.447352638631832
+        "mean_kick_ratio": 0.7569512273381295,
+        "mean_confidence": 0.44735264892086335
       }
     },
     {
@@ -149,8 +149,8 @@
       "alternatives": [],
       "evidence": {
         "hit_count": 3588.0,
-        "mean_body_ratio": 0.6322932609720797,
-        "mean_confidence": 0.8196029061201674
+        "mean_body_ratio": 0.632293252787068,
+        "mean_confidence": 0.8196029057971014
       }
     },
     {
@@ -161,8 +161,8 @@
       "alternatives": [],
       "evidence": {
         "hit_count": 3647.0,
-        "mean_confidence": 0.9546320516015926,
-        "median_decay_ratio": 2.403150102979456
+        "mean_confidence": 0.9546320534686044,
+        "median_decay_ratio": 2.40315
       }
     },
     {
@@ -183,25 +183,20 @@
       ],
       "evidence": {
         "hit_count": 97.0,
-        "mean_confidence": 0.1897807375652662
+        "mean_confidence": 0.1897807525773196
       }
     },
     {
       "role": "bass",
-      "match": "none",
-      "sound": null,
-      "reason": "Spectral shape does not clearly read as sub bass or as harmonically rich; picking a synth waveform from this evidence alone would be a guess, not a measurement.",
-      "alternatives": [
-        "sine",
-        "sawtooth",
-        "square",
-        "triangle"
-      ],
+      "match": "approximate",
+      "sound": "sine",
+      "reason": "Energy is concentrated at the fundamental (low-band ratio 0.86, brightness 0.00, median centroid 161 Hz) with little harmonic content: reads as sub bass. 'sine' is the closest default waveform.",
+      "alternatives": [],
       "evidence": {
-        "low_band_ratio": 0.8641590761612566,
-        "brightness": 0.0005387082429859813,
-        "centroid_energy_hz": 161.39102443664058,
-        "centroid_mean_hz": 416.11167809940815
+        "low_band_ratio": 0.864159,
+        "brightness": 0.000539,
+        "centroid_energy_hz": 161.391024,
+        "centroid_mean_hz": 416.111678
       }
     }
   ],

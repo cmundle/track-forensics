@@ -1006,3 +1006,76 @@ fix is one guard, and the branch it protects has no legitimate caller in the cor
 5. A genuine shuffle for the corpus. The swung branch works and nothing real has exercised it.
 6. `feature_window_seconds` (250 ms) on dense material, and envelope-fold kick recovery for
    compressed/reverberant sources — both carried over from Wave 4 and both still open.
+
+---
+
+## Closing the cycle — two corpus-found fixes in `strudel_vocab.py`
+
+Found by the eight-track corpus after W8B, in a file W8B did not own. 1033 passed, ruff and mypy
+clean. Verified in regenerated output across all eight tracks.
+
+### The F5 leak is closed
+
+`showers-of-gold`'s bass stem is −70.0 LUFS at RMS 6.4e-05 with `bass_line.status="silent"`, and
+`suggest_bass_sound()` was still returning `approximate` / **`sawtooth`** for it. The stem contains
+nothing and the tool was naming a synth waveform for it. Worse, the descriptors behind that verdict
+move by up to 2× between separator runs, so the suggestion was not even repeatable.
+
+W4D gated on `bass_line.status == "silent"` rather than re-deriving from `SILENCE_RMS_FLOOR`, and the
+reasoning is right: `analyze.py` has already made that call, the function is not passed
+`DynamicsFeatures`, and two modules deciding "is this silent" independently is how they come to
+disagree. It also confirmed the leak was the **harmonic** branch — the empty stem cleared all three
+of its clauses — and pinned that with a test asserting it still reads `sawtooth` when ungated, so the
+gate is provably what stops it.
+
+### `SUB_BASS_CENTROID_HZ_MAX` 150 → 250, and demoted for good
+
+The clause had quietly become the deciding one and was rejecting the purest sub basses in the corpus.
+All six audible bass stems:
+
+| track | `centroid_energy_hz` | `brightness` | before | after |
+|---|---|---|---|---|
+| eno | 68.7 | 0.000005 | sine | sine |
+| roni | 79.0 | 0.000111 | sine | sine |
+| levee | 120.4 | 0.000421 | sine | sine |
+| madonna | 138.8 | 0.002052 | sine | sine |
+| **badu** | **159.9** | **0.000007** | **none** | **sine** |
+| **chameleon** | **161.4** | **0.000539** | **none** | **sine** |
+
+Badu and Chameleon have *lower* brightness than the stem that was passing. They were refused for
+missing the ceiling by ten hertz.
+
+The distributions overlap outright — real sub basses reach 161.4 Hz while synthetic squares start at
+108.3 and sawtooths at 147.4 — so **no derivation is available and the clause must not decide**. The
+new value is `BAND_EDGES_HZ["low"][1]` **by reference, not as a literal**: a source whose energy
+centroid sits above the top of the low band is not a sub bass, whatever its waveform. Deliberately
+not the smallest number that admits Badu (~160), which would have been fitting to the corpus.
+
+**W4D sharpened the orchestrator's framing.** The clause that actually does the sub-register job is
+not the centroid at all — it is `SUB_BASS_LOW_RATIO_MIN`. "75% of energy below 250 Hz" states
+directly what an absolute-Hz centroid ceiling can only approximate, and it is pitch-robust where the
+centroid is not. Demoting the ceiling to a backstop costs nothing because its stated job was already
+covered.
+
+The clause could not be deleted outright: both backend test files import the constant and were
+outside W4D's ownership. A one-line change plus two test edits if that is ever wanted.
+
+## Open items carried past v5
+
+1. **The corpus contains zero audible harmonically-rich bass stems.** All six are subs, so
+   `HARMONIC_BASS_*` remains calibrated against nothing — the only stem that ever reached that branch
+   was silence. Worth a corpus row.
+2. **`feature_window_seconds` (250 ms) on dense material** — the Roni Size kick classification
+   failure, 70 kicks in five minutes of drum & bass. Real Madonna regression risk.
+3. **Envelope-fold kick recovery** for compressed or reverberant sources, where the fold sees a
+   pattern per-hit detection cannot place.
+4. **The swung branch has no real material.** Reachable and tested synthetically; two tracks chosen
+   to exercise it both returned straight. A genuine shuffle is still wanted.
+5. **`TempoFit.caveats` wording** — *"the reported tempo was not shifted"* should become *"this layer
+   did not shift the tempo"*; it makes a claim about the final output it is not entitled to make.
+6. **The two-backend reachability tables' signal generators were never committed** and had to be
+   reconstructed during W8B; `processed_vocal` could not be reproduced.
+7. **`drum_elements`' `not_periodic` caveat ends "this is not a near miss"**, which is false for
+   Chameleon, whose grid misses by under a thousandth.
+8. **Consider removing `centroid_mean`, `rolloff_mean` and `rhythm.bpm` at v6** once nothing reads
+   them — the stated cost of the additive-only policy.

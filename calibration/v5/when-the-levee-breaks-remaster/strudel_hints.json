@@ -1,7 +1,7 @@
 {
   "schema_version": 5,
   "track_name": "when-the-levee-breaks-remaster",
-  "bpm": 143.2527313232422,
+  "bpm": 143.252731,
   "tempo_status": "coarse",
   "tempo_confidence": "low",
   "suggested_cycle_seconds": 1.675361,
@@ -102,7 +102,7 @@
   "arrangement": {
     "status": "ok",
     "bar_count": 256,
-    "bar_seconds": 1.6753607263407266,
+    "bar_seconds": 1.675361,
     "sections": [
       "bar 0 x3 intro: drums, kick",
       "bar 3 x46 groove: drums, bass, other, kick",
@@ -143,8 +143,8 @@
       "alternatives": [],
       "evidence": {
         "hit_count": 274.0,
-        "mean_body_ratio": 0.6761842637453391,
-        "mean_confidence": 0.9296003633313753
+        "mean_body_ratio": 0.6761842627737226,
+        "mean_confidence": 0.9296003649635036
       }
     },
     {
@@ -155,8 +155,8 @@
       "alternatives": [],
       "evidence": {
         "hit_count": 842.0,
-        "mean_confidence": 0.9594713773175422,
-        "median_decay_ratio": 1.0296723939190584
+        "mean_confidence": 0.9594713764845606,
+        "median_decay_ratio": 1.0296725
       }
     },
     {
@@ -177,7 +177,7 @@
       ],
       "evidence": {
         "hit_count": 48.0,
-        "mean_confidence": 0.17731635905682638
+        "mean_confidence": 0.17731631250000002
       }
     },
     {
@@ -187,16 +187,17 @@
       "reason": "Energy is concentrated at the fundamental (low-band ratio 0.98, brightness 0.00, median centroid 120 Hz) with little harmonic content: reads as sub bass. 'sine' is the closest default waveform.",
       "alternatives": [],
       "evidence": {
-        "low_band_ratio": 0.9778664976608755,
-        "brightness": 0.00042107039448569244,
-        "centroid_energy_hz": 120.3587580443455,
-        "centroid_mean_hz": 334.031202242699
+        "low_band_ratio": 0.977866,
+        "brightness": 0.000421,
+        "centroid_energy_hz": 120.358758,
+        "centroid_mean_hz": 334.031202
       }
     }
   ],
   "strudel_vocabulary_read": "2026-08-04",
   "notes": [
     "tempo refinement was refused: no beat multiple produced a usable autocorrelation peak, so bpm is the backend's raw estimate and the grid is not bar-exact. On material that genuinely drifts, or has no pulse, this is the correct answer rather than a failure \u2014 verify by ear",
+    "tempo octave: not settled by correlation, and there was no drum grid to arbitrate with, so bpm is left at the backend's octave (other live candidates: 284.74 BPM). Half-time or double-time is the likeliest way this number is wrong \u2014 verify by ear",
     "drum inter-onset intervals fit neither an even nor a swung grid, subdivision not inferred \u2014 verify by ear",
     "drum grid status is 'no_grid', see analysis/drums.json for detail"
   ]

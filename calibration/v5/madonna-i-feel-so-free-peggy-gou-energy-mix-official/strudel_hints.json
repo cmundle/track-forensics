@@ -1,7 +1,7 @@
 {
   "schema_version": 5,
   "track_name": "madonna-i-feel-so-free-peggy-gou-energy-mix-official",
-  "bpm": 131.99969088787668,
+  "bpm": 131.999691,
   "tempo_status": "refined",
   "tempo_confidence": "high",
   "suggested_cycle_seconds": 1.818186,
@@ -138,7 +138,7 @@
   "arrangement": {
     "status": "ok",
     "bar_count": 147,
-    "bar_seconds": 1.8181860759345343,
+    "bar_seconds": 1.818186,
     "sections": [
       "bar 0 x17 intro: drums, other, kick",
       "bar 17 x2 breakdown: drums",
@@ -170,8 +170,8 @@
       "alternatives": [],
       "evidence": {
         "hit_count": 483.0,
-        "mean_kick_ratio": 0.842356209545589,
-        "mean_confidence": 0.7638093519312383
+        "mean_kick_ratio": 0.8423562318840581,
+        "mean_confidence": 0.7638093561076604
       }
     },
     {
@@ -182,8 +182,8 @@
       "alternatives": [],
       "evidence": {
         "hit_count": 87.0,
-        "mean_body_ratio": 0.6739682646824565,
-        "mean_confidence": 0.7772264429576694
+        "mean_body_ratio": 0.6739682413793104,
+        "mean_confidence": 0.7772264482758621
       }
     },
     {
@@ -194,8 +194,8 @@
       "alternatives": [],
       "evidence": {
         "hit_count": 783.0,
-        "mean_confidence": 0.9529193073016988,
-        "median_decay_ratio": 2.195861158768401
+        "mean_confidence": 0.9529193103448276,
+        "median_decay_ratio": 2.195861
       }
     },
     {
@@ -216,7 +216,7 @@
       ],
       "evidence": {
         "hit_count": 65.0,
-        "mean_confidence": 0.09992383282256172
+        "mean_confidence": 0.09992383076923077
       }
     },
     {
@@ -226,15 +226,16 @@
       "reason": "Energy is concentrated at the fundamental (low-band ratio 0.92, brightness 0.00, median centroid 139 Hz) with little harmonic content: reads as sub bass. 'sine' is the closest default waveform.",
       "alternatives": [],
       "evidence": {
-        "low_band_ratio": 0.9174622345633263,
-        "brightness": 0.0020522751175144527,
-        "centroid_energy_hz": 138.7593924333099,
-        "centroid_mean_hz": 1004.7517631369512
+        "low_band_ratio": 0.917462,
+        "brightness": 0.002052,
+        "centroid_energy_hz": 138.759392,
+        "centroid_mean_hz": 1004.751763
       }
     }
   ],
   "strudel_vocabulary_read": "2026-08-04",
   "notes": [
+    "tempo octave: correlation could not settle it, so the drum grid was fitted at each candidate and the backend's own octave won (other live candidates: 66.00, 263.99 BPM). bpm above is the right one",
     "drum inter-onset intervals fit neither an even nor a swung grid, subdivision not inferred \u2014 verify by ear"
   ]
 }

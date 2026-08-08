@@ -1,7 +1,7 @@
 {
   "schema_version": 5,
   "track_name": "erykah-badu-didnt-cha-know",
-  "bpm": 135.2638602085745,
+  "bpm": 135.26386,
   "tempo_status": "refined",
   "tempo_confidence": "high",
   "suggested_cycle_seconds": 1.77431,
@@ -140,7 +140,7 @@
   "arrangement": {
     "status": "ok",
     "bar_count": 136,
-    "bar_seconds": 1.774309853570083,
+    "bar_seconds": 1.77431,
     "sections": [
       "bar 0 x2 intro: other",
       "bar 2 x11 groove: drums, bass, other, kick",
@@ -162,8 +162,8 @@
       "alternatives": [],
       "evidence": {
         "hit_count": 328.0,
-        "mean_kick_ratio": 0.917868926807981,
-        "mean_confidence": 0.8717067530248849
+        "mean_kick_ratio": 0.9178689054878048,
+        "mean_confidence": 0.8717067591463415
       }
     },
     {
@@ -174,8 +174,8 @@
       "alternatives": [],
       "evidence": {
         "hit_count": 123.0,
-        "mean_body_ratio": 0.5946501280636943,
-        "mean_confidence": 0.7774832720408495
+        "mean_body_ratio": 0.5946500975609756,
+        "mean_confidence": 0.7774832601626017
       }
     },
     {
@@ -186,8 +186,8 @@
       "alternatives": [],
       "evidence": {
         "hit_count": 1023.0,
-        "mean_confidence": 0.8874562231694724,
-        "median_decay_ratio": 3.535053736153323
+        "mean_confidence": 0.887456211143695,
+        "median_decay_ratio": 3.535054
       }
     },
     {
@@ -208,28 +208,25 @@
       ],
       "evidence": {
         "hit_count": 11.0,
-        "mean_confidence": 0.006375250394421112
+        "mean_confidence": 0.006375272727272727
       }
     },
     {
       "role": "bass",
-      "match": "none",
-      "sound": null,
-      "reason": "Spectral shape does not clearly read as sub bass or as harmonically rich; picking a synth waveform from this evidence alone would be a guess, not a measurement.",
-      "alternatives": [
-        "sine",
-        "sawtooth",
-        "square",
-        "triangle"
-      ],
+      "match": "approximate",
+      "sound": "sine",
+      "reason": "Energy is concentrated at the fundamental (low-band ratio 0.92, brightness 0.00, median centroid 160 Hz) with little harmonic content: reads as sub bass. 'sine' is the closest default waveform.",
+      "alternatives": [],
       "evidence": {
-        "low_band_ratio": 0.9235658198847999,
-        "brightness": 6.678644576566703e-06,
-        "centroid_energy_hz": 159.85262621082276,
-        "centroid_mean_hz": 371.6569819166726
+        "low_band_ratio": 0.923566,
+        "brightness": 7e-06,
+        "centroid_energy_hz": 159.852626,
+        "centroid_mean_hz": 371.656982
       }
     }
   ],
   "strudel_vocabulary_read": "2026-08-04",
-  "notes": []
+  "notes": [
+    "tempo octave: correlation could not settle it, so the drum grid was fitted at each candidate and the backend's own octave won (other live candidates: 67.63, 270.53 BPM). bpm above is the right one"
+  ]
 }

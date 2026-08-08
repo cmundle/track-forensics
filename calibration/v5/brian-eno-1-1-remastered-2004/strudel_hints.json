@@ -1,12 +1,12 @@
 {
   "schema_version": 5,
   "track_name": "brian-eno-1-1-remastered-2004",
-  "bpm": 83.45592498779297,
+  "bpm": 83.455925,
   "tempo_status": "coarse",
   "tempo_confidence": "low",
   "suggested_cycle_seconds": 2.875769,
   "subdivision_feel": null,
-  "drum_density": "sparse",
+  "drum_density": null,
   "bass_activity": "sparse",
   "tonal_centre": "D major",
   "drum_grid": {
@@ -118,17 +118,19 @@
       "reason": "Energy is concentrated at the fundamental (low-band ratio 1.00, brightness 0.00, median centroid 69 Hz) with little harmonic content: reads as sub bass. 'sine' is the closest default waveform.",
       "alternatives": [],
       "evidence": {
-        "low_band_ratio": 0.9997528527779094,
-        "brightness": 5.379063074714338e-06,
-        "centroid_energy_hz": 68.66212163073645,
-        "centroid_mean_hz": 473.577679051425
+        "low_band_ratio": 0.999753,
+        "brightness": 5e-06,
+        "centroid_energy_hz": 68.662122,
+        "centroid_mean_hz": 473.577679
       }
     }
   ],
   "strudel_vocabulary_read": "2026-08-04",
   "notes": [
     "tempo refinement was refused: no beat multiple produced a usable autocorrelation peak, so bpm is the backend's raw estimate and the grid is not bar-exact. On material that genuinely drifts, or has no pulse, this is the correct answer rather than a failure \u2014 verify by ear",
+    "tempo octave: not settled by correlation, and there was no drum grid to arbitrate with, so bpm is left at the backend's octave (other live candidates: 168.86 BPM). Half-time or double-time is the likeliest way this number is wrong \u2014 verify by ear",
     "drum inter-onset intervals fit neither an even nor a swung grid, subdivision not inferred \u2014 verify by ear",
+    "drums stem is below the silence floor, so drum density is not reported \u2014 an onset detector pointed at separation residue counts noise and reports a confident density for it",
     "drum grid status is 'silent', see analysis/drums.json for detail",
     "arrangement status is 'no_grid', see track_summary.json for detail"
   ]

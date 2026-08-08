@@ -256,25 +256,116 @@ def test_contaminated_centroid_mean_alone_cannot_produce_a_verdict() -> None:
 
 
 def test_sub_bass_threshold_is_not_quietly_loosened() -> None:
-    """Pins `SUB_BASS_CENTROID_HZ_MAX` at 120 Hz.
+    """Pins which clause decides, not just the numbers.
 
-    F4's trap was that the threshold looks wrong and is right. If a future
-    change widens it to make some stubborn stem fit, that is the descriptor
-    breaking again and this test is the tripwire.
+    F4's trap was that the threshold looked wrong and was right, so widening
+    one to make a stubborn stem fit is the mistake this file exists to catch.
+    The centroid ceiling is now the top of the `low` band and is a sanity
+    bound only — lowering it back toward the corpus (highest real sub bass
+    161.4 Hz) would restore the two false negatives it used to produce.
     """
-    assert SUB_BASS_CENTROID_HZ_MAX == 150.0
+    assert SUB_BASS_CENTROID_HZ_MAX == 250.0
     assert SUB_BASS_BRIGHTNESS_MAX == 0.005
-    just_over = _spectral(low=0.95, brightness=0.001, centroid=150.5)
-    assert suggest_bass_sound(BassLine(status="ok"), just_over)[0].match == "none"
-    just_under = _spectral(low=0.95, brightness=0.001, centroid=149.5)
-    assert suggest_bass_sound(BassLine(status="ok"), just_under)[0].sound == "sine"
 
-    # And the brightness clause, which is what actually separates a sawtooth
-    # from a sine — a synthetic 35 Hz sawtooth reads brightness 0.0131 with a
-    # centroid of 147.4 Hz, i.e. it clears the centroid clause and must be
-    # rejected here or not at all.
+    # Brightness is the discriminator. A synthetic 35 Hz sawtooth reads
+    # brightness 0.0131 with a centroid of 147.4 Hz: it clears both other
+    # clauses and must be rejected here or not at all.
     low_saw = _spectral(low=0.915, brightness=0.0131, centroid=147.4)
     assert suggest_bass_sound(BassLine(status="ok"), low_saw)[0].match == "none"
+
+    # The ceiling only catches what brightness is blind to: energy between
+    # 250 Hz and the 1500 Hz brightness split.
+    midrange = _spectral(low=0.75, brightness=0.0, centroid=287.0)
+    assert suggest_bass_sound(BassLine(status="ok"), midrange)[0].match == "none"
+
+
+#: Every audible bass stem in the eight-track v5 corpus, read from the
+#: committed `calibration/v5/*/analysis/bass.json`. The stems themselves are
+#: gitignored; these are the numbers, which is all the verdict reads.
+#: All six are sub basses, spanning a 2.3:1 centroid range.
+CORPUS_SUB_BASSES = {
+    "eno": (68.662122, 0.000005, 0.999753),
+    "roni": (79.013851, 0.000111, 0.988909),
+    "levee": (120.358758, 0.000421, 0.977866),
+    "madonna": (138.759392, 0.002052, 0.917462),
+    "badu": (159.852626, 0.000007, 0.923566),
+    "chameleon": (161.391024, 0.000539, 0.864159),
+}
+
+
+def test_every_audible_corpus_bass_resolves_to_sine() -> None:
+    """The regression the corpus caught: 150 Hz rejected two of these six.
+
+    Badu (brightness 0.000007) and Chameleon (0.000539) are purer sines than
+    Madonna (0.002052) by the discriminator that actually separates the
+    classes, and both were rejected for missing a ten-hertz margin on a ceiling
+    derived from Madonna alone.
+    """
+    for name, (centroid, brightness, low) in CORPUS_SUB_BASSES.items():
+        result = suggest_bass_sound(
+            BassLine(status="ok"), _spectral(low=low, brightness=brightness, centroid=centroid)
+        )
+        assert result[0].sound == "sine", f"{name}: {result[0].reason}"
+        assert result[0].match == "approximate", name
+
+
+# --- F5: a silent stem gets no waveform ---------------------------------
+#
+# Both silent stems in the corpus, from the same committed JSON. `rms_mean`
+# 8.2e-05 and 6.4e-05 against a `SILENCE_RMS_FLOOR` of 1e-3, both metered at
+# -70.0 LUFS. `analyze.py` already sets `bass_line.status="silent"` for them.
+SILENT_SHOWERS = (1899.043088, 0.365997, 0.355655)
+SILENT_ANCIENT = (736.203341, 0.074505, 0.532178)
+
+
+def test_silent_bass_stem_gets_no_sound_even_when_it_clears_every_clause() -> None:
+    """`showers-of-gold`: empty stem, and it passed the harmonic branch.
+
+    Low ratio 0.356 <= 0.55, brightness 0.366 >= 0.12, centroid 1899 >= 180 —
+    all three, so the tool recommended a sawtooth bass for a stem containing
+    nothing. That is the live half of F5, and the descriptors behind it are not
+    even reproducible: residue stems move by up to 2x between separator runs.
+    """
+    centroid, brightness, low = SILENT_SHOWERS
+    spectral = _spectral(low=low, brightness=brightness, centroid=centroid)
+
+    # Ungated, this really does read as a harmonically rich bass.
+    assert suggest_bass_sound(BassLine(status="ok"), spectral)[0].sound == "sawtooth"
+
+    result = suggest_bass_sound(BassLine(status="silent"), spectral)
+    assert len(result) == 1
+    assert result[0].match == "none"
+    assert result[0].sound is None
+    assert "silence floor" in result[0].reason
+    # The measurements still travel, so a reader can see what was discarded.
+    assert result[0].evidence["brightness"] == brightness
+
+
+def test_silence_gate_covers_the_sub_bass_branch_too() -> None:
+    """Not only the branch that happened to leak.
+
+    `ancient-heavy-tech-donjon` returns `none` on its own descriptors, so it is
+    no evidence the gate works. A silent stem whose residue happened to look
+    like a sub must be gated by status, not by luck.
+    """
+    centroid, brightness, low = SILENT_ANCIENT
+    ancient = _spectral(low=low, brightness=brightness, centroid=centroid)
+    assert suggest_bass_sound(BassLine(status="silent"), ancient)[0].sound is None
+    looks_like_a_sub = _spectral(low=0.99, brightness=0.0, centroid=60.0)
+    assert suggest_bass_sound(BassLine(status="ok"), looks_like_a_sub)[0].sound == "sine"
+    assert suggest_bass_sound(BassLine(status="silent"), looks_like_a_sub)[0].sound is None
+
+
+def test_unvoiced_is_a_caveat_and_silent_is_a_stop() -> None:
+    """The distinction the gate turns on.
+
+    `unvoiced` means there is a signal whose pitch could not be tracked, and
+    its spectral shape is still a real measurement. `silent` means there is no
+    signal. Only the second one blocks a verdict.
+    """
+    spectral = _spectral(low=0.9, brightness=0.002, centroid=50.0)
+    assert suggest_bass_sound(BassLine(status="unvoiced"), spectral)[0].sound == "sine"
+    assert suggest_bass_sound(BassLine(status="silent"), spectral)[0].sound is None
 
 
 def test_sub_bass_spectral_shape_maps_to_sine() -> None:
@@ -353,6 +444,8 @@ def _battery() -> list[StrudelSoundSuggestion]:
         (BassLine(status="ok"), _spectral(low=0.5, brightness=0.08, centroid=150.0)),
         (BassLine(status="unvoiced"), _spectral(low=0.9, brightness=0.002, centroid=50.0)),
         (BassLine(status="too_few_hits"), SpectralFeatures()),
+        (BassLine(status="silent"), _spectral(low=0.36, brightness=0.37, centroid=1899.0)),
+        (BassLine(status="silent"), SpectralFeatures()),
         (BassLine(status="failed"), _spectral(low=None, brightness=None, centroid=None)),
         # v4-shaped: centroid_mean present, centroid_energy_hz absent.
         (

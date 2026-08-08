@@ -1,13 +1,13 @@
 {
   "schema_version": 5,
   "track_name": "showers-of-gold",
-  "bpm": 150.90048217773438,
+  "bpm": 150.900482,
   "tempo_status": "coarse",
   "tempo_confidence": "low",
   "suggested_cycle_seconds": 1.590452,
   "subdivision_feel": null,
   "drum_density": "moderate",
-  "bass_activity": "moderate",
+  "bass_activity": null,
   "tonal_centre": "F major",
   "drum_grid": {
     "status": "no_grid",
@@ -39,7 +39,7 @@
   "arrangement": {
     "status": "ok",
     "bar_count": 10,
-    "bar_seconds": 1.5904521744159967,
+    "bar_seconds": 1.590452,
     "sections": [
       "bar 0 x10 full: drums, other, kick"
     ],
@@ -77,17 +77,15 @@
     },
     {
       "role": "bass",
-      "match": "approximate",
-      "sound": "sawtooth",
-      "reason": "Energy reaches beyond the fundamental (low-band ratio 0.36, brightness 0.37, median centroid 1899 Hz): reads as a harmonically rich bass. 'sawtooth' is the closest default waveform. Whether the source is odd-harmonic (closer to 'square') or full-harmonic cannot be told apart without an odd/even harmonic ratio, which this pipeline does not measure. (bass line status is 'silent'; this verdict is based on the stem's overall spectral shape only, independent of note segmentation)",
-      "alternatives": [
-        "square"
-      ],
+      "match": "none",
+      "sound": null,
+      "reason": "The bass stem is below the silence floor, so there is no signal to read a waveform from \u2014 its spectral shape describes separation residue and moves between separator runs. Reported as evidence below, deliberately not used to pick a sound.",
+      "alternatives": [],
       "evidence": {
-        "low_band_ratio": 0.35565546907781825,
-        "brightness": 0.36599672694309465,
-        "centroid_energy_hz": 1899.0430882540682,
-        "centroid_mean_hz": 2638.045529493645
+        "low_band_ratio": 0.355655,
+        "brightness": 0.365997,
+        "centroid_energy_hz": 1899.043088,
+        "centroid_mean_hz": 2638.045529
       }
     }
   ],
@@ -95,6 +93,7 @@
   "notes": [
     "tempo refinement was refused: no beat multiple produced a usable autocorrelation peak, so bpm is the backend's raw estimate and the grid is not bar-exact. On material that genuinely drifts, or has no pulse, this is the correct answer rather than a failure \u2014 verify by ear",
     "drum inter-onset intervals fit neither an even nor a swung grid, subdivision not inferred \u2014 verify by ear",
+    "bass stem is below the silence floor, so bass activity is not reported \u2014 an onset detector pointed at separation residue counts noise and reports a confident density for it",
     "drum grid status is 'no_grid', see analysis/drums.json for detail",
     "bass line status is 'silent', see analysis/bass.json for detail",
     "not in this record at all: bass, vocals \u2014 do not write parts for them"

@@ -1,13 +1,13 @@
 {
   "schema_version": 5,
   "track_name": "ancient-heavy-tech-donjon",
-  "bpm": 90.38639831542969,
+  "bpm": 90.386398,
   "tempo_status": "coarse",
   "tempo_confidence": "low",
   "suggested_cycle_seconds": 2.655267,
   "subdivision_feel": null,
   "drum_density": "moderate",
-  "bass_activity": "moderate",
+  "bass_activity": null,
   "tonal_centre": null,
   "drum_grid": {
     "status": "too_few_hits",
@@ -36,7 +36,7 @@
   "arrangement": {
     "status": "ok",
     "bar_count": 2,
-    "bar_seconds": 2.6552667710295306,
+    "bar_seconds": 2.655267,
     "sections": [
       "bar 0 x2 full: drums, other, kick"
     ],
@@ -55,18 +55,13 @@
       "role": "bass",
       "match": "none",
       "sound": null,
-      "reason": "Spectral shape does not clearly read as sub bass or as harmonically rich; picking a synth waveform from this evidence alone would be a guess, not a measurement. (bass line status is 'silent'; this verdict is based on the stem's overall spectral shape only, independent of note segmentation)",
-      "alternatives": [
-        "sine",
-        "sawtooth",
-        "square",
-        "triangle"
-      ],
+      "reason": "The bass stem is below the silence floor, so there is no signal to read a waveform from \u2014 its spectral shape describes separation residue and moves between separator runs. Reported as evidence below, deliberately not used to pick a sound.",
+      "alternatives": [],
       "evidence": {
-        "low_band_ratio": 0.5321784725446479,
-        "brightness": 0.07450457151995236,
-        "centroid_energy_hz": 736.2033413734297,
-        "centroid_mean_hz": 1348.7514120122437
+        "low_band_ratio": 0.532178,
+        "brightness": 0.074505,
+        "centroid_energy_hz": 736.203341,
+        "centroid_mean_hz": 1348.751412
       }
     }
   ],
@@ -74,6 +69,7 @@
   "notes": [
     "tempo refinement was refused: no beat multiple produced a usable autocorrelation peak, so bpm is the backend's raw estimate and the grid is not bar-exact. On material that genuinely drifts, or has no pulse, this is the correct answer rather than a failure \u2014 verify by ear",
     "drum inter-onset intervals fit neither an even nor a swung grid, subdivision not inferred \u2014 verify by ear",
+    "bass stem is below the silence floor, so bass activity is not reported \u2014 an onset detector pointed at separation residue counts noise and reports a confident density for it",
     "bass stem is below the silence floor, so it was not used as a fallback tonal centre \u2014 a key detector reads separation residue as confidently as it reads a bassline",
     "drum grid status is 'too_few_hits', see analysis/drums.json for detail",
     "bass line status is 'silent', see analysis/bass.json for detail",

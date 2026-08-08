@@ -151,7 +151,14 @@ from __future__ import annotations
 from statistics import fmean, median
 from typing import Final
 
-from .schemas import BassLine, DrumDecomposition, DrumHit, SpectralFeatures, StrudelSoundSuggestion
+from . import BAND_EDGES_HZ
+from .schemas import (
+    BassLine,
+    DrumDecomposition,
+    DrumHit,
+    SpectralFeatures,
+    StrudelSoundSuggestion,
+)
 
 # ---------------------------------------------------------------------------
 # Transcribed vocabulary tables. See the module docstring for provenance.
@@ -352,10 +359,59 @@ SUB_BASS_LOW_RATIO_MIN: Final[float] = 0.75
 #: sweep shows is inert.
 SUB_BASS_BRIGHTNESS_MAX: Final[float] = 0.005
 
-#: [measured, v5] **Raised from 120.0**, and the reason is not that a stem
-#: failed to fit — it is that the descriptor underneath changed twice.
+#: [measured, v5 + eight-track corpus] **Raised from 120.0 to the top of the
+#: `low` band, and demoted to a sanity bound.** It is no longer a discriminator
+#: and it is no longer allowed to decide anything on its own.
 #:
-#: The v4 history is finding **F4** in `V2-PLAN.md`. This clause read
+#: The value is `BAND_EDGES_HZ["low"][1]` (250.0 Hz) by reference rather than
+#: by literal, so it cannot drift away from the band definition it means:
+#: **a source whose energy centroid sits above the top of the low band is not
+#: a sub bass, whatever its waveform.** That is the only claim the corpus
+#: supports, and it is derived from the project's own band edges rather than
+#: fitted to any stem.
+#:
+#: **Why it cannot be a discriminator.** All six audible bass stems in the
+#: eight-track corpus are sub basses, and their centroids span a 2.3:1 range:
+#:
+#:     track       centroid_energy_hz   brightness   low ratio
+#:     eno                       68.7     0.000005       1.000
+#:     roni                      79.0     0.000111       0.989
+#:     levee                    120.4     0.000421       0.978
+#:     madonna                  138.8     0.002052       0.917
+#:     badu                     159.9     0.000007       0.924
+#:     chameleon                161.4     0.000539       0.864
+#:
+#: The reject side gives no bound to place against that. The synthetic sweep
+#: below `SUB_BASS_LOW_RATIO_MIN` puts squares from 108.3 Hz and sawtooths from
+#: 147.4 Hz — **below the highest real sub bass at 161.4** — so the accept and
+#: reject distributions overlap outright. No value of this constant both admits
+#: the measured sub basses and rejects anything: above 161.4 it discriminates
+#: nothing, below it it rejects real sub basses. There is no derivation, and a
+#: constant with no derivation must not be the deciding clause.
+#:
+#: At 150.0 it was deciding anyway, and wrongly. Badu (brightness 0.000007) and
+#: Chameleon (0.000539) are *purer* sines than Madonna (0.002052) by the
+#: discriminator that actually separates the classes, and both were rejected
+#: for missing a ten-hertz margin on a number derived from one stem.
+#:
+#: **What decides instead**, unchanged: `SUB_BASS_BRIGHTNESS_MAX` separates
+#: real sub basses (≤ 0.00206) from synthetic squares and sawtooths (≥ 0.0088)
+#: with a 4.3x margin and is pitch-independent by construction, and
+#: `SUB_BASS_LOW_RATIO_MIN` is the real "is the energy in the sub register"
+#: test — 75% of energy below 250 Hz says that directly, without the
+#: pitch-dependence an absolute-Hz centroid ceiling drags in.
+#:
+#: **What this clause is still for**, and the only reason it survives: it is a
+#: backstop for the band `brightness` cannot see. Brightness splits at 1500 Hz,
+#: so a bass with a quarter of its energy at 1 kHz reads brightness 0.0 and low
+#: ratio 0.75, clears both other clauses, and is not a sub — its centroid would
+#: be ~287 Hz and this clause catches it. No corpus stem exhibits that shape,
+#: so the branch is unexercised on real material and marked accordingly.
+#:
+#: Historical note, kept because it is the finding that got here — the v4 bug
+#: was **F4** in `V2-PLAN.md`.
+#:
+#: This clause read
 #: `SpectralFeatures.centroid_mean`, an unweighted mean over per-frame
 #: centroids. A resting frame in a real stem sits on a broadband noise floor,
 #: so its own centroid lands in the kilohertz and the mean follows it: the v4
@@ -367,32 +423,18 @@ SUB_BASS_BRIGHTNESS_MAX: Final[float] = 0.005
 #: any input in the tool's history. 120 Hz was never calibrated, because
 #: nothing it was measured against was measurable.
 #:
-#: Against `centroid_energy_hz` the sweep above shows 120 Hz is **too
-#: permissive, not too strict** — it admits a square down to about 41 Hz
-#: (125.6 Hz) — while simultaneously rejecting the real sub-bass stem at
-#: 139.7 Hz and a sine at the top of the register. It is wrong in both
-#: directions at once, which is what an uncalibrated number looks like.
+#: **Pitch-dependence is why it can never be more than a backstop.** A bass
+#: playing higher notes has a higher centroid whatever its waveform: Madonna's
+#: stem plays a1 and a2, so its 138.8 Hz is pushed up by its note range as much
+#: as by its timbre, and the same patch an octave down would read near 70 Hz.
+#: A ratio against a measured fundamental would be the right descriptor; the
+#: pipeline does not produce one at this point in the analysis.
 #:
-#: 150.0 is set from the measurement: it clears the whole sine and triangle
-#: range (max 113.9 Hz) with headroom for the bleed real separation adds, and
-#: it clears the real sub-bass stem at 139.7 Hz. It sits just above the lowest
-#: synthetic sawtooth (147.4 Hz at a 35 Hz fundamental), so it does **not**
-#: reject that on its own — `SUB_BASS_BRIGHTNESS_MAX` does, and that division
-#: of labour is the point. Read this clause as "is the energy in the sub
-#: register", not as the harmonic-content test.
-#:
-#: **Pitch-dependence is a genuine weakness of any absolute-Hz threshold
-#: here**, and it is worth stating even though the number is kept. The real
-#: sub-bass stem plays both a1 (55 Hz) and a2 (110 Hz), so its 139.7 Hz is
-#: pushed up by its own note range as much as by its waveform; the same patch
-#: playing an octave lower would read near 70 Hz, and an octave higher would
-#: fail. A ratio against a measured fundamental would be the right descriptor
-#: and the pipeline does not produce one at this point in the analysis.
-#:
-#: Do not widen this to make a stubborn stem fit. Widening was the mistake F4
-#: exists to prevent, and the two v5 changes here were made only because the
-#: descriptor was fixed first and then re-measured against known signals.
-SUB_BASS_CENTROID_HZ_MAX: Final[float] = 150.0
+#: This was raised on measurement, not to make a stubborn stem fit — the
+#: distinction being that 250.0 is not the smallest number that admits Badu
+#: (that would be ~160) but the point above which the claim stops being
+#: credible at all. Do not lower it to restore discrimination it never had.
+SUB_BASS_CENTROID_HZ_MAX: Final[float] = BAND_EDGES_HZ["low"][1]
 
 #: [guess] Harmonically-rich verdict requires ALL three, in the opposite
 #: direction: energy spread beyond the fundamental, some brightness, and a
@@ -619,6 +661,22 @@ def suggest_drum_sounds(decomposition: DrumDecomposition) -> list[StrudelSoundSu
 # --- bass mapping ------------------------------------------------------
 
 
+def _bass_evidence(spectral: SpectralFeatures) -> dict[str, float]:
+    """The four numbers every bass verdict reports, gated or not.
+
+    `centroid_mean_hz` is carried alongside `centroid_energy_hz` and never
+    thresholded on — see `SUB_BASS_CENTROID_HZ_MAX` for what is wrong with it.
+    """
+    return _evidence(
+        [
+            ("low_band_ratio", spectral.band_energy_ratios.low),
+            ("brightness", spectral.brightness),
+            ("centroid_energy_hz", spectral.centroid_energy_hz),
+            ("centroid_mean_hz", spectral.centroid_mean),
+        ]
+    )
+
+
 def _sub_bass_match(
     low_ratio: float | None, brightness: float | None, centroid_energy: float | None
 ) -> bool:
@@ -645,6 +703,41 @@ def _harmonic_bass_match(
     )
 
 
+def _silent_bass_suggestion(spectral: SpectralFeatures) -> StrudelSoundSuggestion:
+    """The verdict for a stem `analyze.py` has already called silent.
+
+    Separation residue, not a bass. Measured on the eight-track corpus: the two
+    stems in this state read `rms_mean` 8.2e-05 and 6.4e-05 against a
+    `SILENCE_RMS_FLOOR` of 1e-3, and both metered at exactly -70.0 LUFS, which
+    is the meter's own floor rather than a level.
+
+    Their descriptors are not merely unfounded, they are **not reproducible**:
+    Demucs is not bit-identical between runs on this machine, and a residue
+    stem's band ratios move by up to 2x from one separation to the next. Before
+    this gate existed, `showers-of-gold`'s empty bass stem cleared all three
+    clauses of the harmonic branch (low ratio 0.356, brightness 0.366, centroid
+    1899 Hz) and the tool recommended a sawtooth bass for silence — the second
+    half of finding **F5**, in the one place W6's silence gating did not reach.
+
+    The spectral values are still reported in `evidence`, because a reader
+    checking why a stem was dropped wants to see what was measured; they are
+    simply not thresholded on.
+    """
+    return StrudelSoundSuggestion(
+        role="bass",
+        match="none",
+        sound=None,
+        reason=(
+            "The bass stem is below the silence floor, so there is no signal "
+            "to read a waveform from — its spectral shape describes separation "
+            "residue and moves between separator runs. Reported as evidence "
+            "below, deliberately not used to pick a sound."
+        ),
+        alternatives=[],
+        evidence=_bass_evidence(spectral),
+    )
+
+
 def suggest_bass_sound(
     bass_line: BassLine, spectral: SpectralFeatures
 ) -> list[StrudelSoundSuggestion]:
@@ -663,6 +756,16 @@ def suggest_bass_sound(
     itself is not a float and cannot go in `evidence`; when it is not `"ok"`
     or `"not_attempted"` it is folded into `reason` as a caveat instead.
 
+    **`"silent"` is the one status that is not a caveat but a stop.** The
+    reasoning above holds for `"unvoiced"` — there is a signal, its pitch just
+    could not be tracked — and fails for silence, where there is no signal to
+    have a shape. Gating on `bass_line.status` rather than re-deriving the
+    level from `SILENCE_RMS_FLOOR` is deliberate: `analyze.py` has already made
+    that call against `dynamics.rms_mean`, this function is not passed
+    `DynamicsFeatures` and giving it one would change the signature for every
+    caller, and two modules deciding "is this silent" separately is exactly how
+    they come to disagree.
+
     Reads `spectral.centroid_energy_hz`, **not** `spectral.centroid_mean` —
     see `SUB_BASS_CENTROID_HZ_MAX` for finding F4 and why. `centroid_mean` is
     still carried in `evidence` alongside it, so a reader can see both the
@@ -676,18 +779,14 @@ def suggest_bass_sound(
     Never crashes: a `SpectralFeatures()` with every field `None` produces a
     `match="none"` suggestion with empty `evidence` rather than raising.
     """
+    if bass_line.status == "silent":
+        return [_silent_bass_suggestion(spectral)]
+
     low_ratio = spectral.band_energy_ratios.low
     brightness = spectral.brightness
     centroid = spectral.centroid_energy_hz
 
-    evidence = _evidence(
-        [
-            ("low_band_ratio", low_ratio),
-            ("brightness", brightness),
-            ("centroid_energy_hz", centroid),
-            ("centroid_mean_hz", spectral.centroid_mean),
-        ]
-    )
+    evidence = _bass_evidence(spectral)
 
     status_note = ""
     if centroid is None and spectral.centroid_mean is not None:
