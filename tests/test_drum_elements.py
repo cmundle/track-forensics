@@ -96,19 +96,6 @@ from audio_pipeline.schemas import (
     RhythmFeatures,
 )
 
-#: `GRID_ANCHOR_SOURCES` in the frozen `schemas.py` holds `beats` and
-#: `first_hit`. v5 adds a third: an anchor taken from `tempo.DownbeatFit`,
-#: which is neither of those and deserves to be distinguishable — a grid
-#: anchored on a measured downbeat and one anchored on whatever happened to be
-#: loudest first are not equally trustworthy, which is the whole reason the
-#: field exists.
-#:
-#: **`schemas.py` is frozen and only W6 may extend that frozenset.** Until it
-#: does, `decompose` emits the value (pydantic does not validate it) and this
-#: constant is the record of what W6 owes. Delete it and use the frozenset
-#: directly once `supplied` is in there.
-SUPPLIED_ANCHOR_SOURCE: frozenset[str] = frozenset({"supplied"})
-
 #: Beat positions matching the drum fixtures: 120 BPM from the fixture anchor.
 BEAT_TIMES: tuple[float, ...] = tuple(
     DRUM_PATTERN_ANCHOR_SECONDS + index * (60.0 / DRUM_PATTERN_BPM) for index in range(17)
@@ -783,7 +770,7 @@ def test_output_only_uses_the_schemas_vocabularies(
     """
     result = _run(request.getfixturevalue(fixture_name))
     assert result.status in BLOCK_STATUSES
-    assert result.grid_anchor_source in GRID_ANCHOR_SOURCES | SUPPLIED_ANCHOR_SOURCE
+    assert result.grid_anchor_source in GRID_ANCHOR_SOURCES
     assert {hit.drum for hit in result.hits} <= DRUM_CLASSES
     assert {pattern.drum for pattern in result.patterns} <= DRUM_CLASSES
     assert result.unclassified_count == sum(
@@ -1796,16 +1783,15 @@ def test_the_helpers_tempo_py_imports_keep_their_names_and_shapes() -> None:
     assert list(inspect.signature(drum_elements._spectral_flux).parameters) == ["envelope"]
 
 
-def test_a_supplied_anchor_needs_a_vocabulary_entry_w6_has_not_added_yet(
+def test_a_supplied_anchor_is_in_the_schema_vocabulary(
     drum_pattern_120bpm: np.ndarray,
 ) -> None:
-    """Documents the one schema change this package needs, as a failing-when-fixed test.
+    """`decompose` emits `grid_anchor_source="supplied"` and the schema knows it.
 
-    `decompose` emits `grid_anchor_source="supplied"` when the caller hands in a
-    downbeat. `GRID_ANCHOR_SOURCES` does not contain it, because `schemas.py` is
-    frozen and only W6 may touch it. Pydantic does not validate the field, so
-    nothing breaks today — but nothing would notice either, which is what this
-    test is for.
+    Was a tripwire while `schemas.py` was frozen: W4B emitted the value,
+    `GRID_ANCHOR_SOURCES` did not contain it, and pydantic does not validate the
+    field, so nothing would have noticed the mismatch. W6 added it; the shim
+    constant is gone and this asserts against the frozenset directly.
     """
     result = decompose(
         drum_pattern_120bpm,
@@ -1816,10 +1802,7 @@ def test_a_supplied_anchor_needs_a_vocabulary_entry_w6_has_not_added_yet(
         downbeat_seconds=DRUM_PATTERN_ANCHOR_SECONDS,
     )
     assert result.grid_anchor_source == "supplied"
-    assert SUPPLIED_ANCHOR_SOURCE - GRID_ANCHOR_SOURCES == {"supplied"}, (
-        "W6 has added `supplied` to GRID_ANCHOR_SOURCES — drop SUPPLIED_ANCHOR_SOURCE "
-        "and assert against the frozenset directly"
-    )
+    assert "supplied" in GRID_ANCHOR_SOURCES
 
 
 # ---------------------------------------------------------------------------

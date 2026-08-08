@@ -26,6 +26,7 @@ from audio_pipeline.schemas import (
     DRUM_CLASSES,
     GRID_ANCHOR_SOURCES,
     SOUND_MATCH_TERMS,
+    Arrangement,
     BassLine,
     BassLineHint,
     BassNote,
@@ -35,6 +36,7 @@ from audio_pipeline.schemas import (
     DrumPattern,
     PitchTrack,
     RhythmFeatures,
+    Section,
     SourceAnalysis,
     StrudelHints,
     StrudelSoundSuggestion,
@@ -488,10 +490,104 @@ def test_vocabularies_hold_exactly_the_documented_values() -> None:
         "no_grid",
         "too_few_hits",
         "unvoiced",
+        "silent",
         "failed",
     }
-    assert GRID_ANCHOR_SOURCES == {"beats", "first_hit"}
+    assert GRID_ANCHOR_SOURCES == {"supplied", "beats", "first_hit"}
     assert SOUND_MATCH_TERMS == {"exact", "approximate", "none"}
+
+
+# --- schema v5: the promoted dataclasses -------------------------------------
+#
+# `analyze.py` converts `tempo.py`'s and `arrangement.py`'s frozen dataclasses
+# into the models above with a plain `dataclasses.asdict()` fed to
+# `model_validate()`. That works only while the field names match exactly, and
+# it fails silently the day they do not: pydantic fills the missing field from
+# its default and drops the unknown one, so a renamed field becomes a plausible
+# zero rather than an error. These tests are what make that conversion safe to
+# write as one line.
+
+
+def _dataclass_field_names(dataclass_type: object) -> set[str]:
+    import dataclasses
+
+    return {field.name for field in dataclasses.fields(dataclass_type)}  # type: ignore[arg-type]
+
+
+def test_promoted_models_mirror_their_dataclasses_field_for_field() -> None:
+    from audio_pipeline import arrangement, schemas, tempo
+
+    pairs = [
+        (schemas.MultipleFit, tempo.MultipleFit),
+        (schemas.OctaveCandidate, tempo.OctaveCandidate),
+        (schemas.TempoStability, tempo.TempoStability),
+        (schemas.DownbeatFit, tempo.DownbeatFit),
+        (schemas.Section, arrangement.Section),
+        (schemas.Arrangement, arrangement.Arrangement),
+    ]
+    for model, dataclass_type in pairs:
+        assert set(model.model_fields) == _dataclass_field_names(dataclass_type), model.__name__
+
+
+def test_tempo_fit_adds_only_the_arbitration_w6_decides() -> None:
+    """`TempoFit` is the one model with a field its dataclass does not have.
+
+    `tempo.py` measures the octave candidates and deliberately refuses to
+    choose between them — correlation cannot, and it proved so. `analyze.py`
+    arbitrates on grid quality and records the evidence here.
+    """
+    from audio_pipeline import schemas, tempo
+
+    extra = set(schemas.TempoFit.model_fields) - _dataclass_field_names(tempo.TempoFit)
+    assert extra == {"octave_arbitration"}
+    assert _dataclass_field_names(tempo.TempoFit) <= set(schemas.TempoFit.model_fields)
+
+
+def test_v5_vocabularies_match_the_literals_they_were_copied_from() -> None:
+    from audio_pipeline import arrangement, schemas, tempo
+
+    assert schemas.CONFIDENCE_LABELS == set(typing.get_args(tempo.Confidence))
+    assert schemas.STABILITY_LABELS == set(typing.get_args(tempo.StabilityLabel))
+    assert schemas.TEMPO_STATUSES == set(typing.get_args(tempo.TempoStatus))
+    assert schemas.DOWNBEAT_STATUSES == set(typing.get_args(tempo.DownbeatStatus))
+    assert schemas.DOWNBEAT_RESOLVED_BY == set(typing.get_args(tempo.ResolvedBy))
+    assert schemas.ARRANGEMENT_STATUSES == set(typing.get_args(arrangement.ArrangementStatus))
+    assert schemas.SECTION_LABELS == set(typing.get_args(arrangement.SectionLabel))
+    assert schemas.OCTAVE_RATIOS == tempo.OCTAVE_RATIOS
+
+
+def test_track_level_blocks_are_not_per_source() -> None:
+    """One tempo and one structure per record — v4's five disagreed.
+
+    A field appearing on both would let the two drift apart again, which is
+    the whole failure v5 exists to close.
+    """
+    for name in ("tempo", "downbeat", "arrangement"):
+        assert name in TrackSummary.model_fields
+        assert name not in SourceAnalysis.model_fields
+
+
+def test_arrangement_sections_survive_into_the_summary() -> None:
+    """`sections` is not in the strip table, for `DrumPattern.patterns`' reason.
+
+    It is one entry per section, not per event, and it is the point of the
+    feature. `_SUMMARY_LIST_FIELDS` is keyed by `SourceAnalysis` block anyway,
+    so nothing track-level can be stripped by accident — this pins that.
+    """
+    summary = TrackSummary(
+        track_name="t",
+        input_path="t.wav",
+        duration_seconds=1.0,
+        backend="fake",
+        arrangement=Arrangement(
+            sections=[Section(start_bar=0, length_bars=17, active=["drums", "kick"])],
+            bar_count=17,
+            status="ok",
+        ),
+    )
+    payload = summary.summary_payload()
+    assert payload["arrangement"]["sections"][0]["length_bars"] == 17  # type: ignore[index,call-overload]
+    assert set(_SUMMARY_LIST_FIELDS) <= set(SourceAnalysis.model_fields)
 
 
 def test_unclassified_is_a_real_class_not_a_sentinel() -> None:

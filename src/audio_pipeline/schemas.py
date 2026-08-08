@@ -164,21 +164,53 @@ DRUM_CLASSES: frozenset[str] = frozenset({"kick", "snare", "hat", "unclassified"
 #:                  (drums only) — hits are still reported
 #:   too_few_hits   ran, but there was not enough material to describe
 #:   unvoiced       ran, and the source has no pitch to track (bass only)
+#:   silent         the source is below `SILENCE_RMS_FLOOR`, so nothing was
+#:                  attempted on it at all (schema v5) — see that constant
 #:   failed         raised, and the exception was swallowed to keep the
 #:                  analysis going
 BLOCK_STATUSES: frozenset[str] = frozenset(
-    {"not_attempted", "ok", "no_grid", "too_few_hits", "unvoiced", "failed"}
+    {"not_attempted", "ok", "no_grid", "too_few_hits", "unvoiced", "silent", "failed"}
 )
 
-#: What the drum grid was anchored on: `rhythm.beat_times[0]`, or failing that
-#: the first detected hit. Recorded either way, because a grid anchored on a
-#: tempo estimate and one anchored on whatever happened to be loudest first
-#: deserve different amounts of trust.
+#: RMS below which a source is treated as separation residue rather than as a
+#: stem, in linear amplitude. Everything derived from it (`drum_decomposition`,
+#: `bass_line`, the `strudel_hints` tonal-centre fallback) is skipped and
+#: reported as `status="silent"` instead of being computed from a noise floor.
+#:
+#: **[grounded, measured]** across 35 stems of the seven tracks under
+#: `calibration/`, which is the whole corpus plus the two example tracks:
+#:
+#:   six residue stems, -65.9 to -70.0 LUFS   rms 8e-06 .. 1.38e-04
+#:   quietest genuinely-present stem          rms 3.82e-03 (-37.4 LUFS)
+#:
+#: A 27.7x gap with nothing in it. 1e-03 is -60 dBFS, which sits 7.2x above the
+#: loudest residue stem and 3.8x below the quietest real one, and is inaudible
+#: in any mix — a physical bound, not the midpoint of the gap.
+#:
+#: The failure this exists to stop is measured, not theoretical: a bass stem at
+#: -70 LUFS produced a two-note bass line and an `e4` median, and that "E minor"
+#: then beat the mix's own F major into `strudel_hints.json` because the mix's
+#: key confidence was 0.445. An `arrangement.STEM_ACTIVITY_FLOOR` of 0.02 already
+#: catches the same stems, but it is a *within-record ratio* answering a
+#: different question and it is not consulted before pitch-tracking a stem.
+SILENCE_RMS_FLOOR: float = 1e-3
+
+#: What the drum grid was anchored on: a supplied downbeat, `rhythm.beat_times[0]`,
+#: or failing both the first detected hit. Recorded either way, because a grid
+#: anchored on a measured downbeat, one anchored on a tempo estimate and one
+#: anchored on whatever happened to be loudest first deserve different amounts
+#: of trust.
+#:
+#: `supplied` is what `analyze.py` produces in v5 and the only one that should
+#: appear on a full pipeline run: `beat_times[0]` is *not* a downbeat (on the
+#: calibration track it lands the kick on steps 3/7/11/15), so the grid is
+#: anchored on `DownbeatFit.offset_seconds` instead. The other two survive for
+#: `drum_elements.decompose` called on its own.
 #:
 #: Spelt `beats` rather than `beat_times` deliberately — a *value* that reads
 #: like a stripped *field name* makes `track_summary.json` ambiguous to grep and
 #: breaks the guard that no event list survives into it.
-GRID_ANCHOR_SOURCES: frozenset[str] = frozenset({"beats", "first_hit"})
+GRID_ANCHOR_SOURCES: frozenset[str] = frozenset({"supplied", "beats", "first_hit"})
 
 #: How well a Strudel sound matches what was measured. `none` paired with
 #: `sound=None` is the machine-readable "source this sample elsewhere" flag.
@@ -416,6 +448,342 @@ class BassLineHint(BaseModel):
         ),
     )
     median_midi_note: int | None = None
+    steps: list[int] = Field(
+        default_factory=list,
+        description=(
+            "Grid steps the bass lands on within one cycle, ascending and "
+            "de-duplicated — the bass's answer to `DrumGridHint.kick_steps`, and "
+            "small for the same reason. Empty when there is no grid. On the "
+            "calibration track this reads [2, 6, 10, 14]: the offbeat eighths, "
+            "the same four steps the hats land on, from an independent code path."
+        ),
+    )
+    caveats: list[str] = Field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
+# Schema v5: one tempo and one structure, at track level
+# ---------------------------------------------------------------------------
+# These mirror the frozen dataclasses `tempo.py` and `arrangement.py` return,
+# field for field and name for name, so `analyze.py` converts with a plain
+# `dataclasses.asdict()` into `model_validate()` and there is no hand-written
+# mapping to drift. `tests/test_schemas_summary.py` pins that correspondence.
+#
+# They are *not* defined in those modules because both are pure-numpy and
+# deliberately importable without pydantic, and `tempo.py` already imports from
+# `drum_elements.py`, which imports from here — defining them there would close
+# an import cycle.
+#
+# The closed vocabularies below are frozensets rather than `Literal`
+# annotations, for the two reasons `DRUM_CLASSES` gives above. The source
+# modules do use `Literal`; the values are identical and a test asserts it.
+
+#: Confidence bands shared by `TempoFit` and `DownbeatFit`.
+CONFIDENCE_LABELS: frozenset[str] = frozenset({"high", "medium", "low"})
+
+#: `TempoStability.label`. `unknown` means a half could not be fitted at all,
+#: which is a different fact from "the tempo moved".
+STABILITY_LABELS: frozenset[str] = CONFIDENCE_LABELS | {"unknown"}
+
+#: `TempoFit.status`. `coarse` means refinement was refused and `bpm` is the
+#: backend's own estimate passed straight through — the single most important
+#: distinction in the block, and the one v4's bare `bpm` could not make.
+TEMPO_STATUSES: frozenset[str] = frozenset({"refined", "coarse", "unavailable"})
+
+#: `OctaveCandidate.status`. `ruled_out` is a positive finding, not a gap.
+OCTAVE_CANDIDATE_STATUSES: frozenset[str] = frozenset({"live", "ruled_out", "unmeasurable"})
+
+#: `TempoFit.octave_status`.
+OCTAVE_STATUSES: frozenset[str] = frozenset({"single", "ambiguous", "unavailable"})
+
+#: `DownbeatFit.status`.
+DOWNBEAT_STATUSES: frozenset[str] = frozenset({"ok", "ambiguous", "unavailable"})
+
+#: `DownbeatFit.resolved_by`.
+DOWNBEAT_RESOLVED_BY: frozenset[str] = frozenset({"spectral", "onset", "none"})
+
+#: `Arrangement.status`.
+ARRANGEMENT_STATUSES: frozenset[str] = frozenset({"ok", "no_grid", "too_short", "unavailable"})
+
+#: `Section.label`. `silence` is a real section: the calibration track ends with
+#: three bars of nothing and calling that an `outro` would be wrong.
+SECTION_LABELS: frozenset[str] = frozenset(
+    {"intro", "outro", "breakdown", "drop", "full", "groove", "silence"}
+)
+
+#: Octaves of the coarse tempo estimate that are measured and reported.
+#: **Must equal `tempo.OCTAVE_RATIOS`**; a test asserts it rather than trusting
+#: the copy, because this module may not import that one (see above).
+OCTAVE_RATIOS: tuple[float, ...] = (0.5, 1.0, 2.0)
+
+
+class MultipleFit(BaseModel):
+    """One beat multiple's independent reading of the tempo.
+
+    Kept rather than collapsed, because "the two multiples agreed" and "one of
+    them was rejected" are different facts and the second is what a reader
+    needs when a fit looks wrong.
+    """
+
+    beats: int = 0
+    bpm: float | None = None
+    lag_frames: float | None = Field(
+        default=None, description="Interpolated peak lag in STFT frames, for auditing"
+    )
+    r: float = Field(default=0.0, description="Autocorrelation at the integer peak")
+    accepted: bool = False
+    reason: str | None = Field(
+        default=None,
+        description="Why not, when not accepted: too_short | below_correlation_floor | "
+        "outside_bpm_tolerance",
+    )
+
+
+class OctaveCandidate(BaseModel):
+    """One octave of the coarse estimate, and how well the source supports it.
+
+    Evidence produced by `tempo.py`, which deliberately reports octaves rather
+    than choosing between them: autocorrelation decays with lag, so the doubled
+    candidate scores higher on nearly all material and `r` cannot arbitrate.
+    Choosing is `TempoFit.octave_arbitration`'s job, on grid quality.
+    """
+
+    ratio: float = Field(
+        description=f"Multiplier against the coarse estimate; one of {OCTAVE_RATIOS}"
+    )
+    bpm: float = 0.0
+    r: float = Field(
+        default=0.0, description="Autocorrelation at this octave, at the first beat multiple"
+    )
+    status: str = Field(
+        default="unmeasurable",
+        description=f"One of: {', '.join(sorted(OCTAVE_CANDIDATE_STATUSES))}",
+    )
+
+
+class OctaveGridFit(BaseModel):
+    """How well one live octave candidate's grid actually fits the drums.
+
+    New in v5 and not mirrored from any dataclass: this is the arbitration
+    `tempo.py` proved it could not do from correlation alone, decided in
+    `analyze.py` by fitting `drum_elements.decompose` at each live candidate.
+
+    **Both error columns are carried because neither is scale-free.**
+    `quantisation_error_steps` shrinks when the tempo halves, because the step
+    it is measured in doubles; `quantisation_error_seconds` shrinks when the
+    tempo doubles, for the mirror-image reason. Measured on the corpus: at half
+    tempo the swung hip-hop track scores 0.0689 steps against its true tempo's
+    0.1115 and would win on that statistic alone. A candidate is therefore only
+    allowed to displace the incumbent when it wins on **both** — that is, when
+    it wins despite the bias running against it in either direction. It is a
+    comparison, not a threshold, so there is nothing here to tune.
+    """
+
+    ratio: float
+    bpm: float
+    grid_status: str = Field(
+        default="not_attempted",
+        description=f"`DrumDecomposition.status` at this octave; one of: "
+        f"{', '.join(sorted(BLOCK_STATUSES))}",
+    )
+    quantisation_error_steps: float | None = None
+    quantisation_error_seconds: float | None = Field(
+        default=None, description="The same error in seconds: error_steps * cycle / steps_per_cycle"
+    )
+    chosen: bool = False
+
+
+class TempoStability(BaseModel):
+    """Whether the tempo is the same at the end of the source as at the start.
+
+    Both halves are fitted independently with the same guards as the whole, so
+    a track whose tempo genuinely moves is detectable rather than silently
+    averaged into a number that is true nowhere in it.
+    """
+
+    first_half_bpm: float | None = None
+    second_half_bpm: float | None = None
+    delta_bpm: float | None = None
+    label: str = Field(
+        default="unknown", description=f"One of: {', '.join(sorted(STABILITY_LABELS))}"
+    )
+
+
+class TempoFit(BaseModel):
+    """The track's one refined tempo, or an honest refusal to refine it.
+
+    **Additive, never a replacement.** Every source's `rhythm.bpm` keeps its
+    backend estimate untouched; this carries the refined value. The two differ
+    by enough to matter: on the calibration track the backend reported 131.855
+    on the mix and 132.040 on the drums, and a 0.040 BPM error accumulates 82 ms
+    over 147 bars — three quarters of a sixteenth step, which is what made the
+    tool declare that a textbook four-on-the-floor grid did not exist.
+
+    `status="coarse"` means refinement was **refused** and `bpm` is just the
+    backend's estimate. Read `status` and `confidence_label` before `bpm`: on
+    the live-band corpus row the backend reports `bpm_confidence` 2.12 while
+    this block reports r = 0.108 and confidence 0.000, and the two disagree
+    completely.
+    """
+
+    bpm: float | None = Field(
+        default=None,
+        description="Refined when status is `refined`, the coarse estimate when `coarse`",
+    )
+    period_seconds: float | None = Field(
+        default=None, description="60 / bpm — the number every downstream grid wants"
+    )
+    coarse_bpm: float | None = Field(
+        default=None, description="What was handed in, so the size of the correction is visible"
+    )
+    confidence: float = Field(
+        default=0.0, description="Autocorrelation r, weakest across the accepted multiples"
+    )
+    confidence_label: str = Field(
+        default="low", description=f"One of: {', '.join(sorted(CONFIDENCE_LABELS))}"
+    )
+    status: str = Field(
+        default="unavailable", description=f"One of: {', '.join(sorted(TEMPO_STATUSES))}"
+    )
+    multiples: list[MultipleFit] = Field(default_factory=list)
+    stability: TempoStability = Field(default_factory=TempoStability)
+    octave_candidates: list[OctaveCandidate] = Field(
+        default_factory=list, description="The x0.5, x1 and x2 readings, in `OCTAVE_RATIOS` order"
+    )
+    octave_status: str = Field(
+        default="unavailable", description=f"One of: {', '.join(sorted(OCTAVE_STATUSES))}"
+    )
+    #: v5 only, and the reason `bpm` may differ from what `tempo.py` returned.
+    octave_arbitration: list[OctaveGridFit] = Field(
+        default_factory=list,
+        description=(
+            "Grid quality at each live octave candidate. Empty when there was "
+            "nothing to arbitrate. When an entry has `chosen=True` and a `ratio` "
+            "other than 1.0, `bpm` here is that octave's — never silently: "
+            "`caveats` says so in words as well."
+        ),
+    )
+    caveats: list[str] = Field(default_factory=list)
+
+
+class DownbeatFit(BaseModel):
+    """Where bar one starts, and how much that should be trusted.
+
+    Two independent quantities, and conflating them hides the interesting one.
+    `beat_confidence` says how well the beat grid's phase is pinned, which on
+    percussive material is near certain. `phase_confidence` says whether the
+    right *beat of the bar* was identified, which on four-on-the-floor material
+    frequently cannot be — a kick on every beat scores identically at every
+    offset, and a wrong pick rotates every step number downstream while the
+    output still looks plausible.
+    """
+
+    offset_seconds: float | None = Field(
+        default=None, description="First downbeat, in seconds. Always the earliest such position"
+    )
+    confidence: float = Field(
+        default=0.0, description="min(beat_confidence, phase_confidence) — the weaker stage"
+    )
+    confidence_label: str = Field(
+        default="low", description=f"One of: {', '.join(sorted(CONFIDENCE_LABELS))}"
+    )
+    beat_offset_seconds: float | None = Field(
+        default=None, description="Beat-grid phase alone, correct even when the bar phase is not"
+    )
+    beat_confidence: float = 0.0
+    phase_confidence: float = Field(
+        default=0.0, description="How cleanly the winning bar phase beat the runner-up"
+    )
+    bar_phase: int | None = Field(default=None, description="Which beat of the bar won; 0 is first")
+    candidate_offsets: list[float] = Field(default_factory=list)
+    candidate_scores: list[float] = Field(default_factory=list)
+    unresolved_offsets: list[float] = Field(
+        default_factory=list, description="Candidates that could not be ruled out"
+    )
+    resolved_by: str = Field(
+        default="none", description=f"One of: {', '.join(sorted(DOWNBEAT_RESOLVED_BY))}"
+    )
+    status: str = Field(
+        default="unavailable", description=f"One of: {', '.join(sorted(DOWNBEAT_STATUSES))}"
+    )
+    caveats: list[str] = Field(default_factory=list)
+
+
+class Section(BaseModel):
+    """A run of bars over which the same set of tracks is playing.
+
+    `label` is derived and `label_reason` is the evidence, so a reader who
+    disagrees with the name still has the measurement. Same rule as every label
+    in `heuristics.py`: one that cannot be audited is decoration.
+    """
+
+    start_bar: int = 0
+    length_bars: int = 0
+    start_seconds: float = 0.0
+    active: list[str] = Field(
+        default_factory=list, description="Tracks playing throughout, including the kick"
+    )
+    label: str | None = Field(
+        default=None, description=f"One of: {', '.join(sorted(SECTION_LABELS))}"
+    )
+    label_reason: str | None = None
+
+
+class Arrangement(BaseModel):
+    """The track's structure, or an honest statement that there is none.
+
+    `sections` is deliberately **not** in `_SUMMARY_LIST_FIELDS`. It is one
+    entry per section rather than per event — sixteen on the calibration track
+    — and it is the entire point of the feature, exactly the reasoning that
+    keeps `DrumPattern.patterns` out of the strip table too.
+
+    Like `DrumDecomposition`, this carries an explicit `status` and is not
+    routed through `analyze._collect_unavailable`: an empty `sections` list on
+    an ambient record is a *correct* answer, not a missing feature.
+    """
+
+    sections: list[Section] = Field(default_factory=list)
+    bar_count: int = 0
+    bar_seconds: float | None = None
+    downbeat_seconds: float | None = None
+    absent_tracks: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Tracks not in this record at all, gated out by a within-record "
+            "level ratio rather than by their own distribution — the test that "
+            "stops a stem of separation bleed reporting an arrangement."
+        ),
+    )
+    status: str = Field(
+        default="unavailable", description=f"One of: {', '.join(sorted(ARRANGEMENT_STATUSES))}"
+    )
+    caveats: list[str] = Field(default_factory=list)
+
+
+class ArrangementHint(BaseModel):
+    """The track's structure as a handful of one-line strings.
+
+    Deliberately prose rather than the full `Arrangement`: this file is
+    documented as small and hand-readable, and `track_summary.json` already
+    carries every section with the evidence behind its label. `"bar 76 x15
+    breakdown"` is what you need while typing a pattern; `label_reason` is what
+    you need while arguing with the tool, and it lives in the other file.
+    """
+
+    status: str = Field(
+        default="unavailable", description=f"One of: {', '.join(sorted(ARRANGEMENT_STATUSES))}"
+    )
+    bar_count: int = 0
+    bar_seconds: float | None = None
+    sections: list[str] = Field(
+        default_factory=list, description="e.g. 'bar 76 x15 breakdown: drums, vocals, other'"
+    )
+    truncated_from: int | None = Field(
+        default=None, description="Real section count when `sections` was capped, else None"
+    )
+    absent_tracks: list[str] = Field(
+        default_factory=list, description="Tracks not in this record at all — do not write parts"
+    )
     caveats: list[str] = Field(default_factory=list)
 
 
@@ -499,6 +867,19 @@ class TrackSummary(BaseModel):
     roughly 720 beat floats per source, and a busy drum stem several times that
     in onsets, which is pure duplication and makes the one file you actually
     read by hand unreadable. Use `summary_payload()` to serialise.
+
+    **Schema v5 put `tempo`, `downbeat` and `arrangement` here rather than on
+    `SourceAnalysis`.** There is one tempo and one structure per record. v4 gave
+    every source its own, and the five disagreed — 131.855 / 132.040 / 131.815 /
+    130.359 / 131.992 on the calibration track — with different modules silently
+    consuming different ones. Whichever a downstream module happened to read, it
+    built a grid that drifted. These three fields are what "resolve it once and
+    share it" means in the output shape.
+
+    A `harmony` block belongs in the same position, between `arrangement` and
+    `sources`, whenever the deferred harmony package lands. Reserving the slot
+    now is why adding it later is a field addition rather than a second
+    structural change.
     """
 
     schema_version: int = SCHEMA_VERSION
@@ -509,6 +890,10 @@ class TrackSummary(BaseModel):
     separation_model: str | None = None
     separation_device: str | None = None
     analysis_sample_rate: int = ANALYSIS_SAMPLE_RATE
+    tempo: TempoFit = Field(default_factory=TempoFit)
+    downbeat: DownbeatFit = Field(default_factory=DownbeatFit)
+    arrangement: Arrangement = Field(default_factory=Arrangement)
+    # (harmony goes here — see the class docstring)
     sources: dict[str, SourceAnalysis] = Field(default_factory=dict)
 
     def summary_payload(self) -> dict[str, object]:
@@ -544,6 +929,18 @@ class StrudelHints(BaseModel):
     schema_version: int = SCHEMA_VERSION
     track_name: str
     bpm: float | None = None
+    #: The two fields v4 was missing, and the reason it could print a confident
+    #: `bpm: 143.25` for a track whose tempo the tool had explicitly declined to
+    #: measure. `tempo_status="coarse"` means `bpm` is the backend's raw estimate
+    #: and no grid was ever fitted to it; `tempo_confidence="low"` means the
+    #: refinement found nothing periodic. On the ambient corpus row both fire, on
+    #: a record with no pulse at all. Read them before `bpm`.
+    tempo_status: str | None = Field(
+        default=None, description=f"One of: {', '.join(sorted(TEMPO_STATUSES))}"
+    )
+    tempo_confidence: str | None = Field(
+        default=None, description=f"One of: {', '.join(sorted(CONFIDENCE_LABELS))}"
+    )
     suggested_cycle_seconds: float | None = None
     subdivision_feel: str | None = Field(
         default=None, description="e.g. 'straight 16ths', 'swung 8ths'"
@@ -553,6 +950,7 @@ class StrudelHints(BaseModel):
     tonal_centre: str | None = None
     drum_grid: DrumGridHint = Field(default_factory=DrumGridHint)
     bass_line: BassLineHint = Field(default_factory=BassLineHint)
+    arrangement: ArrangementHint = Field(default_factory=ArrangementHint)
     sound_suggestions: list[StrudelSoundSuggestion] = Field(default_factory=list)
     strudel_vocabulary_read: str | None = Field(
         default=None,
