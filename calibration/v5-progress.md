@@ -639,3 +639,83 @@ Orchestrator note: `arrangement_from_frames` takes `kick_band_energy` as a keywo
 an unrecognised key in the `levels` mapping is silently dropped. Passing the kick as a mapping entry
 produces a plausible arrangement with no kick track and no `breakdown`/`drop` labels anywhere. W6
 should not repeat that; a caveat on unknown keys would be cheap insurance.
+
+---
+
+## Wave 6 — complete and verified
+
+Schema v5. 1004 passed, ruff and mypy clean. Four commits, `152d866`…`53506d2`.
+
+Verified end to end by the orchestrator with `track-forensics all` on Roni Size, the corpus track
+that exposed the octave bug:
+
+| | v5 before W6 | after W6 |
+|---|---|---|
+| reported tempo | 84.93 (half) | **170.073, corrected ×2 with its evidence** |
+| `mix.rhythm.bpm` | 84.934517 | **84.934517 — untouched**, additive-only held |
+| drum grid | `no_grid`, error 0.243 | **`ok`**, error 0.0988, anchor source `supplied` |
+| `schema_version` | 4 | **5** |
+| hints | bare `bpm` | `bpm` + `tempo_status` + `tempo_confidence` |
+
+Every v4 block still present on every source.
+
+### The brief's octave rule was wrong
+
+The orchestrator specified "choose the candidate with `status="ok"` and the lower quantisation
+error". That rule picks **67.63 BPM for Badu**, halving a tempo the same brief said must stay at
+135.26. `quantisation_error_steps` **is not scale-free** — halving the tempo doubles the step it is
+measured in, so a wrong slow candidate always looks better. Error in seconds is biased the opposite
+way. The rule that survives is that a candidate must beat the ×1 incumbent on **both** measures, so
+it has to win despite one bias running against it. No threshold involved.
+
+| track | outcome |
+|---|---|
+| madonna | 131.99996 stays; ×2 loses on steps |
+| badu | 135.2639 stays; ×0.5 wins on steps, loses on ms |
+| **roni** | **170.0748 — moves ×2, wins on both** |
+| levee / eno | coarse, not arbitrated |
+
+A winning candidate is re-refined at its new octave (170.0693 → 170.0748) and always carries a
+caveat naming the move.
+
+### Two things the corpus caught after W6 thought it was done
+
+1. **Wiring `TempoFit.period_seconds` straight into `arrangement` gave Eno 52 sections** labelled
+   `full`/`groove` across 17 minutes with no pulse — inverting the one corpus outcome that proves the
+   tool can refuse. The first fix (require a live octave candidate) does not separate the two coarse
+   tracks at all: Eno's mix has ×2 live at r 0.2136, *higher* than Levee's 0.1588. The working
+   discriminator is not tempo precision but whether the record has percussion —
+   `status == "refined" or has_drums`, reusing the silence gate. Eno refuses; Levee keeps its real,
+   caveated arrangement.
+2. `bass_line.steps` read exactly `[0..15]` on three of five tracks, so it is now paired with
+   `step_share` (Madonna 0.145 on 2/6/10/14 against 0.07–0.10). Deliberately a measured share rather
+   than a thresholded list: the threshold that returns exactly F7's four steps is 2× uniform and
+   would have one record behind it.
+
+### Silence floor
+
+`SILENCE_RMS_FLOOR = 1e-3` (−60 dBFS), measured across **all 35 stems** under `calibration/`: six
+residue stems at 8e-06–1.38e-04 against a quietest-real of 3.82e-03. A 27.7× gap with nothing in it;
+the floor sits 7.2× above the loudest residue and 3.8× below the quietest real stem. End to end it
+produces `tonal_centre: None` on the track where a −70 LUFS bass stem's "E minor" used to beat the
+mix's F major (F5, closed).
+
+### Accepted deviations
+
+- **`bpm_confidence` gated at `< 0`, not `≤ 0`.** Every measured value behind that instruction is
+  strictly negative, and exactly 0.0 appears on all five sources of one track at once — an extractor
+  not reporting, rather than five worthless estimates. Rejecting it would delete that track's tempo
+  on no evidence.
+- **`BarEnergy`, `TrackPresence` and `Presence` not promoted.** Per-bar intermediates, ~1,500 numbers
+  on a 147-bar record; attaching them to `TrackSummary` breaks the rule that no event list survives
+  into the file you read by hand, and not attaching them leaves three models nothing constructs.
+  `Arrangement.absent_tracks` and `Section.active` carry what a reader needs.
+- **Two boundary crossings, both small and both declared.** `__init__.py` (7 lines — `SCHEMA_VERSION`
+  lives there) and `cli.py` (28 lines — only `_build_summary` constructs a `TrackSummary`, so the
+  track-level blocks could not otherwise reach the output).
+
+### Open, for W8B
+
+The two octave caveats read as contradicting each other. `tempo.py` emits *"the reported tempo was
+not shifted"* and `analyze.py` then emits *"tempo octave corrected ×2"*, both onto the same track.
+Each is true of its own layer and the pair is confusing. Worth one rewording.
