@@ -1328,15 +1328,18 @@
       }
     },
     {
-      "label": "noisy",
-      "confidence": 0.154702,
+      "label": "speech/vocal dominant",
+      "confidence": 0.006963,
       "evidence": {
+        "rms_mean": 0.010627,
+        "centroid_energy_hz": 1417.484108,
         "centroid_mean": 3350.862597,
-        "chroma_entropy": 0.986424,
-        "min_centroid_hz": 2500.0,
-        "min_chroma_entropy": 0.93,
-        "key_confidence": 0.759523,
-        "tonal_stability": 0.4583
+        "onset_density": 1.893065,
+        "min_rms_mean": 0.01,
+        "min_centroid_hz": 300.0,
+        "max_centroid_hz": 3000.0,
+        "min_onset_density": 1.0,
+        "max_onset_density": 5.0
       }
     }
   ],

@@ -38,7 +38,7 @@ from . import analyze as analyze_module
 from . import separate as separate_module
 from . import strudel_hints as strudel_hints_module
 from .backends import BackendName, BackendUnavailableError
-from .schemas import SourceAnalysis, TrackSummary
+from .schemas import SourceAnalysis, StrudelHints, TrackSummary
 
 app = typer.Typer(
     name="track-forensics",
@@ -164,6 +164,28 @@ def _build_summary(
     summary.downbeat = analysis.downbeat
     summary.arrangement = analysis.arrangement
     return summary
+
+
+def _write_strudel_hints(hints: StrudelHints, output_root: Path, track_name: str) -> Path:
+    """Write `strudel_hints.json`, rounded the same way every other artefact is.
+
+    Rounding is not cosmetic here. `analyze._write_json` puts every analysis
+    file through `round_floats` so two runs over the same audio diff cleanly,
+    and this file was the one artefact that skipped it -- which made `all` and
+    `export-strudel-hints` disagree on the same track. Not because they
+    computed anything differently: `export-strudel-hints` reloads a summary
+    whose floats were already rounded on the way to disk, so its output
+    inherited the rounding, while `all` builds from the in-memory summary and
+    wrote `"bpm": 170.07481071833448` where the other wrote `170.074811`.
+
+    Both commands route through here now, so the file is the same either way,
+    and it stays the hand-readable thing it is documented as being.
+    """
+    payload = analyze_module.round_floats(hints.model_dump(mode="json"))
+    path = output_root / track_name / "strudel_hints.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(payload, indent=2) + "\n")
+    return path
 
 
 def _load_full_track_summary(output_root: Path, track_name: str) -> TrackSummary:
@@ -360,9 +382,7 @@ def export_strudel_hints(
         )
 
     hints = strudel_hints_module.build(summary)
-    hints_path = output_root / track_name / "strudel_hints.json"
-    hints_path.parent.mkdir(parents=True, exist_ok=True)
-    hints_path.write_text(json.dumps(hints.model_dump(mode="json"), indent=2) + "\n")
+    hints_path = _write_strudel_hints(hints, output_root, track_name)
 
     typer.echo(f"Wrote strudel hints: {hints_path}")
     for note in hints.notes:
@@ -457,9 +477,7 @@ def run_all(
 
     typer.echo("\n[3/3] Building Strudel hints...")
     hints = strudel_hints_module.build(summary)
-    hints_path = output_root / track_name / "strudel_hints.json"
-    hints_path.parent.mkdir(parents=True, exist_ok=True)
-    hints_path.write_text(json.dumps(hints.model_dump(mode="json"), indent=2) + "\n")
+    hints_path = _write_strudel_hints(hints, output_root, track_name)
     typer.echo(f"  Wrote {hints_path}")
     for note in hints.notes:
         typer.echo(f"  note: {note}")

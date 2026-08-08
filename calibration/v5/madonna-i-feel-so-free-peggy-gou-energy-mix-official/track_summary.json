@@ -639,18 +639,6 @@
           }
         },
         {
-          "label": "noisy",
-          "confidence": 0.343633,
-          "evidence": {
-            "centroid_mean": 4389.982379,
-            "chroma_entropy": 0.982982,
-            "min_centroid_hz": 2500.0,
-            "min_chroma_entropy": 0.93,
-            "key_confidence": 0.513552,
-            "tonal_stability": 0.373809
-          }
-        },
-        {
           "label": "busy drums",
           "confidence": 0.045131,
           "evidence": {
@@ -822,6 +810,7 @@
           "confidence": 0.444408,
           "evidence": {
             "rms_mean": 0.049997,
+            "centroid_energy_hz": 762.700926,
             "centroid_mean": 2712.510508,
             "onset_density": 2.190665,
             "min_rms_mean": 0.01,
@@ -839,18 +828,6 @@
             "onset_density": 2.190665,
             "min_crest_factor": 8.0,
             "min_onset_density": 2.0
-          }
-        },
-        {
-          "label": "noisy",
-          "confidence": 0.038638,
-          "evidence": {
-            "centroid_mean": 2712.510508,
-            "chroma_entropy": 0.940008,
-            "min_centroid_hz": 2500.0,
-            "min_chroma_entropy": 0.93,
-            "key_confidence": 0.905782,
-            "tonal_stability": 0.574
           }
         }
       ],

@@ -489,18 +489,6 @@
             "band_energy_low": 0.959336,
             "min_band_energy_low": 0.5
           }
-        },
-        {
-          "label": "noisy",
-          "confidence": 0.040347,
-          "evidence": {
-            "centroid_mean": 2721.908679,
-            "chroma_entropy": 0.934498,
-            "min_centroid_hz": 2500.0,
-            "min_chroma_entropy": 0.93,
-            "key_confidence": 0.508423,
-            "tonal_stability": 0.449616
-          }
         }
       ],
       "unavailable_features": []
@@ -666,6 +654,7 @@
           "confidence": 0.48083,
           "evidence": {
             "rms_mean": 0.053275,
+            "centroid_energy_hz": 846.432272,
             "centroid_mean": 1867.749584,
             "onset_density": 3.487258,
             "min_rms_mean": 0.01,

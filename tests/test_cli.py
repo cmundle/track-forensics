@@ -813,3 +813,47 @@ def test_doctor_survives_a_fully_broken_environment(monkeypatch: pytest.MonkeyPa
     assert "torch: NOT installed" in result.output
     assert "Resolved Demucs device:" in result.output
     assert "none available" in result.output
+
+
+def test_all_and_export_hints_write_byte_identical_files(
+    input_wav: Path, tmp_path: Path
+) -> None:
+    """The same track must not get two different hints files by two routes.
+
+    `export-strudel-hints` reloads a summary whose floats were rounded on the
+    way to disk, so its output inherited that rounding; `all` builds from the
+    in-memory summary and used to write the raw values. Same numbers, different
+    file -- `"bpm": 170.07481071833448` against `170.074811` on the calibration
+    corpus. Both go through `_write_strudel_hints` now.
+    """
+    output_root = tmp_path / "out"
+    track_name = cli_module.separate_module.slugify(input_wav.stem)
+    summary = _full_wave4_summary(track_name)
+    cli_module.analyze_module.write_analysis_outputs(summary, output_root)
+
+    hints_path = output_root / track_name / "strudel_hints.json"
+    from_all = cli_module._write_strudel_hints(
+        cli_module.strudel_hints_module.build(summary), output_root, track_name
+    ).read_text()
+
+    result = runner.invoke(
+        cli_module.app, ["export-strudel-hints", str(input_wav), "--output", str(output_root)]
+    )
+    assert result.exit_code == 0
+    assert hints_path.read_text() == from_all
+
+
+def test_hints_floats_are_rounded_like_every_other_artefact(
+    input_wav: Path, tmp_path: Path
+) -> None:
+    """`strudel_hints.json` is documented as hand-readable; 17 digits is not."""
+    output_root = tmp_path / "out"
+    track_name = cli_module.separate_module.slugify(input_wav.stem)
+    summary = _full_wave4_summary(track_name)
+    summary.tempo = TempoFit(bpm=170.07481071833448, period_seconds=60 / 170.07481071833448)
+
+    written = cli_module._write_strudel_hints(
+        cli_module.strudel_hints_module.build(summary), output_root, track_name
+    )
+    payload = json.loads(written.read_text())
+    assert payload["bpm"] == 170.074811

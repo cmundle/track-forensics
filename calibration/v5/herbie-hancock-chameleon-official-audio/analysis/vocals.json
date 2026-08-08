@@ -200,10 +200,11 @@
     },
     {
       "label": "noisy",
-      "confidence": 0.300844,
+      "confidence": 0.001245,
       "evidence": {
-        "centroid_mean": 4154.641828,
+        "centroid_energy_hz": 2506.848223,
         "chroma_entropy": 0.98473,
+        "centroid_mean": 4154.641828,
         "min_centroid_hz": 2500.0,
         "min_chroma_entropy": 0.93,
         "key_confidence": 0.460211,

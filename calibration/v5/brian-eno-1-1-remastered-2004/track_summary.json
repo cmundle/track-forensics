@@ -376,6 +376,17 @@
       },
       "labels": [
         {
+          "label": "sustained sub",
+          "confidence": 0.932176,
+          "evidence": {
+            "centroid_energy_hz": 68.662122,
+            "centroid_mean": 473.577679,
+            "onset_density": 0.368692,
+            "max_centroid_hz": 250.0,
+            "max_onset_density": 2.0
+          }
+        },
+        {
           "label": "sparse bass",
           "confidence": 0.631308,
           "evidence": {

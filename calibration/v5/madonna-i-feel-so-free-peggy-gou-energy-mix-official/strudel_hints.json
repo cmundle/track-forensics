@@ -170,8 +170,8 @@
       "alternatives": [],
       "evidence": {
         "hit_count": 483.0,
-        "mean_kick_ratio": 0.8423562318840581,
-        "mean_confidence": 0.7638093561076604
+        "mean_kick_ratio": 0.842356,
+        "mean_confidence": 0.763809
       }
     },
     {
@@ -182,8 +182,8 @@
       "alternatives": [],
       "evidence": {
         "hit_count": 87.0,
-        "mean_body_ratio": 0.6739682413793104,
-        "mean_confidence": 0.7772264482758621
+        "mean_body_ratio": 0.673968,
+        "mean_confidence": 0.777226
       }
     },
     {
@@ -194,7 +194,7 @@
       "alternatives": [],
       "evidence": {
         "hit_count": 783.0,
-        "mean_confidence": 0.9529193103448276,
+        "mean_confidence": 0.952919,
         "median_decay_ratio": 2.195861
       }
     },
@@ -216,7 +216,7 @@
       ],
       "evidence": {
         "hit_count": 65.0,
-        "mean_confidence": 0.09992383076923077
+        "mean_confidence": 0.099924
       }
     },
     {

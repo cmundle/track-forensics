@@ -33885,7 +33885,8 @@
     "unclassified_count": 168,
     "caveats": [
       "47 detections in the noise/air bands were the kick's own transient found a second time, not hits of their own \u2014 their windows are over 0.6 kick energy and their air/(air+noise) is under 0.5, which is a beater click rather than a hat",
-      "168 of 2636 hits are unclassified. Three classes cannot describe a full kit: toms, rides, crashes, claps and shakers all land here, and on percussive material that is correct rather than a failure."
+      "168 of 2636 hits are unclassified. Three classes cannot describe a full kit: toms, rides, crashes, claps and shakers all land here, and on percussive material that is correct rather than a failure.",
+      "the kick band was searched and found 293 hits, but only 57 of them (19%) classified as kicks. Read the kick pattern as what survived classification, not as what this source plays -- on dense material the feature window catches the whole pattern, so no window is kick-dominated and genuine kicks are lost here rather than never detected"
     ]
   },
   "bass_line": {
@@ -33914,18 +33915,6 @@
       "evidence": {
         "band_energy_low": 0.616034,
         "min_band_energy_low": 0.5
-      }
-    },
-    {
-      "label": "noisy",
-      "confidence": 0.22506,
-      "evidence": {
-        "centroid_mean": 3737.830803,
-        "chroma_entropy": 0.988589,
-        "min_centroid_hz": 2500.0,
-        "min_chroma_entropy": 0.93,
-        "key_confidence": 0.466354,
-        "tonal_stability": 0.29248
       }
     },
     {

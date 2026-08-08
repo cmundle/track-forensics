@@ -446,7 +446,7 @@
           "610 detections in the noise/air bands were the kick's own transient found a second time, not hits of their own \u2014 their windows are over 0.6 kick energy and their air/(air+noise) is under 0.5, which is a beater click rather than a hat",
           "97 of 8027 hits are unclassified. Three classes cannot describe a full kit: toms, rides, crashes, claps and shakers all land here, and on percussive material that is correct rather than a failure.",
           "the grid anchor was moved -0.16 steps onto the hits' own phase. A supplied downbeat fixes which step is step 0, not the sub-step phase, and this move cannot change any step number.",
-          "no cycle grid: folding the band flux onto this cycle length puts only 0.50 of the profile on the grid, against 0.5 required and 0.25 expected by chance. The hits do not fit any grid at this period \u2014 this is not a near miss."
+          "no cycle grid: folding the band flux onto this cycle length puts only 0.496 of the profile on the grid, against 0.5 required and 0.25 expected by chance. The hits do not fit any grid at this period \u2014 this is not a near miss."
         ]
       },
       "bass_line": {
@@ -483,18 +483,6 @@
           "evidence": {
             "onset_density": 5.384884,
             "min_onset_density": 5.0
-          }
-        },
-        {
-          "label": "noisy",
-          "confidence": 0.046185,
-          "evidence": {
-            "centroid_mean": 2754.014896,
-            "chroma_entropy": 0.991559,
-            "min_centroid_hz": 2500.0,
-            "min_chroma_entropy": 0.93,
-            "key_confidence": 0.613399,
-            "tonal_stability": 0.311786
           }
         }
       ],
@@ -687,10 +675,11 @@
         },
         {
           "label": "noisy",
-          "confidence": 0.300844,
+          "confidence": 0.001245,
           "evidence": {
-            "centroid_mean": 4154.641828,
+            "centroid_energy_hz": 2506.848223,
             "chroma_entropy": 0.98473,
+            "centroid_mean": 4154.641828,
             "min_centroid_hz": 2500.0,
             "min_chroma_entropy": 0.93,
             "key_confidence": 0.460211,

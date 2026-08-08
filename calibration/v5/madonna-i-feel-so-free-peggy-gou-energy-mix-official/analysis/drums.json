@@ -19264,18 +19264,6 @@
       }
     },
     {
-      "label": "noisy",
-      "confidence": 0.343633,
-      "evidence": {
-        "centroid_mean": 4389.982379,
-        "chroma_entropy": 0.982982,
-        "min_centroid_hz": 2500.0,
-        "min_chroma_entropy": 0.93,
-        "key_confidence": 0.513552,
-        "tonal_stability": 0.373809
-      }
-    },
-    {
       "label": "busy drums",
       "confidence": 0.045131,
       "evidence": {

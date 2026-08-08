@@ -1452,6 +1452,7 @@
       "confidence": 0.48083,
       "evidence": {
         "rms_mean": 0.053275,
+        "centroid_energy_hz": 846.432272,
         "centroid_mean": 1867.749584,
         "onset_density": 3.487258,
         "min_rms_mean": 0.01,

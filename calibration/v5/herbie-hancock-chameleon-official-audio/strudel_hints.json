@@ -20,7 +20,7 @@
       "610 detections in the noise/air bands were the kick's own transient found a second time, not hits of their own \u2014 their windows are over 0.6 kick energy and their air/(air+noise) is under 0.5, which is a beater click rather than a hat",
       "97 of 8027 hits are unclassified. Three classes cannot describe a full kit: toms, rides, crashes, claps and shakers all land here, and on percussive material that is correct rather than a failure.",
       "the grid anchor was moved -0.16 steps onto the hits' own phase. A supplied downbeat fixes which step is step 0, not the sub-step phase, and this move cannot change any step number.",
-      "no cycle grid: folding the band flux onto this cycle length puts only 0.50 of the profile on the grid, against 0.5 required and 0.25 expected by chance. The hits do not fit any grid at this period \u2014 this is not a near miss."
+      "no cycle grid: folding the band flux onto this cycle length puts only 0.496 of the profile on the grid, against 0.5 required and 0.25 expected by chance. The hits do not fit any grid at this period \u2014 this is not a near miss."
     ]
   },
   "bass_line": {
@@ -137,8 +137,8 @@
       "alternatives": [],
       "evidence": {
         "hit_count": 695.0,
-        "mean_kick_ratio": 0.7569512273381295,
-        "mean_confidence": 0.44735264892086335
+        "mean_kick_ratio": 0.756951,
+        "mean_confidence": 0.447353
       }
     },
     {
@@ -149,8 +149,8 @@
       "alternatives": [],
       "evidence": {
         "hit_count": 3588.0,
-        "mean_body_ratio": 0.632293252787068,
-        "mean_confidence": 0.8196029057971014
+        "mean_body_ratio": 0.632293,
+        "mean_confidence": 0.819603
       }
     },
     {
@@ -161,7 +161,7 @@
       "alternatives": [],
       "evidence": {
         "hit_count": 3647.0,
-        "mean_confidence": 0.9546320534686044,
+        "mean_confidence": 0.954632,
         "median_decay_ratio": 2.40315
       }
     },
@@ -183,7 +183,7 @@
       ],
       "evidence": {
         "hit_count": 97.0,
-        "mean_confidence": 0.1897807525773196
+        "mean_confidence": 0.189781
       }
     },
     {
