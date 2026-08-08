@@ -468,6 +468,39 @@ def resolve_track_grid(
     return model, _as_model(DownbeatFit, downbeat)
 
 
+def _arrangement_period(fit: TempoFit) -> float | None:
+    """The bar length to fold an arrangement onto, or `None` to refuse one.
+
+    `TempoFit.bpm` is populated even at `status="coarse"` -- it passes the
+    backend's estimate through -- so it cannot be used directly here. Handing a
+    bar length to `arrangement` when nothing measured one produces a plausible
+    section list built on a number nobody stands behind: on the ambient corpus
+    row that is **52 sections across a 17-minute record with no pulse**, which
+    is precisely the "the tool correctly refused" outcome that row exists to
+    test, inverted.
+
+    A coarse tempo is still enough when the source is *periodic* -- the
+    live-band row genuinely drifts, so its refinement is refused, and its
+    arrangement (a solo-drum intro isolated at bars 0-3) is real and useful.
+    What separates the two is not the status but whether any lag in the source
+    correlates at all:
+
+        eno    every octave candidate `ruled_out`, best r 0.0103  -> no grid
+        levee  x2 `live` at r 0.1588                              -> grid, caveated
+
+    `live` is `tempo.MIN_AUTOCORRELATION_R` (0.15), a threshold the corpus
+    already validated end to end (0.804 / 0.735 / 0.476 against Levee's 0.108).
+    This reuses it rather than introducing a second one.
+    """
+    if fit.period_seconds is None:
+        return None
+    if fit.status == "refined":
+        return fit.period_seconds
+    if any(candidate.status == "live" for candidate in fit.octave_candidates):
+        return fit.period_seconds
+    return None
+
+
 def _grid_confidence(fit: TempoFit) -> str:
     """One label for `arrangement`, which wants to know whether bars are exact.
 
@@ -1028,7 +1061,7 @@ def analyze_track(
         arrangement.arrangement(
             stem_audio,
             sample_rate,
-            track_tempo.period_seconds,
+            _arrangement_period(track_tempo),
             track_downbeat.offset_seconds,
             grid_confidence=_grid_confidence(track_tempo),
         ),

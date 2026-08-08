@@ -20,18 +20,23 @@ import pytest
 from audio_pipeline import SCHEMA_VERSION, strudel_vocab
 from audio_pipeline.heuristics import THRESHOLDS
 from audio_pipeline.schemas import (
+    Arrangement,
     BassLine,
     BassNote,
     DrumDecomposition,
     DrumHit,
     DrumPattern,
+    DynamicsFeatures,
     RhythmFeatures,
+    Section,
     SourceAnalysis,
     StrudelHints,
+    TempoFit,
     TonalFeatures,
     TrackSummary,
 )
 from audio_pipeline.strudel_hints import (
+    ARRANGEMENT_SECTION_CAP,
     BASS_LINE_NOTE_SEQUENCE_CAP,
     BEATS_PER_CYCLE,
     DENSITY_TERMS,
@@ -69,8 +74,13 @@ def make_source(
     key_confidence: float | None = None,
     drum_decomposition: DrumDecomposition | None = None,
     bass_line: BassLine | None = None,
+    rms_mean: float = 0.05,
 ) -> SourceAnalysis:
-    """A SourceAnalysis with only the descriptors a given test cares about."""
+    """A SourceAnalysis with only the descriptors a given test cares about.
+
+    `rms_mean` defaults well clear of `SILENCE_RMS_FLOOR`, so a source is a real
+    stem unless a test deliberately makes it residue.
+    """
     return SourceAnalysis(
         source=name,
         audio_path=f"/tmp/{name}.wav",
@@ -84,6 +94,7 @@ def make_source(
             onset_density=onset_density,
         ),
         tonal=TonalFeatures(key=key, scale=scale, key_confidence=key_confidence),
+        dynamics=DynamicsFeatures(rms_mean=rms_mean),
         drum_decomposition=drum_decomposition or DrumDecomposition(),
         bass_line=bass_line or BassLine(),
     )
@@ -170,13 +181,61 @@ def jitter(iois: Sequence[float], amount: float, seed: int) -> list[float]:
     return [d * (1.0 + rng.uniform(-amount, amount)) for d in iois]
 
 
-def make_summary(*sources: SourceAnalysis, track_name: str = "test-track") -> TrackSummary:
+def make_summary(
+    *sources: SourceAnalysis,
+    track_name: str = "test-track",
+    tempo: TempoFit | None = None,
+    arrangement: Arrangement | None = None,
+) -> TrackSummary:
+    """A summary with no track-level tempo unless a test asks for one.
+
+    Deliberately defaulted to absent rather than populated: most tests here
+    exercise the per-source fallbacks, and a summary written before schema v5
+    genuinely has no `TempoFit`. `full_summary()` supplies one, because "full"
+    has to mean full.
+    """
     return TrackSummary(
         track_name=track_name,
         input_path="/tmp/test-track.wav",
         duration_seconds=30.0,
         backend="fake",
+        tempo=tempo or TempoFit(),
+        arrangement=arrangement or Arrangement(),
         sources={source.source: source for source in sources},
+    )
+
+
+def make_tempo_fit(
+    bpm: float = 120.0, status: str = "refined", confidence_label: str = "high"
+) -> TempoFit:
+    return TempoFit(
+        bpm=bpm,
+        period_seconds=60.0 / bpm,
+        coarse_bpm=bpm,
+        confidence=0.75,
+        confidence_label=confidence_label,
+        status=status,
+    )
+
+
+def make_arrangement(*, sections: int = 2, absent: list[str] | None = None) -> Arrangement:
+    return Arrangement(
+        sections=[
+            Section(
+                start_bar=index * 8,
+                length_bars=8,
+                start_seconds=index * 16.0,
+                active=["drums", "bass", "kick"],
+                label="full" if index else "intro",
+                label_reason="everything is playing",
+            )
+            for index in range(sections)
+        ],
+        bar_count=sections * 8,
+        bar_seconds=2.0,
+        downbeat_seconds=0.0,
+        absent_tracks=absent or [],
+        status="ok",
     )
 
 
@@ -496,6 +555,8 @@ def full_summary() -> TrackSummary:
             bass_line=make_bass_line(),
         ),
         make_source("vocals", onset_density=(SPARSE + BUSY) / 2.0),
+        tempo=make_tempo_fit(),
+        arrangement=make_arrangement(),
     )
 
 
@@ -760,6 +821,147 @@ def test_drum_grid_and_sound_suggestions_use_hits_not_the_stripped_summary_shape
     # ...but the folded pattern survives regardless, since `patterns` is never
     # stripped from `track_summary.json`.
     assert full_hints.drum_grid.kick_steps == stripped_hints.drum_grid.kick_steps == [0]
+
+
+# --- schema v5: confidence has to reach the reader ---------------------------
+
+
+def test_a_refined_tempo_reaches_the_hints_and_says_so() -> None:
+    hints = build(full_summary())
+    assert hints.bpm == 120.0
+    assert hints.tempo_status == "refined"
+    assert hints.tempo_confidence == "high"
+
+
+def test_a_refused_tempo_is_printed_with_its_refusal() -> None:
+    """v4 printed a bare `bpm: 143.25` where refinement had explicitly declined.
+
+    The number is kept — a reader who can see it is unrefined can still start
+    from it — but it can no longer be mistaken for a measurement.
+    """
+    summary = make_summary(
+        make_source("mix", bpm=143.25),
+        tempo=make_tempo_fit(bpm=143.25, status="coarse", confidence_label="low"),
+    )
+    hints = build(summary)
+    assert hints.bpm == 143.25
+    assert hints.tempo_status == "coarse"
+    assert hints.tempo_confidence == "low"
+    assert any("refinement was refused" in note for note in hints.notes)
+
+
+def test_the_refined_tempo_wins_over_every_per_source_estimate() -> None:
+    """The root of F1: five sources, five tempos, and no agreement on which."""
+    summary = make_summary(
+        make_source("mix", bpm=131.855),
+        make_source("drums", bpm=132.040),
+        tempo=make_tempo_fit(bpm=131.999957946896),
+    )
+    assert build(summary).bpm == 131.999957946896
+
+
+def test_without_a_refined_tempo_the_v4_fallbacks_still_work() -> None:
+    """A summary written before v5 has no `TempoFit`, and must still build."""
+    summary = make_summary(make_source("mix", bpm=128.0))
+    hints = build(summary)
+    assert hints.bpm == 128.0
+    assert any("no refined tempo" in note for note in hints.notes)
+
+
+# --- schema v5: F5, the tonal centre a silent stem used to win ---------------
+
+
+def test_a_silent_bass_stem_cannot_supply_the_tonal_centre() -> None:
+    """Measured: a -70 LUFS bass stem reported "E minor" at 0.688 confidence,
+    and beat the mix's own F major because the mix read 0.445."""
+    summary = make_summary(
+        make_source("mix", key="F", scale="major", key_confidence=0.445),
+        make_source("bass", key="E", scale="minor", key_confidence=0.688, rms_mean=7.7e-05),
+    )
+    hints = build(summary)
+    assert hints.tonal_centre is None
+    assert any("below the silence floor" in note for note in hints.notes)
+
+
+def test_a_real_bass_stem_still_supplies_the_tonal_centre() -> None:
+    """The fallback is not deleted, only stopped from reaching into residue."""
+    summary = make_summary(
+        make_source("mix", key="F", scale="major", key_confidence=0.445),
+        make_source("bass", key="E", scale="minor", key_confidence=0.688, rms_mean=0.1),
+    )
+    assert build(summary).tonal_centre == "E minor"
+
+
+# --- schema v5: arrangement and bass step placement --------------------------
+
+
+def test_the_arrangement_reaches_the_hints_one_line_per_section() -> None:
+    hints = build(full_summary())
+    assert hints.arrangement.status == "ok"
+    assert hints.arrangement.bar_count == 16
+    assert hints.arrangement.sections == [
+        "bar 0 x8 intro: drums, bass, kick",
+        "bar 8 x8 full: drums, bass, kick",
+    ]
+    assert hints.arrangement.truncated_from is None
+
+
+def test_a_long_arrangement_is_capped_and_says_by_how_much() -> None:
+    """The drum-and-bass corpus row reports 44 sections; this file stays small."""
+    summary = make_summary(
+        make_source("mix", bpm=170.0), arrangement=make_arrangement(sections=44)
+    )
+    hints = build(summary)
+    assert len(hints.arrangement.sections) == ARRANGEMENT_SECTION_CAP
+    assert hints.arrangement.truncated_from == 44
+
+
+def test_absent_tracks_are_surfaced_as_do_not_write_parts_for_these() -> None:
+    """The ambient corpus row has no drums, no vocals and no kick in it."""
+    summary = make_summary(
+        make_source("mix", bpm=83.0),
+        arrangement=make_arrangement(absent=["drums", "vocals", "kick"]),
+    )
+    hints = build(summary)
+    assert hints.arrangement.absent_tracks == ["drums", "vocals", "kick"]
+    assert any("not in this record at all" in note for note in hints.notes)
+
+
+def test_no_arrangement_leaves_the_block_empty_and_quiet() -> None:
+    """A v4 summary has no arrangement; that is not something to warn about."""
+    hints = build(make_summary(make_source("mix", bpm=120.0)))
+    assert hints.arrangement.sections == []
+    assert not any("arrangement" in note for note in hints.notes)
+
+
+def test_the_bass_line_carries_its_step_placement() -> None:
+    """F7's prediction: on the calibration track the bass sits on 2/6/10/14."""
+    line = BassLine(
+        status="ok",
+        notes=[
+            BassNote(
+                start_seconds=float(step),
+                duration_seconds=0.2,
+                midi_note=33,
+                note_name="a1",
+                step=step,
+            )
+            for step in (2, 6, 10, 14, 2, 6)
+        ],
+    )
+    summary = make_summary(make_source("bass", bass_line=line))
+    assert build(summary).bass_line.steps == [2, 6, 10, 14]
+
+
+def test_a_bass_line_with_no_grid_reports_no_steps() -> None:
+    line = BassLine(
+        status="ok",
+        notes=[
+            BassNote(start_seconds=0.0, duration_seconds=0.2, midi_note=33, note_name="a1"),
+        ],
+    )
+    summary = make_summary(make_source("bass", bass_line=line))
+    assert build(summary).bass_line.steps == []
 
 
 # --- v1 scope guard ---------------------------------------------------------

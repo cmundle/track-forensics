@@ -123,6 +123,41 @@ output/<track-name>/
   strudel_hints.json
 ```
 
+### Schema v5 migration
+
+**v5 adds fields and removes none, so a v4 reader keeps working unchanged.**
+Every field a v4 consumer expects is still present, still in the same place, and
+still means the same thing. Nothing was renamed and nothing was replaced in
+place — a corrected descriptor lands *beside* the one it supersedes, and the
+superseded field's description says what is wrong with it and names the
+replacement.
+
+What is new:
+
+| where | field | why |
+|---|---|---|
+| `track_summary.json` | `tempo` | One refined tempo for the record. `rhythm.bpm` on every source is untouched and still carries that source's own backend estimate. |
+| `track_summary.json` | `downbeat` | Where bar one starts, with the beat-phase and bar-phase confidences kept apart. |
+| `track_summary.json` | `arrangement` | Sections, each with the presence pattern that labelled it. |
+| `strudel_hints.json` | `tempo_status`, `tempo_confidence` | So a printed BPM can be told apart from a measured one. |
+| `strudel_hints.json` | `arrangement` | One line per section. |
+| `strudel_hints.json` | `bass_line.steps` | Which grid steps the bass lands on. |
+| `analysis/*.json` | — | Unchanged in shape. |
+
+The three new blocks are at **track level**, not per source. In v4 each of the
+five sources refined its own tempo and they disagreed; whichever a downstream
+module happened to read, it built a grid that drifted apart from the audio. A
+`harmony` block is reserved in the same position.
+
+Two blocks may now report `status: "silent"` — a source below the documented
+RMS floor is separation residue, and everything derived from it is skipped
+rather than computed from a noise floor.
+
+**`calibration/v4/` is a frozen reference and is never regenerated in place.**
+Every claim in the v4→v5 findings is measured against those exact files, so
+overwriting them destroys the only baseline that can show whether the fixes
+worked. v5 runs write to `calibration/v5/`.
+
 ### Real sample output
 
 From `track-forensics all synth_mix_100bpm.wav --fast` against a 12-second synthetic mix (kick, snare, hats on 8ths, a moving bass line, a sustained A-minor pad, and deliberately no vocals). `strudel_hints.json` in full:
@@ -311,7 +346,7 @@ mypy src
 
 ## Status
 
-Implemented and working end to end: `track-forensics all input.wav` runs separation, per-source analysis, heuristic labelling, drum decomposition, bass note extraction, Strudel sound mapping, and hints export, and produces the full output tree described above. Schema is at `schema_version` 4. `pytest`, `ruff check .`, and `mypy src` are all clean.
+Implemented and working end to end: `track-forensics all input.wav` runs separation, per-source analysis, heuristic labelling, tempo and downbeat resolution, drum decomposition, bass note extraction, arrangement extraction, Strudel sound mapping, and hints export, and produces the full output tree described above. Schema is at `schema_version` 5 — see the migration note above; v4 readers keep working. `pytest`, `ruff check .`, and `mypy src` are all clean.
 
 Drum decomposition and bass note extraction are new in this schema version and honest about where they stand: numerically verified against synthetic fixtures (including a fixture specifically constructed so a naive single-onset-list classifier cannot pass it) and structurally verified end to end against real Demucs separation. They are **not yet calibrated against a wide range of real tracks** — that's an explicit, ongoing, separate activity, done by ear against known material. On the one real mix verified so far, the drum classifier recovered kick and hat correctly but reported zero snares, and grid positions didn't perfectly match known ground truth. That's the expected state pre-calibration, not a bug, and it's why the drum classifier is deliberately conservative about what it claims (three classes only, an honest `unclassified` bucket, no invented drum-machine identity) rather than confidently wrong.
 
