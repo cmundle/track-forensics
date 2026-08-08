@@ -12,7 +12,6 @@ build/
 
 # Project output
 output/
-!output/.gitkeep
 
 # Audio (keep the repo clean of source material)
 *.wav

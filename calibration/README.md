@@ -6,7 +6,8 @@ Real-material output, kept per schema version. This directory is a **reference**
 
 `calibration/v4/` is the output of `track-forensics all` at `schema_version: 4`, commit `752ab76`,
 captured before any v2 work landed. Every finding in Part 1 of `V2-PLAN.md` is measured against
-these exact files, and W8B's job is diffing v5 against them.
+these exact files, and W8B's job is diffing v5 against them. Only the calibration track remains
+here — the two short clips it also covered were dropped from the corpus (see **Tracks** below).
 
 **Never regenerate `v4/` in place.** If a number in it looks wrong, that is the point — the wrong
 numbers are the baseline. v5 runs write to `calibration/v5/`.
@@ -17,10 +18,6 @@ JSON only: `analysis/<source>.json`, `track_summary.json`, `strudel_hints.json`.
 directories exist on disk and are excluded by `.gitignore` (`*.wav`) — no source material is ever
 committed, here or in `tests/fixtures/real/`.
 
-`madonna-.../strudel_patch.js` is the hand-written Strudel patch referenced in the `V2-PLAN.md`
-appendix, verified against the real library by `tools/strudel-verify/`. It is committed because it
-is the evidence that these measurements are enough to rebuild the track; it is not tool output.
-
 ## The two write-ups
 
 | file | what |
@@ -30,7 +27,7 @@ is the evidence that these measurements are enough to rebuild the track; it is n
 
 ## Tracks
 
-Eight, and each one exists to break something different. Four of the five plan rows were added
+Six, and each one exists to break something different. Four of the five plan rows were added
 during the cycle rather than at the end of it, which is why two real bugs and three previously
 guessed thresholds were caught before anything was built on top of them.
 
@@ -42,11 +39,13 @@ guessed thresholds were caught before anything was built on top of them.
 | `brian-eno-1-1-remastered-2004` | 1041.5 s | **row 4, ambient. The important one.** Expected output is a refusal, and a refusal is a pass. Returns `no_grid`, no arrangement, no sections, and two stems gated as silent. Without this row nothing checks that the tool can say no. |
 | `roni-size-reprazent-brown-paper-bag` | 302.7 s | **row 5, drum & bass at 170.** The backend reads 84.92 — exactly half — at the highest confidence anywhere in the corpus. The octave is arbitrated on grid quality, not correlation. |
 | `herbie-hancock-chameleon-official-audio` | 947.3 s | funk. Added alongside row 2 as a second candidate for the swung branch; also returned nothing, and its grid is a genuine near miss (0.50 of the profile on grid against 0.5 required). |
-| `showers-of-gold` | 17.1 s | short clip. Demucs put nearly everything in `other`; `bass` and `vocals` sit at the noise floor. F5. |
-| `ancient-heavy-tech-donjon` | 4.3 s | short clip, same failure mode as above, plus the silent-stem `tonal_centre` override. F5. |
 
-The two short clips are too short to expose F1 — tempo drift scales with duration. That is itself a
-finding: a calibration corpus of clips would have shipped v1's tempo bug indefinitely.
+Every row is a full-length record. Two short clips (4.3 s and 17.1 s) were carried through the
+v4 → v5 cycle and have since been dropped: they were too short to expose F1 — tempo drift scales
+with duration — and Demucs put nearly all of both into `other`, so what they mostly exercised was
+separation residue rather than anything worth extracting. The measurements they contributed are
+still recorded in `v5-progress.md` and `v5-vs-v4.md`, which are dated write-ups and are not
+rewritten after the fact.
 
 **Demucs is not bit-reproducible on this machine**, so every stem descriptor moves a little between
 runs and the residue stems move by up to 2×. The `mix` source is the input file rather than a

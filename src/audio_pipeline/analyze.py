@@ -20,9 +20,9 @@ Failure isolation is the load-bearing behaviour here, at two levels:
   on stem four that discards everything is the failure mode this exists to
   prevent.
 
-`AnalysisBackend`, `BackendName`, `BackendUnavailableError`,
-`available_backends`, and `get_backend` are re-exported here for callers that
-predate the `backends` package split (the CLI in particular).
+`AnalysisBackend`, `BackendUnavailableError`, `available_backends`, and
+`get_backend` are re-exported here: the CLI reaches every one of them through
+this module, and its tests monkeypatch them at this seam.
 
 Schema v5 added the other thing orchestration is for: **there is one tempo and
 one structure per record, and this module is where they are resolved.** In v4
@@ -51,7 +51,7 @@ from __future__ import annotations
 import json
 import logging
 import math
-from collections.abc import Callable, ItemsView, Iterator, Mapping
+from collections.abc import Callable, Mapping
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any, TypeVar
@@ -64,7 +64,6 @@ from . import heuristics as heuristics_module
 from .audio_io import AudioArray, load_audio, to_mono
 from .backends import (
     AnalysisBackend,
-    BackendName,
     BackendUnavailableError,
     available_backends,
     get_backend,
@@ -87,7 +86,6 @@ from .schemas import (
 
 __all__ = [
     "AnalysisBackend",
-    "BackendName",
     "BackendUnavailableError",
     "analysis_output_dir",
     "analyze_source",
@@ -897,30 +895,14 @@ class TrackAnalysis:
     `analyze_track` returned a bare `dict[str, SourceAnalysis]` through v4,
     when every source carried its own tempo. v5 resolves one tempo, one
     downbeat and one structure for the whole record, and they belong to the
-    track rather than to any source, so they need somewhere to travel. Mapping
-    behaviour is preserved (`result["mix"]`, `for name in result`) so callers
-    that only want the sources read exactly as they did.
+    track rather than to any source, so they need somewhere to travel. Reach
+    the sources through `.sources`; this is a record, not a mapping.
     """
 
     sources: dict[str, SourceAnalysis]
     tempo: TempoFit
     downbeat: DownbeatFit
     arrangement: Arrangement
-
-    def __getitem__(self, key: str) -> SourceAnalysis:
-        return self.sources[key]
-
-    def __iter__(self) -> Iterator[str]:
-        return iter(self.sources)
-
-    def __len__(self) -> int:
-        return len(self.sources)
-
-    def items(self) -> ItemsView[str, SourceAnalysis]:
-        return self.sources.items()
-
-    def get(self, key: str, default: SourceAnalysis | None = None) -> SourceAnalysis | None:
-        return self.sources.get(key, default)
 
 
 def _load_mono_stems(stems: Mapping[str, Path]) -> tuple[dict[str, AudioArray], int]:

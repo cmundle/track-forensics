@@ -22,9 +22,11 @@ from audio_pipeline import SCHEMA_VERSION
 from audio_pipeline import cli as cli_module
 from audio_pipeline.backends import BackendUnavailableError
 from audio_pipeline.schemas import (
+    Arrangement,
     BandEnergyRatios,
     BassLine,
     BassNote,
+    DownbeatFit,
     DrumDecomposition,
     DrumHit,
     DrumPattern,
@@ -32,6 +34,7 @@ from audio_pipeline.schemas import (
     SourceAnalysis,
     SpectralFeatures,
     StrudelHints,
+    TempoFit,
     TrackSummary,
 )
 from audio_pipeline.separate import DEFAULT_MODEL, FAST_MODEL, SeparationResult
@@ -47,6 +50,16 @@ class _FakeBackend:
 
     def __init__(self, name: str = "librosa") -> None:
         self.name = name
+
+
+def _make_track_analysis(**sources: SourceAnalysis) -> cli_module.analyze_module.TrackAnalysis:
+    """What `analyze_track` really returns: sources plus the three v5 track blocks."""
+    return cli_module.analyze_module.TrackAnalysis(
+        sources=dict(sources),
+        tempo=TempoFit(),
+        downbeat=DownbeatFit(),
+        arrangement=Arrangement(),
+    )
 
 
 def _make_source_analysis(source: str = "mix", **rhythm_kwargs: Any) -> SourceAnalysis:
@@ -119,7 +132,7 @@ def test_uppercase_suffix_is_accepted(tmp_path: Path, monkeypatch: pytest.Monkey
     monkeypatch.setattr(
         cli_module.analyze_module,
         "analyze_track",
-        lambda *_a, **_k: {"mix": _make_source_analysis()},
+        lambda *_a, **_k: _make_track_analysis(mix=_make_source_analysis()),
     )
     monkeypatch.setattr(
         cli_module.analyze_module,
@@ -317,7 +330,7 @@ def test_analyze_happy_path(
     monkeypatch.setattr(
         cli_module.analyze_module,
         "analyze_track",
-        lambda *_a, **_k: {"mix": _make_source_analysis()},
+        lambda *_a, **_k: _make_track_analysis(mix=_make_source_analysis()),
     )
     written = _make_written_paths(tmp_path)
     monkeypatch.setattr(
@@ -666,7 +679,7 @@ def test_all_happy_path(
     monkeypatch.setattr(
         cli_module.analyze_module,
         "analyze_track",
-        lambda *_a, **_k: {"mix": _make_source_analysis()},
+        lambda *_a, **_k: _make_track_analysis(mix=_make_source_analysis()),
     )
     written = _make_written_paths(tmp_path)
     monkeypatch.setattr(

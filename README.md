@@ -430,7 +430,7 @@ mypy src
 
 Implemented and working end to end: `track-forensics all input.wav` runs separation, per-source analysis, heuristic labelling, tempo and downbeat resolution, drum decomposition, bass note extraction, arrangement extraction, Strudel sound mapping, and hints export, and produces the full output tree described above. Schema is at `schema_version` 5 — see the migration note above; v4 readers keep working. `pytest`, `ruff check .`, and `mypy src` are all clean.
 
-Drum decomposition and bass note extraction are numerically verified against synthetic fixtures (including one specifically constructed so a naive single-onset-list classifier cannot pass it), against committed real-material fixtures in `tests/fixtures/real/`, and end to end against real Demucs separation. As of schema v5 they are also calibrated against an **eight-track corpus** — house, swung hip-hop, funk, live band, ambient, drum & bass, and two short clips — with the outputs committed under `calibration/v5/` and the v4 → v5 delta written up in `calibration/v5-vs-v4.md`.
+Drum decomposition and bass note extraction are numerically verified against synthetic fixtures (including one specifically constructed so a naive single-onset-list classifier cannot pass it), against committed real-material fixtures in `tests/fixtures/real/`, and end to end against real Demucs separation. As of schema v5 they are also calibrated against a **six-track corpus** — house, swung hip-hop, funk, live band, ambient, and drum & bass — with the outputs committed under `calibration/v5/` and the v4 → v5 delta written up in `calibration/v5-vs-v4.md`.
 
 What the corpus found is worth knowing before you trust any single number:
 

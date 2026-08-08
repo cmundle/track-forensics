@@ -541,11 +541,8 @@ def test_analyze_track_carries_the_track_level_blocks(
     )
 
     assert isinstance(result, analyze.TrackAnalysis)
-    assert set(result) == {"mix", "drums", "bass", "vocals", "other"}
-    assert result["mix"].source == "mix"
-    assert len(result) == 5
-    assert result.get("nope") is None
-    assert dict(result.items()) == result.sources
+    assert set(result.sources) == {"mix", "drums", "bass", "vocals", "other"}
+    assert result.sources["mix"].source == "mix"
 
     assert result.tempo.status in {"refined", "coarse", "unavailable"}
     assert result.downbeat.status in {"ok", "ambiguous", "unavailable"}
@@ -564,7 +561,7 @@ def test_the_drum_grid_is_anchored_on_the_downbeat_not_on_beat_times(
     result = analyze.analyze_track(
         click_wav, _stem_paths(click_track_120bpm, wav_file), _full_backend()
     )
-    decomposition = result["drums"].drum_decomposition
+    decomposition = result.sources["drums"].drum_decomposition
     if result.tempo.period_seconds is not None:
         assert decomposition.grid_anchor_source == "supplied"
 
@@ -665,9 +662,9 @@ def test_analyze_track_skips_missing_stems_with_a_warning(
     with caplog.at_level(logging.WARNING, logger="audio_pipeline.analyze"):
         results = analyze.analyze_track(click_wav, stems, _full_backend())
 
-    assert set(results) == {"mix", "drums", "bass"}
-    assert "vocals" not in results
-    assert "other" not in results
+    assert set(results.sources) == {"mix", "drums", "bass"}
+    assert "vocals" not in results.sources
+    assert "other" not in results.sources
     warnings = [r.message for r in caplog.records if "Skipping stem" in r.message]
     assert any("vocals" in message for message in warnings)
     assert any("other" in message for message in warnings)
@@ -684,8 +681,8 @@ def test_analyze_track_analyzes_mix_plus_all_present_stems(
     }
     results = analyze.analyze_track(click_wav, stems, _full_backend())
 
-    assert set(results) == {"mix", "drums", "bass", "vocals", "other"}
-    for source_name, analysis in results.items():
+    assert set(results.sources) == {"mix", "drums", "bass", "vocals", "other"}
+    for source_name, analysis in results.sources.items():
         assert analysis.source == source_name
         assert analysis.unavailable_features == []
 
@@ -720,18 +717,18 @@ def test_one_source_raising_does_not_prevent_the_others_from_being_analyzed(
         results = analyze.analyze_track(click_wav, stems, _full_backend())
 
     # All five sources are present -- the failing one as a placeholder.
-    assert set(results) == {"mix", "drums", "bass", "vocals", "other"}
+    assert set(results.sources) == {"mix", "drums", "bass", "vocals", "other"}
 
-    bass = results["bass"]
+    bass = results.sources["bass"]
     assert bass.unavailable_features  # everything is unavailable
     assert any("simulated corrupt stem" in f for f in bass.unavailable_features)
     assert bass.labels == []
 
     # The others analyzed normally and were not affected.
-    assert results["mix"].unavailable_features == []
-    assert results["drums"].unavailable_features == []
-    assert results["vocals"].unavailable_features == []
-    assert results["other"].unavailable_features == []
+    assert results.sources["mix"].unavailable_features == []
+    assert results.sources["drums"].unavailable_features == []
+    assert results.sources["vocals"].unavailable_features == []
+    assert results.sources["other"].unavailable_features == []
 
     assert any("bass" in record.message for record in caplog.records)
 

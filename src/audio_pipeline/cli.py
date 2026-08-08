@@ -142,20 +142,13 @@ def _announce_separation_plan(model: str, device: str) -> None:
 def _build_summary(
     input_file: Path,
     track_name: str,
-    analysis: analyze_module.TrackAnalysis | dict[str, SourceAnalysis],
+    analysis: analyze_module.TrackAnalysis,
     backend_name: str,
     separation_model: str | None,
     separation_device: str | None,
 ) -> TrackSummary:
-    """Wrap one run's analysis in the identity and provenance only the CLI knows.
-
-    Accepts a bare source mapping as well as a `TrackAnalysis`, because that is
-    what `analyze_track` returned before schema v5 put one tempo and one
-    structure at track level. The track-level blocks then fall back to their
-    empty defaults, which is the honest result for a caller that never measured
-    them.
-    """
-    sources = analysis.sources if isinstance(analysis, analyze_module.TrackAnalysis) else analysis
+    """Wrap one run's analysis in the identity and provenance only the CLI knows."""
+    sources = analysis.sources
     mix = sources.get("mix")
     duration_seconds = mix.duration_seconds if mix is not None else 0.0
     summary = TrackSummary(
@@ -167,10 +160,9 @@ def _build_summary(
         separation_device=separation_device,
         sources=sources,
     )
-    if isinstance(analysis, analyze_module.TrackAnalysis):
-        summary.tempo = analysis.tempo
-        summary.downbeat = analysis.downbeat
-        summary.arrangement = analysis.arrangement
+    summary.tempo = analysis.tempo
+    summary.downbeat = analysis.downbeat
+    summary.arrangement = analysis.arrangement
     return summary
 
 
