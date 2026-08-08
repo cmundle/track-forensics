@@ -468,37 +468,39 @@ def resolve_track_grid(
     return model, _as_model(DownbeatFit, downbeat)
 
 
-def _arrangement_period(fit: TempoFit) -> float | None:
+def _arrangement_period(fit: TempoFit, *, has_drums: bool) -> float | None:
     """The bar length to fold an arrangement onto, or `None` to refuse one.
 
     `TempoFit.bpm` is populated even at `status="coarse"` -- it passes the
-    backend's estimate through -- so it cannot be used directly here. Handing a
-    bar length to `arrangement` when nothing measured one produces a plausible
-    section list built on a number nobody stands behind: on the ambient corpus
-    row that is **52 sections across a 17-minute record with no pulse**, which
-    is precisely the "the tool correctly refused" outcome that row exists to
-    test, inverted.
+    backend's estimate straight through -- so it cannot be used on its own.
+    Folded regardless, the ambient corpus row returns **52 sections across a
+    17-minute record with no pulse**, chopped into 2-to-27-bar fragments and
+    labelled `full` and `groove`. `breakdown` and `drop` are already guarded
+    behind a kick existing; `full` and `groove` are not, so this is structure
+    invented out of nothing, and it inverts the one corpus outcome that exists
+    to show the tool can say no.
 
-    A coarse tempo is still enough when the source is *periodic* -- the
-    live-band row genuinely drifts, so its refinement is refused, and its
-    arrangement (a solo-drum intro isolated at bars 0-3) is real and useful.
-    What separates the two is not the status but whether any lag in the source
-    correlates at all:
+    A coarse tempo is still enough when the record has drums. The live-band row
+    genuinely drifts and its refinement is refused, but its arrangement -- a
+    solo-drum intro isolated at bars 0-3 -- is real, and `arrangement` already
+    caveats a weak grid as having approximate boundaries.
 
-        eno    every octave candidate `ruled_out`, best r 0.0103  -> no grid
-        levee  x2 `live` at r 0.1588                              -> grid, caveated
+    **The question is not how precise the tempo is, it is whether this record
+    has percussion to have bars about.** Two candidate discriminators were
+    measured and rejected before this one:
 
-    `live` is `tempo.MIN_AUTOCORRELATION_R` (0.15), a threshold the corpus
-    already validated end to end (0.804 / 0.735 / 0.476 against Levee's 0.108).
-    This reuses it rather than introducing a second one.
+        status == "refined"          refuses the live-band row too, losing a
+                                     real arrangement to no benefit
+        any live octave candidate    does not separate them at all -- the
+                                     ambient mix's x2 is live at r 0.2136,
+                                     *higher* than the live-band row's 0.1588
+
+    A silent drums stem is the honest signal, it is already measured by
+    `_grid_source` for its own reasons, and it needs no new threshold.
     """
     if fit.period_seconds is None:
         return None
-    if fit.status == "refined":
-        return fit.period_seconds
-    if any(candidate.status == "live" for candidate in fit.octave_candidates):
-        return fit.period_seconds
-    return None
+    return fit.period_seconds if (fit.status == "refined" or has_drums) else None
 
 
 def _grid_confidence(fit: TempoFit) -> str:
@@ -1061,7 +1063,7 @@ def analyze_track(
         arrangement.arrangement(
             stem_audio,
             sample_rate,
-            _arrangement_period(track_tempo),
+            _arrangement_period(track_tempo, has_drums=grid_is_drums),
             track_downbeat.offset_seconds,
             grid_confidence=_grid_confidence(track_tempo),
         ),

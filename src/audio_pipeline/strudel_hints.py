@@ -46,6 +46,7 @@ rehydration exists to avoid.
 from __future__ import annotations
 
 import math
+from collections import Counter
 from collections.abc import Sequence
 from statistics import fmean, median
 from typing import Final
@@ -55,6 +56,7 @@ from .heuristics import THRESHOLDS
 from .schemas import (
     SILENCE_RMS_FLOOR,
     ArrangementHint,
+    BassLine,
     BassLineHint,
     DrumDecomposition,
     DrumGridHint,
@@ -638,18 +640,37 @@ def _bass_line_hint(summary: TrackSummary) -> tuple[BassLineHint, str | None]:
 
     sequence = [note.note_name for note in line.notes]
     truncated_from = len(sequence) if len(sequence) > BASS_LINE_NOTE_SEQUENCE_CAP else None
+    steps, step_share = _bass_step_placement(line)
     hint = BassLineHint(
         status=line.status,
         note_sequence=sequence[:BASS_LINE_NOTE_SEQUENCE_CAP],
         truncated_from=truncated_from,
         median_midi_note=line.median_midi_note,
-        steps=sorted({note.step for note in line.notes if note.step is not None}),
+        steps=steps,
+        step_share=step_share,
         caveats=list(line.caveats),
     )
     note = None
     if line.status != "ok":
         note = f"bass line status is '{line.status}', see analysis/bass.json for detail"
     return hint, note
+
+
+def _bass_step_placement(line: BassLine) -> tuple[list[int], list[float]]:
+    """Which grid steps the bass starts notes on, and what share lands on each.
+
+    Two parallel lists rather than one thresholded list, matching
+    `DrumPattern.steps` / `step_occupancy`. A share is a measurement; a
+    threshold separating "the bass plays here" from "a note happened to land
+    here" would have exactly one record behind it, and this cycle has spent
+    four packages establishing that one record is not a corpus.
+    """
+    counts = Counter(note.step for note in line.notes if note.step is not None)
+    total = sum(counts.values())
+    if not total:
+        return [], []
+    steps = sorted(counts)
+    return steps, [round(counts[step] / total, 4) for step in steps]
 
 
 def _arrangement_hint(summary: TrackSummary) -> tuple[ArrangementHint, str | None]:

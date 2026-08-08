@@ -49,6 +49,7 @@ from audio_pipeline.schemas import (
     BandEnergyRatios,
     DynamicsFeatures,
     HeuristicLabel,
+    OctaveCandidate,
     OctaveGridFit,
     PitchTrack,
     RhythmFeatures,
@@ -577,6 +578,54 @@ def test_every_source_keeps_its_own_backend_bpm(
     )
     for analysis in result.sources.values():
         assert analysis.rhythm.bpm == 120.123456789
+
+
+def _coarse_fit(bpm: float, *rs: tuple[float, float, str]) -> TempoFit:
+    return TempoFit(
+        bpm=bpm,
+        period_seconds=60.0 / bpm,
+        status="coarse",
+        confidence_label="low",
+        octave_candidates=[
+            OctaveCandidate(ratio=ratio, bpm=bpm * ratio, r=r, status=status)
+            for ratio, r, status in rs
+        ],
+    )
+
+
+def test_an_arrangement_needs_drums_or_a_refined_tempo() -> None:
+    """`TempoFit.bpm` is populated even at `status="coarse"`, so it is not enough.
+
+    Folded anyway, the ambient corpus row returns 52 sections across 17 minutes
+    of music with no pulse, labelled `full` and `groove` — structure invented
+    out of nothing. The live-band row is also `coarse` and its arrangement is
+    real; it drifts, but it has drums.
+
+    Correlation does not separate the two: the ambient mix's x2 candidate is
+    `live` at r 0.2136, *higher* than the live-band row's 0.1588. Whether the
+    record has percussion does.
+    """
+    eno = _coarse_fit(83.456, (1.0, 0.0537, "ruled_out"), (2.0, 0.2136, "live"))
+    levee = _coarse_fit(143.25, (1.0, 0.1077, "ruled_out"), (2.0, 0.1588, "live"))
+    refined = TempoFit(bpm=132.0, period_seconds=60.0 / 132.0, status="refined")
+
+    # Ambient: drums stem is separation residue, so there is nothing to have bars about.
+    assert analyze._arrangement_period(eno, has_drums=False) is None
+    # Live band: refinement refused, but the drums are real.
+    assert analyze._arrangement_period(levee, has_drums=True) == pytest.approx(60.0 / 143.25)
+    # A refined tempo stands on its own, drums or not.
+    assert analyze._arrangement_period(refined, has_drums=False) == pytest.approx(60.0 / 132.0)
+    assert analyze._arrangement_period(TempoFit(), has_drums=True) is None
+
+
+def test_a_weak_grid_is_flagged_to_the_arrangement() -> None:
+    """`low`, `coarse` and `unavailable` all earn the approximate-bars caveat."""
+    assert analyze._grid_confidence(_coarse_fit(143.25)) == "coarse"
+    assert analyze._grid_confidence(TempoFit()) == "unavailable"
+    assert (
+        analyze._grid_confidence(TempoFit(status="refined", confidence_label="high")) == "high"
+    )
+    assert analyze._grid_confidence(TempoFit(status="refined", confidence_label="low")) == "low"
 
 
 def test_a_silent_drums_stem_does_not_become_the_tempo_source(

@@ -452,10 +452,23 @@ class BassLineHint(BaseModel):
         default_factory=list,
         description=(
             "Grid steps the bass lands on within one cycle, ascending and "
-            "de-duplicated — the bass's answer to `DrumGridHint.kick_steps`, and "
-            "small for the same reason. Empty when there is no grid. On the "
-            "calibration track this reads [2, 6, 10, 14]: the offbeat eighths, "
-            "the same four steps the hats land on, from an independent code path."
+            "de-duplicated. Empty when there is no grid. **Read this with "
+            "`step_share`, not on its own** — a busy line touches all sixteen "
+            "steps at some point, and on three of the five corpus tracks this "
+            "list is exactly `[0..15]`, which says nothing by itself."
+        ),
+    )
+    step_share: list[float] = Field(
+        default_factory=list,
+        description=(
+            "Parallel to `steps`: the share of all notes starting on that step. "
+            "The same shape as `DrumPattern.step_occupancy`, and here for the "
+            "same reason — it is what separates the backbone from the "
+            "decoration. On the calibration track steps 2, 6, 10 and 14 read "
+            "0.145 each against 0.07-0.10 elsewhere: the offbeat eighths, the "
+            "same four steps the hats land on, found by an independent code "
+            "path. Deliberately a measured share rather than a thresholded "
+            "list — no threshold here has more than one record behind it."
         ),
     )
     caveats: list[str] = Field(default_factory=list)
