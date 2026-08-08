@@ -905,6 +905,38 @@ def suggest_cycle_seconds(
     return round(beats_per_cycle * 60.0 / tempo, 6)
 
 
+def _stripped_summary_note(summary: TrackSummary) -> str | None:
+    """Name the blocks whose event lists were stripped, if this summary is one.
+
+    `status="ok"` on either block is unreachable with an empty list: a run that
+    found no drum candidates returns `too_few_hits` (`drum_elements`), and one
+    that segmented no notes returns `unvoiced` (`note_track`). So `ok` beside an
+    empty list did not come from an analysis run -- it came from
+    `track_summary.json`, where `summary_payload()` replaced those lists with
+    counts, loaded without the per-source files that still hold them.
+
+    Worth detecting because the damage is otherwise invisible. Hints built on a
+    stripped summary are valid and quietly weaker -- no sound suggestions for
+    kick/snare/hat, no bass note sequence -- and nothing in the output says so.
+    This is the guard `cli._load_full_track_summary` exists to make unnecessary;
+    it earns its place by covering every *other* caller.
+    """
+    stripped = [
+        name
+        for name, source in summary.sources.items()
+        if (source.drum_decomposition.status == "ok" and not source.drum_decomposition.hits)
+        or (source.bass_line.status == "ok" and not source.bass_line.notes)
+    ]
+    if not stripped:
+        return None
+    return (
+        f"event lists are missing from {', '.join(sorted(stripped))} while the status still "
+        "reads 'ok' — this summary was read from track_summary.json without its "
+        "analysis/<source>.json files, so drum sound suggestions and the bass note "
+        "sequence are weaker than the same data would otherwise give"
+    )
+
+
 def build(summary: TrackSummary, beats_per_cycle: int = BEATS_PER_CYCLE) -> StrudelHints:
     """Assemble the hints object from a completed track summary.
 
@@ -919,6 +951,7 @@ def build(summary: TrackSummary, beats_per_cycle: int = BEATS_PER_CYCLE) -> Stru
 
     if not summary.sources:
         note("summary contains no analysed sources; nothing could be inferred")
+    note(_stripped_summary_note(summary))
 
     # The track's one refined tempo comes first (schema v5). It is the number
     # every grid in this file was actually built on -- a difference of 0.04 BPM

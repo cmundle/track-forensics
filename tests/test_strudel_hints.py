@@ -826,6 +826,43 @@ def test_drum_grid_and_sound_suggestions_use_hits_not_the_stripped_summary_shape
     assert full_hints.drum_grid.kick_steps == stripped_hints.drum_grid.kick_steps == [0]
 
 
+def test_a_stripped_summary_says_so_instead_of_degrading_in_silence() -> None:
+    """The weaker result must announce itself, since nothing else can tell.
+
+    `status="ok"` with an empty list cannot come from an analysis run --
+    `drum_elements` returns `too_few_hits` when it finds no candidates and
+    `note_track` returns `unvoiced` when it segments no notes. So the pair is
+    proof the summary was read from `track_summary.json` without its per-source
+    files, and `build()` says which sources are affected rather than emitting
+    quietly worse hints.
+    """
+    decomposition = make_drum_decomposition()
+    assert decomposition.status == "ok"  # the fixture must actually be the 'ok' case
+    stripped = build(
+        make_summary(
+            make_source(
+                "drums", bpm=120.0, drum_decomposition=decomposition.model_copy(
+                    update={"hits": []}
+                )
+            )
+        )
+    )
+    assert any("event lists are missing from drums" in n for n in stripped.notes)
+
+    # The healthy path must stay quiet, or the note is noise.
+    full = build(make_summary(make_source("drums", bpm=120.0, drum_decomposition=decomposition)))
+    assert not any("event lists are missing" in n for n in full.notes)
+
+
+def test_a_genuinely_empty_block_is_not_mistaken_for_a_stripped_one() -> None:
+    """`too_few_hits` with no hits is a real result, not a stripped summary."""
+    empty = make_drum_decomposition().model_copy(
+        update={"hits": [], "status": "too_few_hits"}
+    )
+    hints = build(make_summary(make_source("drums", bpm=120.0, drum_decomposition=empty)))
+    assert not any("event lists are missing" in n for n in hints.notes)
+
+
 # --- schema v5: confidence has to reach the reader ---------------------------
 
 
