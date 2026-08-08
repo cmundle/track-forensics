@@ -1,0 +1,1032 @@
+{
+  "schema_version": 5,
+  "track_name": "pendulum-slam-hd",
+  "input_path": "examples/Pendulum_-_Slam_HD.wav",
+  "duration_seconds": 258.786417,
+  "backend": "essentia",
+  "separation_model": "htdemucs_ft",
+  "separation_device": "mps",
+  "analysis_sample_rate": 44100,
+  "tempo": {
+    "bpm": 174.003778,
+    "period_seconds": 0.34482,
+    "coarse_bpm": 172.265182,
+    "confidence": 0.613303,
+    "confidence_label": "high",
+    "status": "refined",
+    "multiples": [
+      {
+        "beats": 16,
+        "bpm": 174.001995,
+        "lag_frames": 475.210069,
+        "r": 0.723835,
+        "accepted": true,
+        "reason": null
+      },
+      {
+        "beats": 32,
+        "bpm": 174.005561,
+        "lag_frames": 950.400658,
+        "r": 0.613303,
+        "accepted": true,
+        "reason": null
+      }
+    ],
+    "stability": {
+      "first_half_bpm": 174.009216,
+      "second_half_bpm": 174.001157,
+      "delta_bpm": 0.008059,
+      "label": "high"
+    },
+    "octave_candidates": [
+      {
+        "ratio": 0.5,
+        "bpm": 87.002781,
+        "r": 0.613303,
+        "status": "live"
+      },
+      {
+        "ratio": 1.0,
+        "bpm": 174.001995,
+        "r": 0.723835,
+        "status": "live"
+      },
+      {
+        "ratio": 2.0,
+        "bpm": 348.017355,
+        "r": 0.724879,
+        "status": "live"
+      }
+    ],
+    "octave_status": "ambiguous",
+    "octave_arbitration": [
+      {
+        "ratio": 0.5,
+        "bpm": 87.002781,
+        "grid_status": "ok",
+        "quantisation_error_steps": 0.073714,
+        "quantisation_error_seconds": 0.012709,
+        "chosen": false
+      },
+      {
+        "ratio": 1.0,
+        "bpm": 174.001995,
+        "grid_status": "ok",
+        "quantisation_error_steps": 0.073274,
+        "quantisation_error_seconds": 0.006317,
+        "chosen": true
+      },
+      {
+        "ratio": 2.0,
+        "bpm": 348.017355,
+        "grid_status": "ok",
+        "quantisation_error_steps": 0.140182,
+        "quantisation_error_seconds": 0.006042,
+        "chosen": false
+      }
+    ],
+    "caveats": [
+      "the octave is not settled by correlation alone: the reported tempo was not shifted, but 87.00 BPM (r=0.61), 348.02 BPM (r=0.72) also fits this source. Arbitrate on grid quality, not on r \u2014 see the module docstring",
+      "the octave was arbitrated against the drum grid and the backend's own octave won; the alternatives are in octave_arbitration (3 fitted)"
+    ]
+  },
+  "downbeat": {
+    "offset_seconds": 0.73608,
+    "confidence": 0.767268,
+    "confidence_label": "high",
+    "beat_offset_seconds": 0.04644,
+    "beat_confidence": 0.767268,
+    "phase_confidence": 1.0,
+    "bar_phase": 2,
+    "candidate_offsets": [
+      0.04644,
+      0.39126,
+      0.73608,
+      1.0809
+    ],
+    "candidate_scores": [
+      -0.186039,
+      -0.316171,
+      0.85903,
+      -0.35682
+    ],
+    "unresolved_offsets": [],
+    "resolved_by": "spectral",
+    "status": "ok",
+    "caveats": []
+  },
+  "arrangement": {
+    "sections": [
+      {
+        "start_bar": 0,
+        "length_bars": 7,
+        "start_seconds": 0.73608,
+        "active": [
+          "vocals",
+          "other"
+        ],
+        "label": "intro",
+        "label_reason": "first section, thinner than the full band (bass, drums, kick, other, vocals): vocals, other"
+      },
+      {
+        "start_bar": 7,
+        "length_bars": 2,
+        "start_seconds": 10.391043,
+        "active": [
+          "other"
+        ],
+        "label": "breakdown",
+        "label_reason": "neither kick nor bass, away from the ends: other"
+      },
+      {
+        "start_bar": 9,
+        "length_bars": 2,
+        "start_seconds": 13.149604,
+        "active": [
+          "vocals",
+          "other"
+        ],
+        "label": "breakdown",
+        "label_reason": "neither kick nor bass, away from the ends: vocals, other"
+      },
+      {
+        "start_bar": 11,
+        "length_bars": 2,
+        "start_seconds": 15.908164,
+        "active": [
+          "vocals"
+        ],
+        "label": "breakdown",
+        "label_reason": "neither kick nor bass, away from the ends: vocals"
+      },
+      {
+        "start_bar": 13,
+        "length_bars": 9,
+        "start_seconds": 18.666725,
+        "active": [
+          "vocals",
+          "other"
+        ],
+        "label": "breakdown",
+        "label_reason": "neither kick nor bass, away from the ends: vocals, other"
+      },
+      {
+        "start_bar": 22,
+        "length_bars": 2,
+        "start_seconds": 31.080249,
+        "active": [
+          "drums",
+          "bass",
+          "other",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, other, kick"
+      },
+      {
+        "start_bar": 24,
+        "length_bars": 2,
+        "start_seconds": 33.83881,
+        "active": [
+          "other"
+        ],
+        "label": "breakdown",
+        "label_reason": "neither kick nor bass, away from the ends: other"
+      },
+      {
+        "start_bar": 26,
+        "length_bars": 11,
+        "start_seconds": 36.59737,
+        "active": [
+          "vocals",
+          "other"
+        ],
+        "label": "breakdown",
+        "label_reason": "neither kick nor bass, away from the ends: vocals, other"
+      },
+      {
+        "start_bar": 37,
+        "length_bars": 3,
+        "start_seconds": 51.769455,
+        "active": [
+          "drums",
+          "bass",
+          "vocals",
+          "other",
+          "kick"
+        ],
+        "label": "drop",
+        "label_reason": "the whole band (bass, drums, kick, other, vocals) is back, straight out of a breakdown"
+      },
+      {
+        "start_bar": 40,
+        "length_bars": 2,
+        "start_seconds": 55.907296,
+        "active": [
+          "drums",
+          "bass",
+          "other",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, other, kick"
+      },
+      {
+        "start_bar": 42,
+        "length_bars": 2,
+        "start_seconds": 58.665857,
+        "active": [
+          "drums",
+          "bass",
+          "vocals",
+          "other",
+          "kick"
+        ],
+        "label": "full",
+        "label_reason": "every track that is in this record is playing: drums, bass, vocals, other, kick"
+      },
+      {
+        "start_bar": 44,
+        "length_bars": 2,
+        "start_seconds": 61.424418,
+        "active": [
+          "drums",
+          "bass",
+          "other",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, other, kick"
+      },
+      {
+        "start_bar": 46,
+        "length_bars": 2,
+        "start_seconds": 64.182978,
+        "active": [
+          "drums",
+          "bass",
+          "vocals",
+          "other",
+          "kick"
+        ],
+        "label": "full",
+        "label_reason": "every track that is in this record is playing: drums, bass, vocals, other, kick"
+      },
+      {
+        "start_bar": 48,
+        "length_bars": 2,
+        "start_seconds": 66.941539,
+        "active": [
+          "drums",
+          "bass",
+          "other",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, other, kick"
+      },
+      {
+        "start_bar": 50,
+        "length_bars": 4,
+        "start_seconds": 69.7001,
+        "active": [
+          "drums",
+          "bass",
+          "vocals",
+          "other",
+          "kick"
+        ],
+        "label": "full",
+        "label_reason": "every track that is in this record is playing: drums, bass, vocals, other, kick"
+      },
+      {
+        "start_bar": 54,
+        "length_bars": 6,
+        "start_seconds": 75.217221,
+        "active": [
+          "other",
+          "kick"
+        ],
+        "label": "outro",
+        "label_reason": "after the last full-band section (bass, drums, kick, other, vocals): other, kick"
+      },
+      {
+        "start_bar": 60,
+        "length_bars": 9,
+        "start_seconds": 83.492904,
+        "active": [
+          "drums",
+          "vocals",
+          "other",
+          "kick"
+        ],
+        "label": "outro",
+        "label_reason": "after the last full-band section (bass, drums, kick, other, vocals): drums, vocals, other, kick"
+      },
+      {
+        "start_bar": 69,
+        "length_bars": 32,
+        "start_seconds": 95.906427,
+        "active": [
+          "drums",
+          "bass",
+          "other",
+          "kick"
+        ],
+        "label": "outro",
+        "label_reason": "after the last full-band section (bass, drums, kick, other, vocals): drums, bass, other, kick"
+      },
+      {
+        "start_bar": 101,
+        "length_bars": 2,
+        "start_seconds": 140.0434,
+        "active": [
+          "vocals",
+          "other"
+        ],
+        "label": "outro",
+        "label_reason": "after the last full-band section (bass, drums, kick, other, vocals): vocals, other"
+      },
+      {
+        "start_bar": 103,
+        "length_bars": 31,
+        "start_seconds": 142.801961,
+        "active": [
+          "drums",
+          "bass",
+          "other",
+          "kick"
+        ],
+        "label": "outro",
+        "label_reason": "after the last full-band section (bass, drums, kick, other, vocals): drums, bass, other, kick"
+      },
+      {
+        "start_bar": 134,
+        "length_bars": 2,
+        "start_seconds": 185.559653,
+        "active": [
+          "other"
+        ],
+        "label": "outro",
+        "label_reason": "after the last full-band section (bass, drums, kick, other, vocals): other"
+      },
+      {
+        "start_bar": 136,
+        "length_bars": 9,
+        "start_seconds": 188.318214,
+        "active": [
+          "vocals",
+          "other"
+        ],
+        "label": "outro",
+        "label_reason": "after the last full-band section (bass, drums, kick, other, vocals): vocals, other"
+      },
+      {
+        "start_bar": 145,
+        "length_bars": 4,
+        "start_seconds": 200.731738,
+        "active": [
+          "drums",
+          "vocals",
+          "other"
+        ],
+        "label": "outro",
+        "label_reason": "after the last full-band section (bass, drums, kick, other, vocals): drums, vocals, other"
+      },
+      {
+        "start_bar": 149,
+        "length_bars": 32,
+        "start_seconds": 206.248859,
+        "active": [
+          "drums",
+          "bass",
+          "other",
+          "kick"
+        ],
+        "label": "outro",
+        "label_reason": "after the last full-band section (bass, drums, kick, other, vocals): drums, bass, other, kick"
+      },
+      {
+        "start_bar": 181,
+        "length_bars": 3,
+        "start_seconds": 250.385832,
+        "active": [
+          "other"
+        ],
+        "label": "outro",
+        "label_reason": "after the last full-band section (bass, drums, kick, other, vocals): other"
+      },
+      {
+        "start_bar": 184,
+        "length_bars": 3,
+        "start_seconds": 254.523673,
+        "active": [],
+        "label": "silence",
+        "label_reason": "no track is playing"
+      }
+    ],
+    "bar_count": 187,
+    "bar_seconds": 1.37928,
+    "downbeat_seconds": 0.73608,
+    "absent_tracks": [],
+    "status": "ok",
+    "caveats": []
+  },
+  "sources": {
+    "mix": {
+      "schema_version": 5,
+      "source": "mix",
+      "audio_path": "examples/Pendulum_-_Slam_HD.wav",
+      "duration_seconds": 258.786417,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 172.265182,
+        "bpm_confidence": 1.388911,
+        "beat_count": 705,
+        "onset_count": 889,
+        "onset_density": 3.435266,
+        "transient_sharpness": 1.986054
+      },
+      "tonal": {
+        "key": "Eb",
+        "scale": "minor",
+        "key_confidence": 0.76819,
+        "hpcp_mean": [
+          0.135561,
+          0.151035,
+          0.124979,
+          0.308589,
+          0.137895,
+          0.159219,
+          0.199649,
+          0.168699,
+          0.205798,
+          0.165607,
+          0.205895,
+          0.134624
+        ],
+        "tonal_stability": 0.496704
+      },
+      "spectral": {
+        "centroid_mean": 2152.960598,
+        "centroid_std": 1032.976092,
+        "centroid_energy_hz": 971.57801,
+        "rolloff_mean": 2419.799014,
+        "rolloff_energy_hz": 1722.65625,
+        "brightness": 0.157785,
+        "band_energy_ratios": {
+          "low": 0.743057,
+          "low_mid": 0.116335,
+          "high_mid": 0.085309,
+          "high": 0.055299
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -8.482829,
+        "rms_mean": 0.246661,
+        "rms_std": 0.143547,
+        "crest_factor": 3.815855
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [],
+      "unavailable_features": []
+    },
+    "drums": {
+      "schema_version": 5,
+      "source": "drums",
+      "audio_path": "calibration/v5/pendulum-slam-hd/stems/drums.wav",
+      "duration_seconds": 258.786395,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 86.861694,
+        "bpm_confidence": 1.807975,
+        "beat_count": 414,
+        "onset_count": 855,
+        "onset_density": 3.303883,
+        "transient_sharpness": 6.386707
+      },
+      "tonal": {
+        "key": "C",
+        "scale": "major",
+        "key_confidence": 0.694357,
+        "hpcp_mean": [
+          0.221674,
+          0.137272,
+          0.191636,
+          0.201506,
+          0.090319,
+          0.152847,
+          0.133621,
+          0.240393,
+          0.241338,
+          0.213343,
+          0.150061,
+          0.20809
+        ],
+        "tonal_stability": 0.349005
+      },
+      "spectral": {
+        "centroid_mean": 4190.635668,
+        "centroid_std": 2488.518795,
+        "centroid_energy_hz": 1596.803918,
+        "rolloff_mean": 6067.534225,
+        "rolloff_energy_hz": 4909.570312,
+        "brightness": 0.207843,
+        "band_energy_ratios": {
+          "low": 0.735326,
+          "low_mid": 0.066727,
+          "high_mid": 0.071861,
+          "high": 0.126087
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -13.065977,
+        "rms_mean": 0.083037,
+        "rms_std": 0.09887,
+        "crest_factor": 7.623222
+      },
+      "drum_decomposition": {
+        "status": "ok",
+        "steps_per_cycle": 16,
+        "cycle_seconds": 1.37928,
+        "grid_anchor_seconds": 0.728294,
+        "grid_anchor_source": "supplied",
+        "quantisation_error_steps": 0.074846,
+        "patterns": [
+          {
+            "drum": "kick",
+            "steps": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              8,
+              9,
+              10,
+              11,
+              12,
+              14,
+              15
+            ],
+            "step_occupancy": [
+              0.93985,
+              0.015038,
+              0.030075,
+              0.007519,
+              0.097744,
+              0.022556,
+              0.037594,
+              0.045113,
+              0.022556,
+              0.766917,
+              0.015038,
+              0.037594,
+              0.105263,
+              0.015038
+            ],
+            "hit_count": 289
+          },
+          {
+            "drum": "snare",
+            "steps": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15
+            ],
+            "step_occupancy": [
+              0.046729,
+              0.056075,
+              0.186916,
+              0.140187,
+              0.925234,
+              0.084112,
+              0.121495,
+              0.280374,
+              0.149533,
+              0.084112,
+              0.056075,
+              0.037383,
+              0.934579,
+              0.018692,
+              0.056075,
+              0.046729
+            ],
+            "hit_count": 348
+          },
+          {
+            "drum": "hat",
+            "steps": [
+              0,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              14,
+              15
+            ],
+            "step_occupancy": [
+              0.815068,
+              0.39726,
+              0.034247,
+              0.910959,
+              0.013699,
+              0.123288,
+              0.013699,
+              0.958904,
+              0.006849,
+              0.657534,
+              0.006849,
+              0.910959,
+              0.109589,
+              0.013699
+            ],
+            "hit_count": 729
+          },
+          {
+            "drum": "unclassified",
+            "steps": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14
+            ],
+            "step_occupancy": [
+              0.060976,
+              0.560976,
+              0.04878,
+              0.02439,
+              0.04878,
+              0.097561,
+              0.036585,
+              0.073171,
+              0.02439,
+              0.02439,
+              0.04878,
+              0.036585,
+              0.109756,
+              0.085366
+            ],
+            "hit_count": 105
+          }
+        ],
+        "total_hit_count": 1471,
+        "unclassified_count": 105,
+        "caveats": [
+          "66 detections in the noise/air bands were the kick's own transient found a second time, not hits of their own \u2014 their windows are over 0.6 kick energy and their air/(air+noise) is under 0.5, which is a beater click rather than a hat",
+          "105 of 1471 hits are unclassified. Three classes cannot describe a full kit: toms, rides, crashes, claps and shakers all land here, and on percussive material that is correct rather than a failure."
+        ]
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "kick-heavy",
+          "confidence": 0.67236,
+          "evidence": {
+            "band_energy_low": 0.735326,
+            "min_band_energy_low": 0.5
+          }
+        },
+        {
+          "label": "bright hats",
+          "confidence": 0.026465,
+          "evidence": {
+            "band_energy_high": 0.126087,
+            "centroid_mean": 4190.635668,
+            "min_band_energy_high": 0.12,
+            "min_centroid_hz": 1000.0
+          }
+        }
+      ],
+      "unavailable_features": []
+    },
+    "bass": {
+      "schema_version": 5,
+      "source": "bass",
+      "audio_path": "calibration/v5/pendulum-slam-hd/stems/bass.wav",
+      "duration_seconds": 258.786395,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 172.265381,
+        "bpm_confidence": 0.623334,
+        "beat_count": 652,
+        "onset_count": 646,
+        "onset_density": 2.496267,
+        "transient_sharpness": 1.660488
+      },
+      "tonal": {
+        "key": "Eb",
+        "scale": "minor",
+        "key_confidence": 0.838374,
+        "hpcp_mean": [
+          0.111754,
+          0.100211,
+          0.107647,
+          0.17922,
+          0.109757,
+          0.160889,
+          0.153141,
+          0.120375,
+          0.112067,
+          0.106488,
+          0.157373,
+          0.118931
+        ],
+        "tonal_stability": 0.46074
+      },
+      "spectral": {
+        "centroid_mean": 1206.690725,
+        "centroid_std": 1515.097159,
+        "centroid_energy_hz": 55.562495,
+        "rolloff_mean": 1081.952894,
+        "rolloff_energy_hz": 86.132812,
+        "brightness": 3e-06,
+        "band_energy_ratios": {
+          "low": 0.99938,
+          "low_mid": 0.000618,
+          "high_mid": 2e-06,
+          "high": 0.0
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -13.319263,
+        "rms_mean": 0.134842,
+        "rms_std": 0.137428,
+        "crest_factor": 3.50053
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "ok",
+        "note_count": 400,
+        "median_midi_note": 36,
+        "median_cents_offset": -5.133806,
+        "voiced_fraction": 0.270558,
+        "octave_corrections": 6,
+        "caveats": [
+          "These notes cover 27% of the stem \u2014 the rest of it carried no trackable pitch. A bass that rests is silent for much of a track by design, so low coverage is not by itself a fault, but below 30% there is little material behind the line and quiet or short notes are more likely to be missing than resting."
+        ]
+      },
+      "labels": [],
+      "unavailable_features": []
+    },
+    "vocals": {
+      "schema_version": 5,
+      "source": "vocals",
+      "audio_path": "calibration/v5/pendulum-slam-hd/stems/vocals.wav",
+      "duration_seconds": 258.786395,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 86.620468,
+        "bpm_confidence": 0.151147,
+        "beat_count": 408,
+        "onset_count": 259,
+        "onset_density": 1.000825,
+        "transient_sharpness": 2.152668
+      },
+      "tonal": {
+        "key": "Bb",
+        "scale": "minor",
+        "key_confidence": 0.860745,
+        "hpcp_mean": [
+          0.191289,
+          0.18103,
+          0.152437,
+          0.177222,
+          0.151238,
+          0.237169,
+          0.150036,
+          0.156887,
+          0.160614,
+          0.164622,
+          0.222293,
+          0.166166
+        ],
+        "tonal_stability": 0.485578
+      },
+      "spectral": {
+        "centroid_mean": 3232.239734,
+        "centroid_std": 1975.896473,
+        "centroid_energy_hz": 1362.110619,
+        "rolloff_mean": 4239.870404,
+        "rolloff_energy_hz": 2670.117188,
+        "brightness": 0.288545,
+        "band_energy_ratios": {
+          "low": 0.178405,
+          "low_mid": 0.608515,
+          "high_mid": 0.183671,
+          "high": 0.029409
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -17.71073,
+        "rms_mean": 0.019289,
+        "rms_std": 0.036977,
+        "crest_factor": 21.914793
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "speech/vocal dominant",
+          "confidence": 0.000825,
+          "evidence": {
+            "rms_mean": 0.019289,
+            "centroid_energy_hz": 1362.110619,
+            "centroid_mean": 3232.239734,
+            "onset_density": 1.000825,
+            "min_rms_mean": 0.01,
+            "min_centroid_hz": 300.0,
+            "max_centroid_hz": 3000.0,
+            "min_onset_density": 1.0,
+            "max_onset_density": 5.0
+          }
+        }
+      ],
+      "unavailable_features": []
+    },
+    "other": {
+      "schema_version": 5,
+      "source": "other",
+      "audio_path": "calibration/v5/pendulum-slam-hd/stems/other.wav",
+      "duration_seconds": 258.786395,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 86.667549,
+        "bpm_confidence": -0.038058,
+        "beat_count": 444,
+        "onset_count": 521,
+        "onset_density": 2.013243,
+        "transient_sharpness": 1.163244
+      },
+      "tonal": {
+        "key": "Eb",
+        "scale": "major",
+        "key_confidence": 0.791216,
+        "hpcp_mean": [
+          0.137938,
+          0.190087,
+          0.128524,
+          0.379896,
+          0.120332,
+          0.121779,
+          0.220848,
+          0.176166,
+          0.190422,
+          0.149157,
+          0.22919,
+          0.096872
+        ],
+        "tonal_stability": 0.660056
+      },
+      "spectral": {
+        "centroid_mean": 2030.889489,
+        "centroid_std": 940.576199,
+        "centroid_energy_hz": 1641.06243,
+        "rolloff_mean": 2788.473007,
+        "rolloff_energy_hz": 3359.179688,
+        "brightness": 0.383652,
+        "band_energy_ratios": {
+          "low": 0.180449,
+          "low_mid": 0.508589,
+          "high_mid": 0.283029,
+          "high": 0.027933
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -16.464388,
+        "rms_mean": 0.077188,
+        "rms_std": 0.035089,
+        "crest_factor": 11.428894
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "percussive",
+          "confidence": 0.003311,
+          "evidence": {
+            "crest_factor": 11.428894,
+            "onset_density": 2.013243,
+            "min_crest_factor": 8.0,
+            "min_onset_density": 2.0
+          }
+        }
+      ],
+      "unavailable_features": []
+    }
+  }
+}

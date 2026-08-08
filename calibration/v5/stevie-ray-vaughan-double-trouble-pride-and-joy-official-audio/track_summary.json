@@ -1,0 +1,663 @@
+{
+  "schema_version": 5,
+  "track_name": "stevie-ray-vaughan-double-trouble-pride-and-joy-official-audio",
+  "input_path": "examples/Stevie_Ray_Vaughan_Double_Trouble_-_Pride_and_Joy_Official_Audio.wav",
+  "duration_seconds": 223.132177,
+  "backend": "essentia",
+  "separation_model": "htdemucs_ft",
+  "separation_device": "mps",
+  "analysis_sample_rate": 44100,
+  "tempo": {
+    "bpm": 126.456703,
+    "period_seconds": 0.474471,
+    "coarse_bpm": 126.456703,
+    "confidence": 0.0,
+    "confidence_label": "low",
+    "status": "coarse",
+    "multiples": [
+      {
+        "beats": 16,
+        "bpm": null,
+        "lag_frames": 653.0,
+        "r": 0.063899,
+        "accepted": false,
+        "reason": "below_correlation_floor"
+      },
+      {
+        "beats": 32,
+        "bpm": null,
+        "lag_frames": 1300.0,
+        "r": 0.042362,
+        "accepted": false,
+        "reason": "below_correlation_floor"
+      }
+    ],
+    "stability": {
+      "first_half_bpm": null,
+      "second_half_bpm": null,
+      "delta_bpm": null,
+      "label": "unknown"
+    },
+    "octave_candidates": [
+      {
+        "ratio": 0.5,
+        "bpm": 63.228352,
+        "r": 0.042362,
+        "status": "ruled_out"
+      },
+      {
+        "ratio": 1.0,
+        "bpm": 126.456703,
+        "r": 0.063899,
+        "status": "ruled_out"
+      },
+      {
+        "ratio": 2.0,
+        "bpm": 252.913406,
+        "r": 0.105391,
+        "status": "ruled_out"
+      }
+    ],
+    "octave_status": "single",
+    "octave_arbitration": [],
+    "caveats": [
+      "no beat multiple produced a usable autocorrelation peak (below_correlation_floor)"
+    ]
+  },
+  "downbeat": {
+    "offset_seconds": 0.960551,
+    "confidence": 0.508567,
+    "confidence_label": "high",
+    "beat_offset_seconds": 0.01161,
+    "beat_confidence": 0.508567,
+    "phase_confidence": 1.0,
+    "bar_phase": 2,
+    "candidate_offsets": [
+      0.01161,
+      0.486081,
+      0.960551,
+      1.435022
+    ],
+    "candidate_scores": [
+      0.022901,
+      -0.116523,
+      0.070784,
+      0.022838
+    ],
+    "unresolved_offsets": [],
+    "resolved_by": "spectral",
+    "status": "ok",
+    "caveats": []
+  },
+  "arrangement": {
+    "sections": [
+      {
+        "start_bar": 0,
+        "length_bars": 4,
+        "start_seconds": 0.960551,
+        "active": [
+          "other"
+        ],
+        "label": "intro",
+        "label_reason": "first section, thinner than the full band (bass, drums, kick, other, vocals): other"
+      },
+      {
+        "start_bar": 4,
+        "length_bars": 13,
+        "start_seconds": 8.552083,
+        "active": [
+          "drums",
+          "bass",
+          "other",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, other, kick"
+      },
+      {
+        "start_bar": 17,
+        "length_bars": 36,
+        "start_seconds": 33.224559,
+        "active": [
+          "drums",
+          "bass",
+          "vocals",
+          "other",
+          "kick"
+        ],
+        "label": "full",
+        "label_reason": "every track that is in this record is playing: drums, bass, vocals, other, kick"
+      },
+      {
+        "start_bar": 53,
+        "length_bars": 24,
+        "start_seconds": 101.548339,
+        "active": [
+          "drums",
+          "bass",
+          "other",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, other, kick"
+      },
+      {
+        "start_bar": 77,
+        "length_bars": 23,
+        "start_seconds": 147.097526,
+        "active": [
+          "drums",
+          "bass",
+          "vocals",
+          "other",
+          "kick"
+        ],
+        "label": "full",
+        "label_reason": "every track that is in this record is playing: drums, bass, vocals, other, kick"
+      },
+      {
+        "start_bar": 100,
+        "length_bars": 13,
+        "start_seconds": 190.74883,
+        "active": [
+          "drums",
+          "bass",
+          "other",
+          "kick"
+        ],
+        "label": "outro",
+        "label_reason": "after the last full-band section (bass, drums, kick, other, vocals): drums, bass, other, kick"
+      },
+      {
+        "start_bar": 113,
+        "length_bars": 2,
+        "start_seconds": 215.421306,
+        "active": [
+          "other"
+        ],
+        "label": "outro",
+        "label_reason": "after the last full-band section (bass, drums, kick, other, vocals): other"
+      },
+      {
+        "start_bar": 115,
+        "length_bars": 2,
+        "start_seconds": 219.217072,
+        "active": [],
+        "label": "silence",
+        "label_reason": "no track is playing"
+      }
+    ],
+    "bar_count": 117,
+    "bar_seconds": 1.897883,
+    "downbeat_seconds": 0.960551,
+    "absent_tracks": [],
+    "status": "ok",
+    "caveats": [
+      "the supplied bar grid is coarse, so section boundaries are approximate: an entry or an exit is a step of orders of magnitude in a stem's level and survives a drifting grid, but the bar it is reported at does not"
+    ]
+  },
+  "sources": {
+    "mix": {
+      "schema_version": 5,
+      "source": "mix",
+      "audio_path": "examples/Stevie_Ray_Vaughan_Double_Trouble_-_Pride_and_Joy_Official_Audio.wav",
+      "duration_seconds": 223.132177,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 126.456703,
+        "bpm_confidence": 1.977626,
+        "beat_count": 473,
+        "onset_count": 866,
+        "onset_density": 3.881108,
+        "transient_sharpness": 1.889244
+      },
+      "tonal": {
+        "key": "Eb",
+        "scale": "major",
+        "key_confidence": 0.887732,
+        "hpcp_mean": [
+          0.140168,
+          0.224712,
+          0.125687,
+          0.391887,
+          0.050023,
+          0.093348,
+          0.107909,
+          0.150124,
+          0.173817,
+          0.093889,
+          0.311116,
+          0.046346
+        ],
+        "tonal_stability": 0.623102
+      },
+      "spectral": {
+        "centroid_mean": 1154.616168,
+        "centroid_std": 785.064996,
+        "centroid_energy_hz": 549.056036,
+        "rolloff_mean": 977.853439,
+        "rolloff_energy_hz": 925.927734,
+        "brightness": 0.082729,
+        "band_energy_ratios": {
+          "low": 0.629713,
+          "low_mid": 0.30765,
+          "high_mid": 0.051721,
+          "high": 0.010915
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -14.319055,
+        "rms_mean": 0.123898,
+        "rms_std": 0.040193,
+        "crest_factor": 6.677579
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [],
+      "unavailable_features": []
+    },
+    "drums": {
+      "schema_version": 5,
+      "source": "drums",
+      "audio_path": "calibration/v5/stevie-ray-vaughan-double-trouble-pride-and-joy-official-audio/stems/drums.wav",
+      "duration_seconds": 223.132177,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 126.581276,
+        "bpm_confidence": 2.973119,
+        "beat_count": 470,
+        "onset_count": 828,
+        "onset_density": 3.710805,
+        "transient_sharpness": 4.087273
+      },
+      "tonal": {
+        "key": "G",
+        "scale": "major",
+        "key_confidence": 0.511583,
+        "hpcp_mean": [
+          0.140859,
+          0.095761,
+          0.106794,
+          0.083152,
+          0.141355,
+          0.240805,
+          0.198957,
+          0.300239,
+          0.172607,
+          0.143746,
+          0.069817,
+          0.095416
+        ],
+        "tonal_stability": 0.310888
+      },
+      "spectral": {
+        "centroid_mean": 2572.400499,
+        "centroid_std": 1652.701652,
+        "centroid_energy_hz": 455.144656,
+        "rolloff_mean": 3559.301464,
+        "rolloff_energy_hz": 215.332031,
+        "brightness": 0.055907,
+        "band_energy_ratios": {
+          "low": 0.925489,
+          "low_mid": 0.019203,
+          "high_mid": 0.030363,
+          "high": 0.024946
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -22.380335,
+        "rms_mean": 0.03869,
+        "rms_std": 0.043898,
+        "crest_factor": 12.652152
+      },
+      "drum_decomposition": {
+        "status": "no_grid",
+        "steps_per_cycle": null,
+        "cycle_seconds": 1.897883,
+        "grid_anchor_seconds": 0.939766,
+        "grid_anchor_source": "supplied",
+        "quantisation_error_steps": 0.237402,
+        "patterns": [
+          {
+            "drum": "kick",
+            "steps": [],
+            "step_occupancy": [],
+            "hit_count": 254
+          },
+          {
+            "drum": "snare",
+            "steps": [],
+            "step_occupancy": [],
+            "hit_count": 584
+          },
+          {
+            "drum": "hat",
+            "steps": [],
+            "step_occupancy": [],
+            "hit_count": 392
+          },
+          {
+            "drum": "unclassified",
+            "steps": [],
+            "step_occupancy": [],
+            "hit_count": 8
+          }
+        ],
+        "total_hit_count": 1238,
+        "unclassified_count": 8,
+        "caveats": [
+          "283 detections in the noise/air bands were the kick's own transient found a second time, not hits of their own \u2014 their windows are over 0.6 kick energy and their air/(air+noise) is under 0.5, which is a beater click rather than a hat",
+          "8 of 1238 hits are unclassified. Three classes cannot describe a full kit: toms, rides, crashes, claps and shakers all land here, and on percussive material that is correct rather than a failure.",
+          "the grid anchor was moved -0.18 steps onto the hits' own phase. A supplied downbeat fixes which step is step 0, not the sub-step phase, and this move cannot change any step number.",
+          "no cycle grid: folding the band flux onto this cycle length puts only 0.362 of the profile on the grid, against 0.5 required and 0.25 expected by chance. The hits do not fit any grid at this period \u2014 this is not a near miss."
+        ]
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "kick-heavy",
+          "confidence": 1.0,
+          "evidence": {
+            "band_energy_low": 0.925489,
+            "min_band_energy_low": 0.5
+          }
+        },
+        {
+          "label": "percussive",
+          "confidence": 0.387679,
+          "evidence": {
+            "crest_factor": 12.652152,
+            "onset_density": 3.710805,
+            "min_crest_factor": 8.0,
+            "min_onset_density": 2.0
+          }
+        }
+      ],
+      "unavailable_features": [
+        "drum_decomposition (status=no_grid)"
+      ]
+    },
+    "bass": {
+      "schema_version": 5,
+      "source": "bass",
+      "audio_path": "calibration/v5/stevie-ray-vaughan-double-trouble-pride-and-joy-official-audio/stems/bass.wav",
+      "duration_seconds": 223.132177,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 128.35318,
+        "bpm_confidence": 1.537068,
+        "beat_count": 467,
+        "onset_count": 761,
+        "onset_density": 3.410535,
+        "transient_sharpness": 1.409162
+      },
+      "tonal": {
+        "key": "Eb",
+        "scale": "major",
+        "key_confidence": 0.975964,
+        "hpcp_mean": [
+          0.133448,
+          0.100026,
+          0.104787,
+          0.267398,
+          0.038923,
+          0.09105,
+          0.041174,
+          0.095473,
+          0.104825,
+          0.069346,
+          0.220783,
+          0.02984
+        ],
+        "tonal_stability": 0.678339
+      },
+      "spectral": {
+        "centroid_mean": 363.507928,
+        "centroid_std": 900.989333,
+        "centroid_energy_hz": 107.212292,
+        "rolloff_mean": 361.222535,
+        "rolloff_energy_hz": 150.732422,
+        "brightness": 1.3e-05,
+        "band_energy_ratios": {
+          "low": 0.992589,
+          "low_mid": 0.0074,
+          "high_mid": 1.1e-05,
+          "high": 0.0
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -20.6719,
+        "rms_mean": 0.071331,
+        "rms_std": 0.030727,
+        "crest_factor": 4.307989
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "ok",
+        "note_count": 565,
+        "median_midi_note": 37,
+        "median_cents_offset": 10.950104,
+        "voiced_fraction": 0.573019,
+        "octave_corrections": 133,
+        "caveats": []
+      },
+      "labels": [],
+      "unavailable_features": []
+    },
+    "vocals": {
+      "schema_version": 5,
+      "source": "vocals",
+      "audio_path": "calibration/v5/stevie-ray-vaughan-double-trouble-pride-and-joy-official-audio/stems/vocals.wav",
+      "duration_seconds": 223.132177,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 123.396484,
+        "bpm_confidence": 0.017406,
+        "beat_count": 474,
+        "onset_count": 312,
+        "onset_density": 1.398274,
+        "transient_sharpness": 1.802415
+      },
+      "tonal": {
+        "key": "Eb",
+        "scale": "minor",
+        "key_confidence": 0.802439,
+        "hpcp_mean": [
+          0.125219,
+          0.229412,
+          0.171797,
+          0.329359,
+          0.090993,
+          0.155552,
+          0.144388,
+          0.145274,
+          0.167968,
+          0.138784,
+          0.253509,
+          0.070984
+        ],
+        "tonal_stability": 0.523913
+      },
+      "spectral": {
+        "centroid_mean": 3814.719043,
+        "centroid_std": 2219.619826,
+        "centroid_energy_hz": 1351.502951,
+        "rolloff_mean": 4944.11687,
+        "rolloff_energy_hz": 1851.855469,
+        "brightness": 0.219154,
+        "band_energy_ratios": {
+          "low": 0.025987,
+          "low_mid": 0.842141,
+          "high_mid": 0.100519,
+          "high": 0.031353
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -18.07548,
+        "rms_mean": 0.026868,
+        "rms_std": 0.042803,
+        "crest_factor": 11.603483
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "speech/vocal dominant",
+          "confidence": 0.187426,
+          "evidence": {
+            "rms_mean": 0.026868,
+            "centroid_energy_hz": 1351.502951,
+            "centroid_mean": 3814.719043,
+            "onset_density": 1.398274,
+            "min_rms_mean": 0.01,
+            "min_centroid_hz": 300.0,
+            "max_centroid_hz": 3000.0,
+            "min_onset_density": 1.0,
+            "max_onset_density": 5.0
+          }
+        }
+      ],
+      "unavailable_features": []
+    },
+    "other": {
+      "schema_version": 5,
+      "source": "other",
+      "audio_path": "calibration/v5/stevie-ray-vaughan-double-trouble-pride-and-joy-official-audio/stems/other.wav",
+      "duration_seconds": 223.132177,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 126.29142,
+        "bpm_confidence": 0.595109,
+        "beat_count": 500,
+        "onset_count": 661,
+        "onset_density": 2.96237,
+        "transient_sharpness": 1.502312
+      },
+      "tonal": {
+        "key": "Eb",
+        "scale": "minor",
+        "key_confidence": 0.907174,
+        "hpcp_mean": [
+          0.174655,
+          0.256467,
+          0.117232,
+          0.440202,
+          0.041269,
+          0.121363,
+          0.137576,
+          0.110176,
+          0.191235,
+          0.071875,
+          0.361331,
+          0.075725
+        ],
+        "tonal_stability": 0.691077
+      },
+      "spectral": {
+        "centroid_mean": 1206.259974,
+        "centroid_std": 1138.584296,
+        "centroid_energy_hz": 729.920125,
+        "rolloff_mean": 1578.151552,
+        "rolloff_energy_hz": 1291.992188,
+        "brightness": 0.131251,
+        "band_energy_ratios": {
+          "low": 0.203607,
+          "low_mid": 0.691433,
+          "high_mid": 0.104625,
+          "high": 0.000335
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -18.26292,
+        "rms_mean": 0.056051,
+        "rms_std": 0.023564,
+        "crest_factor": 5.616839
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [],
+      "unavailable_features": []
+    }
+  }
+}

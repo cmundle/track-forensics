@@ -1,0 +1,259 @@
+{
+  "schema_version": 5,
+  "track_name": "pendulum-slam-hd",
+  "bpm": 174.003778,
+  "tempo_status": "refined",
+  "tempo_confidence": "high",
+  "suggested_cycle_seconds": 1.37928,
+  "subdivision_feel": "straight 8ths",
+  "drum_density": "moderate",
+  "bass_activity": "moderate",
+  "tonal_centre": "Eb minor",
+  "drum_grid": {
+    "status": "ok",
+    "steps_per_cycle": 16,
+    "kick_steps": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      8,
+      9,
+      10,
+      11,
+      12,
+      14,
+      15
+    ],
+    "snare_steps": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15
+    ],
+    "hat_steps": [
+      0,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      14,
+      15
+    ],
+    "unclassified_count": 105,
+    "caveats": [
+      "66 detections in the noise/air bands were the kick's own transient found a second time, not hits of their own \u2014 their windows are over 0.6 kick energy and their air/(air+noise) is under 0.5, which is a beater click rather than a hat",
+      "105 of 1471 hits are unclassified. Three classes cannot describe a full kit: toms, rides, crashes, claps and shakers all land here, and on percussive material that is correct rather than a failure."
+    ]
+  },
+  "bass_line": {
+    "status": "ok",
+    "note_sequence": [
+      "f#2",
+      "d#2",
+      "f2",
+      "f#2",
+      "a#2",
+      "c2",
+      "g2",
+      "a#2",
+      "g1",
+      "d#2",
+      "e2",
+      "d#2",
+      "d#2",
+      "a#1",
+      "g1",
+      "e2",
+      "d#2",
+      "d#2",
+      "e2",
+      "d#2",
+      "d#2",
+      "a#1",
+      "g1",
+      "d#2",
+      "e2",
+      "d#2",
+      "e2",
+      "a#1",
+      "e2",
+      "d#2",
+      "e2",
+      "e2"
+    ],
+    "truncated_from": 400,
+    "median_midi_note": 36,
+    "steps": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15
+    ],
+    "step_share": [
+      0.04,
+      0.1375,
+      0.015,
+      0.045,
+      0.0625,
+      0.085,
+      0.02,
+      0.0825,
+      0.0025,
+      0.105,
+      0.065,
+      0.085,
+      0.0225,
+      0.19,
+      0.0225,
+      0.02
+    ],
+    "caveats": [
+      "These notes cover 27% of the stem \u2014 the rest of it carried no trackable pitch. A bass that rests is silent for much of a track by design, so low coverage is not by itself a fault, but below 30% there is little material behind the line and quiet or short notes are more likely to be missing than resting."
+    ]
+  },
+  "arrangement": {
+    "status": "ok",
+    "bar_count": 187,
+    "bar_seconds": 1.37928,
+    "sections": [
+      "bar 0 x7 intro: vocals, other",
+      "bar 7 x2 breakdown: other",
+      "bar 9 x2 breakdown: vocals, other",
+      "bar 11 x2 breakdown: vocals",
+      "bar 13 x9 breakdown: vocals, other",
+      "bar 22 x2 groove: drums, bass, other, kick",
+      "bar 24 x2 breakdown: other",
+      "bar 26 x11 breakdown: vocals, other",
+      "bar 37 x3 drop: drums, bass, vocals, other, kick",
+      "bar 40 x2 groove: drums, bass, other, kick",
+      "bar 42 x2 full: drums, bass, vocals, other, kick",
+      "bar 44 x2 groove: drums, bass, other, kick",
+      "bar 46 x2 full: drums, bass, vocals, other, kick",
+      "bar 48 x2 groove: drums, bass, other, kick",
+      "bar 50 x4 full: drums, bass, vocals, other, kick",
+      "bar 54 x6 outro: other, kick",
+      "bar 60 x9 outro: drums, vocals, other, kick",
+      "bar 69 x32 outro: drums, bass, other, kick",
+      "bar 101 x2 outro: vocals, other",
+      "bar 103 x31 outro: drums, bass, other, kick",
+      "bar 134 x2 outro: other",
+      "bar 136 x9 outro: vocals, other",
+      "bar 145 x4 outro: drums, vocals, other",
+      "bar 149 x32 outro: drums, bass, other, kick"
+    ],
+    "truncated_from": 26,
+    "absent_tracks": [],
+    "caveats": []
+  },
+  "sound_suggestions": [
+    {
+      "role": "kick",
+      "match": "exact",
+      "sound": "bd",
+      "reason": "289 hit(s) classified as kick; 'bd' is Strudel's default kick/bass-drum sample.",
+      "alternatives": [],
+      "evidence": {
+        "hit_count": 289.0,
+        "mean_kick_ratio": 0.874219,
+        "mean_confidence": 0.827608
+      }
+    },
+    {
+      "role": "snare",
+      "match": "exact",
+      "sound": "sd",
+      "reason": "348 hit(s) classified as snare; 'sd' is Strudel's default snare sample.",
+      "alternatives": [],
+      "evidence": {
+        "hit_count": 348.0,
+        "mean_body_ratio": 0.647703,
+        "mean_confidence": 0.919159
+      }
+    },
+    {
+      "role": "hat",
+      "match": "exact",
+      "sound": "oh",
+      "reason": "729 hit(s) classified as hat; median decay ratio 1.77 reads as open, so 'oh' is the closer default sample. Open versus closed is decided by decay length alone, which this pipeline measures directly.",
+      "alternatives": [],
+      "evidence": {
+        "hit_count": 729.0,
+        "mean_confidence": 0.908903,
+        "median_decay_ratio": 1.773975
+      }
+    },
+    {
+      "role": "unclassified",
+      "match": "none",
+      "sound": null,
+      "reason": "105 hit(s) did not clear the kick/snare/hat decision margin. This pipeline recognises only three drum classes; toms, rides, crashes, claps and shakers all land here on percussive material, correctly, not as a failure. Source by ear from Strudel's percussion set.",
+      "alternatives": [
+        "ht",
+        "mt",
+        "lt",
+        "cr",
+        "rd",
+        "perc",
+        "sh",
+        "cb",
+        "tb"
+      ],
+      "evidence": {
+        "hit_count": 105.0,
+        "mean_confidence": 0.02926
+      }
+    },
+    {
+      "role": "bass",
+      "match": "approximate",
+      "sound": "sine",
+      "reason": "Energy is concentrated at the fundamental (low-band ratio 1.00, brightness 0.00, median centroid 56 Hz) with little harmonic content: reads as sub bass. 'sine' is the closest default waveform.",
+      "alternatives": [],
+      "evidence": {
+        "low_band_ratio": 0.99938,
+        "brightness": 3e-06,
+        "centroid_energy_hz": 55.562495,
+        "centroid_mean_hz": 1206.690725
+      }
+    }
+  ],
+  "strudel_vocabulary_read": "2026-08-04",
+  "notes": [
+    "tempo octave: correlation could not settle it, so the drum grid was fitted at each candidate and the backend's own octave won (other live candidates: 87.00, 348.02 BPM). bpm above is the right one"
+  ]
+}

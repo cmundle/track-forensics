@@ -1,0 +1,801 @@
+{
+  "schema_version": 5,
+  "track_name": "daft-punk-get-lucky-official-audio-ft-pharrell-williams-nile-rodgers",
+  "input_path": "examples/Daft_Punk_-_Get_Lucky_Official_Audio_ft_Pharrell_Williams_Nile_Rodgers.wav",
+  "duration_seconds": 248.639297,
+  "backend": "essentia",
+  "separation_model": "htdemucs_ft",
+  "separation_device": "mps",
+  "analysis_sample_rate": 44100,
+  "tempo": {
+    "bpm": 116.04372,
+    "period_seconds": 0.517047,
+    "coarse_bpm": 116.042007,
+    "confidence": 0.729065,
+    "confidence_label": "high",
+    "status": "refined",
+    "multiples": [
+      {
+        "beats": 16,
+        "bpm": 116.043674,
+        "lag_frames": 712.554999,
+        "r": 0.729065,
+        "accepted": true,
+        "reason": null
+      },
+      {
+        "beats": 32,
+        "bpm": 116.043765,
+        "lag_frames": 1425.108877,
+        "r": 0.826612,
+        "accepted": true,
+        "reason": null
+      }
+    ],
+    "stability": {
+      "first_half_bpm": 116.041709,
+      "second_half_bpm": 116.047169,
+      "delta_bpm": 0.00546,
+      "label": "high"
+    },
+    "octave_candidates": [
+      {
+        "ratio": 0.5,
+        "bpm": 58.021883,
+        "r": 0.826612,
+        "status": "live"
+      },
+      {
+        "ratio": 1.0,
+        "bpm": 116.043674,
+        "r": 0.729065,
+        "status": "live"
+      },
+      {
+        "ratio": 2.0,
+        "bpm": 232.085253,
+        "r": 0.781135,
+        "status": "live"
+      }
+    ],
+    "octave_status": "ambiguous",
+    "octave_arbitration": [
+      {
+        "ratio": 0.5,
+        "bpm": 58.021883,
+        "grid_status": "ok",
+        "quantisation_error_steps": 0.124865,
+        "quantisation_error_seconds": 0.03228,
+        "chosen": false
+      },
+      {
+        "ratio": 1.0,
+        "bpm": 116.043674,
+        "grid_status": "ok",
+        "quantisation_error_steps": 0.052993,
+        "quantisation_error_seconds": 0.00685,
+        "chosen": true
+      },
+      {
+        "ratio": 2.0,
+        "bpm": 232.085253,
+        "grid_status": "ok",
+        "quantisation_error_steps": 0.104154,
+        "quantisation_error_seconds": 0.006732,
+        "chosen": false
+      }
+    ],
+    "caveats": [
+      "the octave is not settled by correlation alone: the reported tempo was not shifted, but 58.02 BPM (r=0.83), 232.09 BPM (r=0.78) also fits this source. Arbitrate on grid quality, not on r \u2014 see the module docstring",
+      "the octave was arbitrated against the drum grid and the backend's own octave won; the alternatives are in octave_arbitration (3 fitted)"
+    ]
+  },
+  "downbeat": {
+    "offset_seconds": 0.19737,
+    "confidence": 0.330361,
+    "confidence_label": "medium",
+    "beat_offset_seconds": 0.19737,
+    "beat_confidence": 0.93528,
+    "phase_confidence": 0.330361,
+    "bar_phase": 0,
+    "candidate_offsets": [
+      0.19737,
+      0.714416,
+      1.231463,
+      1.748509
+    ],
+    "candidate_scores": [
+      0.18446,
+      -0.16944,
+      0.155169,
+      -0.170189
+    ],
+    "unresolved_offsets": [
+      1.231463
+    ],
+    "resolved_by": "spectral",
+    "status": "ambiguous",
+    "caveats": [
+      "bar phase is degenerate: 1 other beat(s) scored within 25% of the winner"
+    ]
+  },
+  "arrangement": {
+    "sections": [
+      {
+        "start_bar": 0,
+        "length_bars": 7,
+        "start_seconds": 0.19737,
+        "active": [
+          "drums",
+          "bass",
+          "other",
+          "kick"
+        ],
+        "label": "intro",
+        "label_reason": "first section, thinner than the full band (bass, drums, kick, other, vocals): drums, bass, other, kick"
+      },
+      {
+        "start_bar": 7,
+        "length_bars": 29,
+        "start_seconds": 14.674672,
+        "active": [
+          "drums",
+          "bass",
+          "vocals",
+          "other",
+          "kick"
+        ],
+        "label": "full",
+        "label_reason": "every track that is in this record is playing: drums, bass, vocals, other, kick"
+      },
+      {
+        "start_bar": 36,
+        "length_bars": 3,
+        "start_seconds": 74.652067,
+        "active": [
+          "drums",
+          "bass",
+          "other",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, other, kick"
+      },
+      {
+        "start_bar": 39,
+        "length_bars": 21,
+        "start_seconds": 80.856625,
+        "active": [
+          "drums",
+          "bass",
+          "vocals",
+          "other",
+          "kick"
+        ],
+        "label": "full",
+        "label_reason": "every track that is in this record is playing: drums, bass, vocals, other, kick"
+      },
+      {
+        "start_bar": 60,
+        "length_bars": 7,
+        "start_seconds": 124.288532,
+        "active": [
+          "vocals",
+          "other"
+        ],
+        "label": "breakdown",
+        "label_reason": "neither kick nor bass, away from the ends: vocals, other"
+      },
+      {
+        "start_bar": 67,
+        "length_bars": 9,
+        "start_seconds": 138.765834,
+        "active": [
+          "drums",
+          "bass",
+          "other",
+          "kick"
+        ],
+        "label": "groove",
+        "label_reason": "playing: drums, bass, other, kick"
+      },
+      {
+        "start_bar": 76,
+        "length_bars": 32,
+        "start_seconds": 157.379508,
+        "active": [
+          "drums",
+          "bass",
+          "vocals",
+          "other",
+          "kick"
+        ],
+        "label": "full",
+        "label_reason": "every track that is in this record is playing: drums, bass, vocals, other, kick"
+      },
+      {
+        "start_bar": 108,
+        "length_bars": 9,
+        "start_seconds": 223.561461,
+        "active": [
+          "drums",
+          "bass",
+          "other",
+          "kick"
+        ],
+        "label": "outro",
+        "label_reason": "after the last full-band section (bass, drums, kick, other, vocals): drums, bass, other, kick"
+      },
+      {
+        "start_bar": 117,
+        "length_bars": 3,
+        "start_seconds": 242.175135,
+        "active": [],
+        "label": "silence",
+        "label_reason": "no track is playing"
+      }
+    ],
+    "bar_count": 120,
+    "bar_seconds": 2.068186,
+    "downbeat_seconds": 0.19737,
+    "absent_tracks": [],
+    "status": "ok",
+    "caveats": []
+  },
+  "sources": {
+    "mix": {
+      "schema_version": 5,
+      "source": "mix",
+      "audio_path": "examples/Daft_Punk_-_Get_Lucky_Official_Audio_ft_Pharrell_Williams_Nile_Rodgers.wav",
+      "duration_seconds": 248.639297,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 116.042007,
+        "bpm_confidence": 3.353462,
+        "beat_count": 480,
+        "onset_count": 1358,
+        "onset_density": 5.461727,
+        "transient_sharpness": 2.751505
+      },
+      "tonal": {
+        "key": "B",
+        "scale": "minor",
+        "key_confidence": 0.818632,
+        "hpcp_mean": [
+          0.075101,
+          0.14247,
+          0.203707,
+          0.053536,
+          0.183633,
+          0.075522,
+          0.330711,
+          0.102289,
+          0.131922,
+          0.245585,
+          0.080265,
+          0.240757
+        ],
+        "tonal_stability": 0.506602
+      },
+      "spectral": {
+        "centroid_mean": 1249.094709,
+        "centroid_std": 930.308902,
+        "centroid_energy_hz": 435.301532,
+        "rolloff_mean": 886.149922,
+        "rolloff_energy_hz": 516.796875,
+        "brightness": 0.045409,
+        "band_energy_ratios": {
+          "low": 0.730166,
+          "low_mid": 0.234267,
+          "high_mid": 0.021586,
+          "high": 0.013981
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -10.566445,
+        "rms_mean": 0.217901,
+        "rms_std": 0.112823,
+        "crest_factor": 4.319347
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [],
+      "unavailable_features": []
+    },
+    "drums": {
+      "schema_version": 5,
+      "source": "drums",
+      "audio_path": "calibration/v5/daft-punk-get-lucky-official-audio-ft-pharrell-williams-nile-rodgers/stems/drums.wav",
+      "duration_seconds": 248.639297,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 116.029945,
+        "bpm_confidence": 3.603714,
+        "beat_count": 479,
+        "onset_count": 1144,
+        "onset_density": 4.601043,
+        "transient_sharpness": 11.508653
+      },
+      "tonal": {
+        "key": "F",
+        "scale": "minor",
+        "key_confidence": 0.604341,
+        "hpcp_mean": [
+          0.087257,
+          0.07325,
+          0.179046,
+          0.133902,
+          0.068494,
+          0.125561,
+          0.109393,
+          0.271107,
+          0.241352,
+          0.166158,
+          0.110295,
+          0.080791
+        ],
+        "tonal_stability": 0.272282
+      },
+      "spectral": {
+        "centroid_mean": 3266.003936,
+        "centroid_std": 3465.952353,
+        "centroid_energy_hz": 375.892007,
+        "rolloff_mean": 4124.697224,
+        "rolloff_energy_hz": 107.666016,
+        "brightness": 0.035018,
+        "band_energy_ratios": {
+          "low": 0.944057,
+          "low_mid": 0.023929,
+          "high_mid": 0.011496,
+          "high": 0.020518
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -18.210491,
+        "rms_mean": 0.068424,
+        "rms_std": 0.088273,
+        "crest_factor": 8.775596
+      },
+      "drum_decomposition": {
+        "status": "ok",
+        "steps_per_cycle": 16,
+        "cycle_seconds": 2.068186,
+        "grid_anchor_seconds": 0.201607,
+        "grid_anchor_source": "supplied",
+        "quantisation_error_steps": 0.052968,
+        "patterns": [
+          {
+            "drum": "kick",
+            "steps": [
+              0,
+              1,
+              2,
+              4,
+              8,
+              9,
+              12,
+              14,
+              15
+            ],
+            "step_occupancy": [
+              0.991071,
+              0.133929,
+              0.357143,
+              0.991071,
+              1.0,
+              0.125,
+              0.991071,
+              0.008929,
+              0.178571
+            ],
+            "hit_count": 535
+          },
+          {
+            "drum": "snare",
+            "steps": [
+              3,
+              11,
+              15
+            ],
+            "step_occupancy": [
+              0.571429,
+              0.285714,
+              0.142857
+            ],
+            "hit_count": 7
+          },
+          {
+            "drum": "hat",
+            "steps": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15
+            ],
+            "step_occupancy": [
+              0.215517,
+              0.137931,
+              0.75,
+              0.344828,
+              0.077586,
+              0.913793,
+              0.362069,
+              0.396552,
+              0.094828,
+              0.922414,
+              0.336207,
+              0.060345,
+              0.077586,
+              0.896552,
+              0.672414
+            ],
+            "hit_count": 730
+          },
+          {
+            "drum": "unclassified",
+            "steps": [
+              15
+            ],
+            "step_occupancy": [
+              1.0
+            ],
+            "hit_count": 2
+          }
+        ],
+        "total_hit_count": 1274,
+        "unclassified_count": 2,
+        "caveats": [
+          "679 detections in the noise/air bands were the kick's own transient found a second time, not hits of their own \u2014 their windows are over 0.6 kick energy and their air/(air+noise) is under 0.5, which is a beater click rather than a hat",
+          "2 of 1274 hits are unclassified. Three classes cannot describe a full kit: toms, rides, crashes, claps and shakers all land here, and on percussive material that is correct rather than a failure."
+        ]
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "kick-heavy",
+          "confidence": 1.0,
+          "evidence": {
+            "band_energy_low": 0.944057,
+            "min_band_energy_low": 0.5
+          }
+        },
+        {
+          "label": "percussive",
+          "confidence": 0.064633,
+          "evidence": {
+            "crest_factor": 8.775596,
+            "onset_density": 4.601043,
+            "min_crest_factor": 8.0,
+            "min_onset_density": 2.0
+          }
+        }
+      ],
+      "unavailable_features": []
+    },
+    "bass": {
+      "schema_version": 5,
+      "source": "bass",
+      "audio_path": "calibration/v5/daft-punk-get-lucky-official-audio-ft-pharrell-williams-nile-rodgers/stems/bass.wav",
+      "duration_seconds": 248.639297,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 117.058441,
+        "bpm_confidence": 0.756209,
+        "beat_count": 491,
+        "onset_count": 800,
+        "onset_density": 3.217512,
+        "transient_sharpness": 3.5399
+      },
+      "tonal": {
+        "key": "B",
+        "scale": "minor",
+        "key_confidence": 0.665362,
+        "hpcp_mean": [
+          0.087738,
+          0.100946,
+          0.172394,
+          0.080327,
+          0.192955,
+          0.145347,
+          0.205869,
+          0.065405,
+          0.063555,
+          0.113275,
+          0.074339,
+          0.188918
+        ],
+        "tonal_stability": 0.418188
+      },
+      "spectral": {
+        "centroid_mean": 312.729459,
+        "centroid_std": 629.282584,
+        "centroid_energy_hz": 101.931673,
+        "rolloff_mean": 202.585839,
+        "rolloff_energy_hz": 150.732422,
+        "brightness": 0.000172,
+        "band_energy_ratios": {
+          "low": 0.976229,
+          "low_mid": 0.023651,
+          "high_mid": 0.00012,
+          "high": 1e-06
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -16.940371,
+        "rms_mean": 0.089996,
+        "rms_std": 0.083436,
+        "crest_factor": 7.907993
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "ok",
+        "note_count": 322,
+        "median_midi_note": 38,
+        "median_cents_offset": 6.300612,
+        "voiced_fraction": 0.200812,
+        "octave_corrections": 140,
+        "caveats": [
+          "These notes cover 20% of the stem \u2014 the rest of it carried no trackable pitch. A bass that rests is silent for much of a track by design, so low coverage is not by itself a fault, but below 30% there is little material behind the line and quiet or short notes are more likely to be missing than resting."
+        ]
+      },
+      "labels": [
+        {
+          "label": "plucked bass",
+          "confidence": 0.10798,
+          "evidence": {
+            "transient_sharpness": 3.5399,
+            "min_transient_sharpness": 3.0
+          }
+        }
+      ],
+      "unavailable_features": []
+    },
+    "vocals": {
+      "schema_version": 5,
+      "source": "vocals",
+      "audio_path": "calibration/v5/daft-punk-get-lucky-official-audio-ft-pharrell-williams-nile-rodgers/stems/vocals.wav",
+      "duration_seconds": 248.639297,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 116.847794,
+        "bpm_confidence": 0.173134,
+        "beat_count": 481,
+        "onset_count": 699,
+        "onset_density": 2.811301,
+        "transient_sharpness": 3.238251
+      },
+      "tonal": {
+        "key": "D",
+        "scale": "major",
+        "key_confidence": 0.613608,
+        "hpcp_mean": [
+          0.153946,
+          0.180456,
+          0.181409,
+          0.146594,
+          0.152057,
+          0.127047,
+          0.263199,
+          0.10831,
+          0.126787,
+          0.218995,
+          0.105837,
+          0.198697
+        ],
+        "tonal_stability": 0.540622
+      },
+      "spectral": {
+        "centroid_mean": 2319.269136,
+        "centroid_std": 2061.531724,
+        "centroid_energy_hz": 889.415696,
+        "rolloff_mean": 2450.776711,
+        "rolloff_energy_hz": 1098.193359,
+        "brightness": 0.078378,
+        "band_energy_ratios": {
+          "low": 0.153942,
+          "low_mid": 0.789919,
+          "high_mid": 0.030775,
+          "high": 0.025364
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -15.070255,
+        "rms_mean": 0.068565,
+        "rms_std": 0.073876,
+        "crest_factor": 8.854445
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "speech/vocal dominant",
+          "confidence": 0.650719,
+          "evidence": {
+            "rms_mean": 0.068565,
+            "centroid_energy_hz": 889.415696,
+            "centroid_mean": 2319.269136,
+            "onset_density": 2.811301,
+            "min_rms_mean": 0.01,
+            "min_centroid_hz": 300.0,
+            "max_centroid_hz": 3000.0,
+            "min_onset_density": 1.0,
+            "max_onset_density": 5.0
+          }
+        },
+        {
+          "label": "percussive",
+          "confidence": 0.071204,
+          "evidence": {
+            "crest_factor": 8.854445,
+            "onset_density": 2.811301,
+            "min_crest_factor": 8.0,
+            "min_onset_density": 2.0
+          }
+        }
+      ],
+      "unavailable_features": []
+    },
+    "other": {
+      "schema_version": 5,
+      "source": "other",
+      "audio_path": "calibration/v5/daft-punk-get-lucky-official-audio-ft-pharrell-williams-nile-rodgers/stems/other.wav",
+      "duration_seconds": 248.639297,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 116.798584,
+        "bpm_confidence": 1.304411,
+        "beat_count": 480,
+        "onset_count": 1271,
+        "onset_density": 5.111823,
+        "transient_sharpness": 2.478964
+      },
+      "tonal": {
+        "key": "D",
+        "scale": "major",
+        "key_confidence": 0.801557,
+        "hpcp_mean": [
+          0.013873,
+          0.189308,
+          0.284381,
+          0.02419,
+          0.282204,
+          0.009049,
+          0.461792,
+          0.016903,
+          0.102359,
+          0.28604,
+          0.034424,
+          0.267402
+        ],
+        "tonal_stability": 0.796501
+      },
+      "spectral": {
+        "centroid_mean": 963.340312,
+        "centroid_std": 771.446855,
+        "centroid_energy_hz": 703.49962,
+        "rolloff_mean": 1132.613508,
+        "rolloff_energy_hz": 1291.992188,
+        "brightness": 0.132814,
+        "band_energy_ratios": {
+          "low": 0.212965,
+          "low_mid": 0.693982,
+          "high_mid": 0.092855,
+          "high": 0.000198
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -19.754045,
+        "rms_mean": 0.059432,
+        "rms_std": 0.03321,
+        "crest_factor": 13.795853
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "percussive",
+          "confidence": 0.482988,
+          "evidence": {
+            "crest_factor": 13.795853,
+            "onset_density": 5.111823,
+            "min_crest_factor": 8.0,
+            "min_onset_density": 2.0
+          }
+        }
+      ],
+      "unavailable_features": []
+    }
+  }
+}

@@ -1,0 +1,760 @@
+{
+  "schema_version": 5,
+  "track_name": "amy-winehouse-back-to-black",
+  "input_path": "examples/Amy_Winehouse_-_Back_To_Black.wav",
+  "duration_seconds": 240.047914,
+  "backend": "essentia",
+  "separation_model": "htdemucs_ft",
+  "separation_device": "mps",
+  "analysis_sample_rate": 44100,
+  "tempo": {
+    "bpm": 61.735482,
+    "period_seconds": 0.971888,
+    "coarse_bpm": 61.739161,
+    "confidence": 0.414563,
+    "confidence_label": "medium",
+    "status": "refined",
+    "multiples": [
+      {
+        "beats": 16,
+        "bpm": 61.739161,
+        "lag_frames": 1339.303924,
+        "r": 0.414563,
+        "accepted": true,
+        "reason": null
+      },
+      {
+        "beats": 32,
+        "bpm": 61.731803,
+        "lag_frames": 2678.927082,
+        "r": 0.429858,
+        "accepted": true,
+        "reason": null
+      }
+    ],
+    "stability": {
+      "first_half_bpm": null,
+      "second_half_bpm": null,
+      "delta_bpm": null,
+      "label": "unknown"
+    },
+    "octave_candidates": [
+      {
+        "ratio": 0.5,
+        "bpm": 30.865902,
+        "r": 0.429858,
+        "status": "live"
+      },
+      {
+        "ratio": 1.0,
+        "bpm": 61.739161,
+        "r": 0.414563,
+        "status": "live"
+      },
+      {
+        "ratio": 2.0,
+        "bpm": 123.44376,
+        "r": 0.477,
+        "status": "live"
+      }
+    ],
+    "octave_status": "ambiguous",
+    "octave_arbitration": [
+      {
+        "ratio": 0.5,
+        "bpm": 61.739161,
+        "grid_status": "ok",
+        "quantisation_error_steps": 0.15994,
+        "quantisation_error_seconds": 0.038859,
+        "chosen": true
+      },
+      {
+        "ratio": 1.0,
+        "bpm": 123.44376,
+        "grid_status": "no_grid",
+        "quantisation_error_steps": 0.188998,
+        "quantisation_error_seconds": null,
+        "chosen": false
+      },
+      {
+        "ratio": 2.0,
+        "bpm": 246.914066,
+        "grid_status": "ok",
+        "quantisation_error_steps": 0.172048,
+        "quantisation_error_seconds": 0.010452,
+        "chosen": false
+      }
+    ],
+    "caveats": [
+      "the octave is not settled by correlation alone: the reported tempo was not shifted, but 30.87 BPM (r=0.43), 123.44 BPM (r=0.48) also fits this source. Arbitrate on grid quality, not on r \u2014 see the module docstring",
+      "tempo octave corrected x0.5 to 61.739 BPM: the drum grid fits better there than at the backend's octave on both quantisation-error measures (0.1599 steps and 38.9 ms). The backend's estimate is unchanged in every source's rhythm.bpm"
+    ]
+  },
+  "downbeat": {
+    "offset_seconds": 0.17415,
+    "confidence": 0.814649,
+    "confidence_label": "high",
+    "beat_offset_seconds": 0.17415,
+    "beat_confidence": 0.814649,
+    "phase_confidence": 1.0,
+    "bar_phase": 0,
+    "candidate_offsets": [
+      0.17415,
+      1.146038,
+      2.117926,
+      3.089815
+    ],
+    "candidate_scores": [
+      0.061136,
+      -0.037819,
+      -0.009425,
+      -0.013892
+    ],
+    "unresolved_offsets": [],
+    "resolved_by": "spectral",
+    "status": "ok",
+    "caveats": []
+  },
+  "arrangement": {
+    "sections": [
+      {
+        "start_bar": 0,
+        "length_bars": 3,
+        "start_seconds": 0.17415,
+        "active": [
+          "drums",
+          "other",
+          "kick"
+        ],
+        "label": "intro",
+        "label_reason": "first section, thinner than the full band (bass, drums, kick, other, vocals): drums, other, kick"
+      },
+      {
+        "start_bar": 3,
+        "length_bars": 57,
+        "start_seconds": 11.836811,
+        "active": [
+          "drums",
+          "bass",
+          "vocals",
+          "other",
+          "kick"
+        ],
+        "label": "full",
+        "label_reason": "every track that is in this record is playing: drums, bass, vocals, other, kick"
+      },
+      {
+        "start_bar": 60,
+        "length_bars": 2,
+        "start_seconds": 233.42737,
+        "active": [],
+        "label": "silence",
+        "label_reason": "no track is playing"
+      }
+    ],
+    "bar_count": 62,
+    "bar_seconds": 3.887554,
+    "downbeat_seconds": 0.17415,
+    "absent_tracks": [],
+    "status": "ok",
+    "caveats": []
+  },
+  "sources": {
+    "mix": {
+      "schema_version": 5,
+      "source": "mix",
+      "audio_path": "examples/Amy_Winehouse_-_Back_To_Black.wav",
+      "duration_seconds": 240.047914,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 123.655579,
+        "bpm_confidence": 2.693694,
+        "beat_count": 484,
+        "onset_count": 681,
+        "onset_density": 2.836934,
+        "transient_sharpness": 4.007831
+      },
+      "tonal": {
+        "key": "D",
+        "scale": "minor",
+        "key_confidence": 0.93596,
+        "hpcp_mean": [
+          0.132776,
+          0.153782,
+          0.372755,
+          0.059363,
+          0.139412,
+          0.20189,
+          0.044017,
+          0.157768,
+          0.093884,
+          0.427434,
+          0.195112,
+          0.101395
+        ],
+        "tonal_stability": 0.690432
+      },
+      "spectral": {
+        "centroid_mean": 1318.63251,
+        "centroid_std": 1067.490813,
+        "centroid_energy_hz": 788.8754,
+        "rolloff_mean": 1499.883715,
+        "rolloff_energy_hz": 1335.058594,
+        "brightness": 0.138228,
+        "band_energy_ratios": {
+          "low": 0.421956,
+          "low_mid": 0.497587,
+          "high_mid": 0.064801,
+          "high": 0.015655
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -8.479588,
+        "rms_mean": 0.244488,
+        "rms_std": 0.09778,
+        "crest_factor": 3.763977
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [],
+      "unavailable_features": []
+    },
+    "drums": {
+      "schema_version": 5,
+      "source": "drums",
+      "audio_path": "calibration/v5/amy-winehouse-back-to-black/stems/drums.wav",
+      "duration_seconds": 240.047891,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 123.732201,
+        "bpm_confidence": 2.916496,
+        "beat_count": 487,
+        "onset_count": 618,
+        "onset_density": 2.574486,
+        "transient_sharpness": 15.838459
+      },
+      "tonal": {
+        "key": "Ab",
+        "scale": "major",
+        "key_confidence": 0.67783,
+        "hpcp_mean": [
+          0.175037,
+          0.07443,
+          0.3671,
+          0.139169,
+          0.081409,
+          0.116814,
+          0.108576,
+          0.122977,
+          0.180286,
+          0.163045,
+          0.108558,
+          0.130714
+        ],
+        "tonal_stability": 0.319014
+      },
+      "spectral": {
+        "centroid_mean": 2646.548445,
+        "centroid_std": 2765.184453,
+        "centroid_energy_hz": 852.057552,
+        "rolloff_mean": 3336.271825,
+        "rolloff_energy_hz": 215.332031,
+        "brightness": 0.105087,
+        "band_energy_ratios": {
+          "low": 0.860954,
+          "low_mid": 0.037952,
+          "high_mid": 0.056454,
+          "high": 0.04464
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -17.210564,
+        "rms_mean": 0.072664,
+        "rms_std": 0.083041,
+        "crest_factor": 8.578337
+      },
+      "drum_decomposition": {
+        "status": "ok",
+        "steps_per_cycle": 16,
+        "cycle_seconds": 3.887554,
+        "grid_anchor_seconds": 0.190303,
+        "grid_anchor_source": "supplied",
+        "quantisation_error_steps": 0.160426,
+        "patterns": [
+          {
+            "drum": "kick",
+            "steps": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15
+            ],
+            "step_occupancy": [
+              0.483333,
+              0.133333,
+              0.083333,
+              0.383333,
+              0.466667,
+              0.1,
+              0.066667,
+              0.083333,
+              0.516667,
+              0.083333,
+              0.1,
+              0.616667,
+              0.033333,
+              0.416667,
+              0.1,
+              0.033333
+            ],
+            "hit_count": 223
+          },
+          {
+            "drum": "snare",
+            "steps": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15
+            ],
+            "step_occupancy": [
+              0.28125,
+              0.09375,
+              0.5,
+              0.34375,
+              0.21875,
+              0.03125,
+              0.46875,
+              0.15625,
+              0.1875,
+              0.0625,
+              0.53125,
+              0.09375,
+              0.125,
+              0.03125,
+              0.46875,
+              0.125
+            ],
+            "hit_count": 119
+          },
+          {
+            "drum": "hat",
+            "steps": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15
+            ],
+            "step_occupancy": [
+              0.616667,
+              0.133333,
+              0.833333,
+              0.683333,
+              0.75,
+              0.483333,
+              0.783333,
+              0.1,
+              0.7,
+              0.15,
+              0.816667,
+              0.783333,
+              0.2,
+              0.7,
+              0.8,
+              0.1
+            ],
+            "hit_count": 537
+          },
+          {
+            "drum": "unclassified",
+            "steps": [
+              0,
+              1,
+              6,
+              8,
+              11,
+              13,
+              15
+            ],
+            "step_occupancy": [
+              0.357143,
+              0.071429,
+              0.071429,
+              0.214286,
+              0.071429,
+              0.214286,
+              0.214286
+            ],
+            "hit_count": 17
+          }
+        ],
+        "total_hit_count": 896,
+        "unclassified_count": 17,
+        "caveats": [
+          "no hits looked for in these bands \u2014 they are full of transients that never separate. The energy does not fall back between hits, which is a compressed or reverberant source (or a roll), and this module cannot tell one hit from the next in it. **Any drum living in these bands is missing from the counts below, however loud it is.** An envelope fold can still see the pattern where per-hit detection cannot: kick",
+          "17 of 896 hits are unclassified. Three classes cannot describe a full kit: toms, rides, crashes, claps and shakers all land here, and on percussive material that is correct rather than a failure."
+        ]
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "kick-heavy",
+          "confidence": 1.0,
+          "evidence": {
+            "band_energy_low": 0.860954,
+            "min_band_energy_low": 0.5
+          }
+        },
+        {
+          "label": "percussive",
+          "confidence": 0.048195,
+          "evidence": {
+            "crest_factor": 8.578337,
+            "onset_density": 2.574486,
+            "min_crest_factor": 8.0,
+            "min_onset_density": 2.0
+          }
+        }
+      ],
+      "unavailable_features": []
+    },
+    "bass": {
+      "schema_version": 5,
+      "source": "bass",
+      "audio_path": "calibration/v5/amy-winehouse-back-to-black/stems/bass.wav",
+      "duration_seconds": 240.047891,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 123.730095,
+        "bpm_confidence": 0.474034,
+        "beat_count": 483,
+        "onset_count": 473,
+        "onset_density": 1.97044,
+        "transient_sharpness": 4.523385
+      },
+      "tonal": {
+        "key": "D",
+        "scale": "minor",
+        "key_confidence": 0.830497,
+        "hpcp_mean": [
+          0.113671,
+          0.068943,
+          0.203478,
+          0.075744,
+          0.082565,
+          0.12737,
+          0.057986,
+          0.153904,
+          0.081149,
+          0.236695,
+          0.194153,
+          0.073432
+        ],
+        "tonal_stability": 0.607207
+      },
+      "spectral": {
+        "centroid_mean": 620.775207,
+        "centroid_std": 959.722573,
+        "centroid_energy_hz": 95.90132,
+        "rolloff_mean": 428.540631,
+        "rolloff_energy_hz": 129.199219,
+        "brightness": 5.3e-05,
+        "band_energy_ratios": {
+          "low": 0.986455,
+          "low_mid": 0.013532,
+          "high_mid": 1.2e-05,
+          "high": 1e-06
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -18.214497,
+        "rms_mean": 0.066595,
+        "rms_std": 0.071564,
+        "crest_factor": 5.32628
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "ok",
+        "note_count": 423,
+        "median_midi_note": 38,
+        "median_cents_offset": 11.791804,
+        "voiced_fraction": 0.431978,
+        "octave_corrections": 220,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "plucked bass",
+          "confidence": 0.304677,
+          "evidence": {
+            "transient_sharpness": 4.523385,
+            "min_transient_sharpness": 3.0
+          }
+        },
+        {
+          "label": "sustained sub",
+          "confidence": 0.016891,
+          "evidence": {
+            "centroid_energy_hz": 95.90132,
+            "centroid_mean": 620.775207,
+            "onset_density": 1.97044,
+            "max_centroid_hz": 250.0,
+            "max_onset_density": 2.0
+          }
+        }
+      ],
+      "unavailable_features": []
+    },
+    "vocals": {
+      "schema_version": 5,
+      "source": "vocals",
+      "audio_path": "calibration/v5/amy-winehouse-back-to-black/stems/vocals.wav",
+      "duration_seconds": 240.047891,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 123.305649,
+        "bpm_confidence": -0.119313,
+        "beat_count": 474,
+        "onset_count": 584,
+        "onset_density": 2.432848,
+        "transient_sharpness": 1.807237
+      },
+      "tonal": {
+        "key": "D",
+        "scale": "minor",
+        "key_confidence": 0.766168,
+        "hpcp_mean": [
+          0.179831,
+          0.252818,
+          0.262551,
+          0.083092,
+          0.158283,
+          0.142501,
+          0.070301,
+          0.071325,
+          0.125175,
+          0.310116,
+          0.077785,
+          0.126274
+        ],
+        "tonal_stability": 0.652067
+      },
+      "spectral": {
+        "centroid_mean": 1883.440232,
+        "centroid_std": 1675.096093,
+        "centroid_energy_hz": 1320.787098,
+        "rolloff_mean": 2437.059343,
+        "rolloff_energy_hz": 2024.121094,
+        "brightness": 0.296007,
+        "band_energy_ratios": {
+          "low": 0.013884,
+          "low_mid": 0.830726,
+          "high_mid": 0.1311,
+          "high": 0.02429
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -11.915313,
+        "rms_mean": 0.109593,
+        "rms_std": 0.086912,
+        "crest_factor": 6.837998
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [
+        {
+          "label": "speech/vocal dominant",
+          "confidence": 1.0,
+          "evidence": {
+            "rms_mean": 0.109593,
+            "centroid_energy_hz": 1320.787098,
+            "centroid_mean": 1883.440232,
+            "onset_density": 2.432848,
+            "min_rms_mean": 0.01,
+            "min_centroid_hz": 300.0,
+            "max_centroid_hz": 3000.0,
+            "min_onset_density": 1.0,
+            "max_onset_density": 5.0
+          }
+        }
+      ],
+      "unavailable_features": []
+    },
+    "other": {
+      "schema_version": 5,
+      "source": "other",
+      "audio_path": "calibration/v5/amy-winehouse-back-to-black/stems/other.wav",
+      "duration_seconds": 240.047891,
+      "sample_rate": 44100,
+      "backend": "essentia",
+      "rhythm": {
+        "bpm": 123.49604,
+        "bpm_confidence": 0.677631,
+        "beat_count": 496,
+        "onset_count": 491,
+        "onset_density": 2.045425,
+        "transient_sharpness": 1.540923
+      },
+      "tonal": {
+        "key": "D",
+        "scale": "minor",
+        "key_confidence": 0.897821,
+        "hpcp_mean": [
+          0.114013,
+          0.091857,
+          0.377456,
+          0.033078,
+          0.143831,
+          0.25236,
+          0.020546,
+          0.210592,
+          0.027565,
+          0.421728,
+          0.237725,
+          0.108058
+        ],
+        "tonal_stability": 0.823763
+      },
+      "spectral": {
+        "centroid_mean": 899.337289,
+        "centroid_std": 760.370586,
+        "centroid_energy_hz": 622.386353,
+        "rolloff_mean": 1162.707573,
+        "rolloff_energy_hz": 1055.126953,
+        "brightness": 0.082461,
+        "band_energy_ratios": {
+          "low": 0.25039,
+          "low_mid": 0.711783,
+          "high_mid": 0.037536,
+          "high": 0.000291
+        }
+      },
+      "dynamics": {
+        "loudness_lufs": -13.831223,
+        "rms_mean": 0.118559,
+        "rms_std": 0.049664,
+        "crest_factor": 6.273904
+      },
+      "drum_decomposition": {
+        "status": "not_attempted",
+        "steps_per_cycle": null,
+        "cycle_seconds": null,
+        "grid_anchor_seconds": null,
+        "grid_anchor_source": null,
+        "quantisation_error_steps": null,
+        "patterns": [],
+        "total_hit_count": 0,
+        "unclassified_count": 0,
+        "caveats": []
+      },
+      "bass_line": {
+        "status": "not_attempted",
+        "note_count": 0,
+        "median_midi_note": null,
+        "median_cents_offset": null,
+        "voiced_fraction": null,
+        "octave_corrections": 0,
+        "caveats": []
+      },
+      "labels": [],
+      "unavailable_features": []
+    }
+  }
+}

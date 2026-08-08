@@ -27,9 +27,13 @@ committed, here or in `tests/fixtures/real/`.
 
 ## Tracks
 
-Six, and each one exists to break something different. Four of the five plan rows were added
+Ten, and each one exists to break something different. Four of the five plan rows were added
 during the cycle rather than at the end of it, which is why two real bugs and three previously
 guessed thresholds were caught before anything was built on top of them.
+
+The **first six** are the v4 → v5 cycle's corpus. The **last four** were added afterwards, each to
+take a known bug from one failing example to two, because a threshold tuned against a single track
+with Madonna as its only guard is how four packages last cycle got built, measured and reverted.
 
 | track | duration | why it is here |
 |---|---|---|
@@ -39,6 +43,20 @@ guessed thresholds were caught before anything was built on top of them.
 | `brian-eno-1-1-remastered-2004` | 1041.5 s | **row 4, ambient. The important one.** Expected output is a refusal, and a refusal is a pass. Returns `no_grid`, no arrangement, no sections, and two stems gated as silent. Without this row nothing checks that the tool can say no. |
 | `roni-size-reprazent-brown-paper-bag` | 302.7 s | **row 5, drum & bass at 170.** The backend reads 84.92 — exactly half — at the highest confidence anywhere in the corpus. The octave is arbitrated on grid quality, not correlation. |
 | `herbie-hancock-chameleon-official-audio` | 947.3 s | funk. Added alongside row 2 as a second candidate for the swung branch; also returned nothing, and its grid is a genuine near miss (0.50 of the profile on grid against 0.5 required). |
+| `stevie-ray-vaughan-double-trouble-pride-and-joy-official-audio` | 223.5 s | **shuffle.** Returns `subdivision_feel: "swung 8ths"` — the **first time that branch has fired on real material** in the project's history. Badu and Chameleon were both tried and both came back straight. Tempo refinement declines (`coarse`, `no_grid`), which is the right answer on a live blues trio and does not stop the swing being read. |
+| `amy-winehouse-back-to-black` | 240.0 s | **second reverberant kit**, and it reproduces Levee's failure with a different drummer and room: `kick:not_sparse`, the band closed, **zero kick-band candidates**. Milder than Levee, which closes `body` as well — 223 kicks are still recovered from other bands here, so a fix to the sparsity gate can be checked for what it recovers *and* what it breaks. |
+| `pendulum-slam-hd` | 259.0 s | **the drum & bass that works.** Roni Size is the only d&b in the corpus and it fails, so nothing guarded a fix to `feature_window_seconds`. Refined 174.00 at high confidence, grid `ok`, kick survival 0.757. Any change that improves Roni must leave this alone. |
+| `daft-punk-get-lucky-official-audio-ft-pharrell-williams-nile-rodgers` | 248.7 s | **second fixed-tempo guard**, added because Madonna was the only one. Real drums, bass, vocal and guitar, so all four stems carry genuine content. Refined 116.04 at high confidence, kick survival **1.000** — the cleanest in the corpus. Also found a new bug on arrival: **7 snares**, see below. |
+
+### What the four new rows found immediately
+
+`daft-punk-get-lucky` reports **7 snares against 730 hats** over four minutes of a record with a
+backbeat on every bar. The body band produced only 53 candidates (Madonna: 88 over a comparable
+length) at a median `body_ratio` of **0.016** against Madonna's 0.445 — a 28x difference. That
+snare is bright and thin, it puts almost nothing in 150–500 Hz, and it is being detected in `air`
+and classified as a hat. Nothing in the output says so: this is the snare-shaped version of the
+kick failure `_kick_survival_caveat` was written for, and that caveat is deliberately kick-only
+because `body` does not map 1:1 to `snare` the way `kick` does. Open.
 
 Every row is a full-length record. Two short clips (4.3 s and 17.1 s) were carried through the
 v4 → v5 cycle and have since been dropped: they were too short to expose F1 — tempo drift scales

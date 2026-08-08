@@ -665,7 +665,7 @@ THRESHOLDS: Final[dict[str, float]] = {
     # [guess] Share of hits that may be `unclassified` before that fact is
     # raised as a caveat rather than left to the reader to notice.
     "unclassified_caveat_fraction": 0.25,
-    # [grounded, measured — six-track corpus] Share of the kick band's own
+    # [grounded, measured — ten-track corpus] Share of the kick band's own
     # candidates that must survive classification as kicks before the kick
     # pattern is reported without comment. Below it, `_kick_survival_caveat`
     # says so.
@@ -678,24 +678,33 @@ THRESHOLDS: Final[dict[str, float]] = {
     # nothing in the output admitting it. A drum & bass grid with no kick in it,
     # presented as clean.
     #
-    # Measured across all six tracks in `calibration/v5/`, candidates detected
+    # Measured across all ten tracks in `calibration/v5/`, candidates detected
     # in the kick band against those classified as kick:
     #
-    #     madonna    491 -> 473   0.963
+    #     daftpunk   491 -> 491   1.000
+    #     srv        242 -> 235   0.971
     #     badu       279 -> 270   0.968
+    #     madonna    491 -> 473   0.963
+    #     pendulum   334 -> 253   0.757
     #     chameleon  827 -> 563   0.681
     #     roni       293 ->  57   0.195
-    #     levee, eno   kick band dormant — `_dormant_caveats` owns these
+    #     amy, levee, eno   kick band dormant — `_dormant_caveats` owns these
     #
     # 0.5 is the majority bound and it is a statable fact, not a midpoint: below
     # it the kick band found more things that were not kicks than things that
     # were. It sits in a 3.5x gap with nothing in it — 2.6x above Roni, 1.36x
     # below the nearest track that is not being complained about.
     #
+    # **The bound was set on six tracks and four more did not move it.** The
+    # gap it sits in is the same gap: Roni is still alone below, and Pendulum
+    # — dense drum & bass that works, the case most likely to have landed in
+    # the gap and closed it — came in at 0.757, above Chameleon rather than
+    # near Roni. That is the corpus doing what it is for.
+    #
     # Chameleon at 0.681 stays quiet deliberately. It already returns `no_grid`
     # and says why, 695 kicks over 947 s is a plausible funk rate, and moving
-    # the bound up to catch it would put the threshold 1.4x under Madonna and
-    # Badu with no gap left to absorb a seventh track.
+    # the bound up to catch it would put the threshold under Pendulum, which
+    # is a working transcription.
     "kick_survival_caveat_fraction": 0.5,
 }
 
